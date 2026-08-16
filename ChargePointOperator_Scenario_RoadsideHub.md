@@ -1,6 +1,6 @@
 # ChargePointOperator — Scenario Spec: Roadside Hub
 
-**Version:** 2.2 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14 · v2.1: bankruptcy phrasing, margin-trap observability · v2.2: readiness-review fixes — scripted-fault target pinned, §2 completed against D20, §5a upgrade-value analysis, re-derived load math)*
+**Version:** 2.3 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14 · v2.1: bankruptcy phrasing, margin-trap observability · v2.2: readiness-review fixes — scripted-fault target pinned, §2 completed against D20, §5a upgrade-value analysis, re-derived load math · **v2.3: `minOperatingMargin` set to £2,000 from the measured distribution (Mark, OPEN-7)**)*
 **Companions:** Calibration sheet v2.2 (constants), KPI dictionary (goal + failure-state definitions), Architecture §5.7 (`ScenarioConfig`), Decision log (D8–D26)
 **This is the MVP scenario (Plan D5)** — `scenarios/roadsideHub.ts` in prose form. Commuter-hub and destination-site variants follow in Phase 3 (O6).
 
@@ -78,7 +78,7 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 
 | Goal | Value |
 | :-- | :-- |
-| `minOperatingMargin` | ≥ **£1,750** CUM (revenue − energy − maintenance − opex; capex excluded per D12) |
+| `minOperatingMargin` | ≥ **£2,000** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *set by Mark from the post-D30/D31 measured baseline distribution: above the median £1,722, below the p80 £2,196* |
 | `maxAvgWaitSeconds` | ≤ 480 (8 sim-min, CUM) |
 | `minTrust` | ≥ 55 |
 | `minSessionsCompleted` | ≥ 110 |
@@ -89,7 +89,18 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 
 **Failure states** are defined in the KPI dictionary (D24) and detected every tick. They don't end the run; they're recorded so gate criterion 3 is a count rather than an opinion.
 
-**Difficulty floor (D13, ratified):** the baseline must fail ≥1 goal on ≥80% of seeds. Expected bite point: `minOperatingMargin` (£1,750 vs baseline **£1,300–£1,800**, re-derived in Calibration §7a) — the intended message being that a passively-run site is a mediocre business. Secondary bite: `minTrust` (55 vs 45–70) and `maxAvgWaitSeconds`. **`minSessionsCompleted` (110) is slack** — the baseline clears it on essentially every seed, so it currently scores nothing; raise it to ~160 once Phase 1 measures the distribution. If the baseline wins too often, raise `minOperatingMargin` or `minTrust` first; don't touch the economy constants for difficulty reasons.
+**Difficulty floor (D13, ratified): measured 70% at these goals — still short of ≥80%.** The margin goal is doing the work as intended (baseline meets it on 6/20 seeds) and `minTrust` adds a little (12/20), but the two are correlated: every seed that misses on trust also misses on margin, so the union is the margin figure. `maxAvgWaitSeconds` (20/20) and `minSessionsCompleted` (20/20) still score nothing.
+
+**Six seeds clear everything** — s5, s6, s8, s9, s10, s20 — and two of them have to fail something for the floor to close. Measured options, each sufficient on its own:
+
+| Change | Catches | Floor |
+| :-- | :-- | :-- |
+| `minSessionsCompleted` 110 → **180** | s10 (172), s9 (174) | **80%** — and turns a decorative goal into a live one |
+| `minTrust` 55 → 59 | s10 (58.4), s20 (59.0) | 80%, but 59 is a suspiciously precise number |
+| `maxAvgWaitSeconds` 480 → 330 s | four of the six | 100% — too blunt |
+| `minOperatingMargin` → £2,200 (p80) | two more on margin alone | 80%, at the cost of a harsher single goal |
+
+Standing instruction unchanged: raise a goal, never the economy constants, for difficulty reasons.
 
 ## 5a. Is the £40k upgrade ever the right call? — `NEW (v2.2)`
 

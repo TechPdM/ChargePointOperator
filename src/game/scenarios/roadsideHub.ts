@@ -139,7 +139,10 @@ export const roadsideHub: ScenarioConfig = {
   scriptedFaults: [{ atSecond: 12.5 * H, bayId: "bay-5", category: "power_module_fault" }],
 
   goals: {
-    minOperatingMargin: 1_750,
+    // Set by Mark, 2026-08-16, from the post-D30/D31 measured distribution
+    // (OPEN-7). Between the median (£1,722) and the p80 (£2,196): a passively
+    // run site clears it on a good seed and misses on a mediocre one.
+    minOperatingMargin: 2_000,
     maxAvgWaitSeconds: 480,
     minTrust: 55,
     minSessionsCompleted: 110,
