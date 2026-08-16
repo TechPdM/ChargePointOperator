@@ -8,10 +8,12 @@
  * Phase 3 nicety.
  */
 
+import { runScenario } from "../core/run.ts";
+import { baselinePolicy } from "./baselinePolicy.ts";
 import { cumulativeMargin } from "../systems/economics.ts";
 import { evaluateGoals } from "../systems/scoring.ts";
 import type { RunResult } from "../core/run.ts";
-import type { FailureState, ScenarioGoals, SimulationState } from "../core/types.ts";
+import type { FailureState, ScenarioConfig, ScenarioGoals, SimulationState } from "../core/types.ts";
 
 export interface RunSummary {
   runId: string;
@@ -176,4 +178,43 @@ function percentile(sorted: number[], q: number): number {
   const lo = sorted[lower] ?? 0;
   const hi = sorted[upper] ?? 0;
   return lo + (hi - lo) * (pos - lower);
+}
+
+/**
+ * Run the same day the same way a passive operator would, on the same seed.
+ *
+ * This is what makes "did my decisions matter?" answerable — and it is the
+ * only way `margin_trap` can be detected at all, since its definition is
+ * relative to this run. Cheap enough to do in the browser at the end of a
+ * played run: 1,440 ticks with no logging is well under a second.
+ */
+export function runBaselineFor(scenario: ScenarioConfig, seed: string): RunSummary {
+  return summariseRun(
+    runScenario({
+      scenario,
+      seed,
+      policy: baselinePolicy,
+      policyLabel: "baseline",
+      runId: `baseline-${scenario.id}-${seed}`,
+      logLevel: "info",
+      collectLog: false,
+      invariants: "collect",
+    }),
+  );
+}
+
+/** Summarise a played browser run without needing its RunResult envelope. */
+export function summarisePlayed(
+  state: SimulationState,
+  seed: string,
+  faults: number,
+): RunSummary {
+  return summariseState(state, {
+    runId: `browser-${seed}`,
+    seed,
+    policyLabel: "played",
+    outcome: state.result ?? "aborted",
+    finalStateHash: "",
+    faults,
+  });
 }

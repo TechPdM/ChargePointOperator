@@ -432,6 +432,15 @@ export interface ScenarioConfig {
   initialMaintenanceLevel: MaintenanceLevel;
   initialPartialChargeTargetSoc?: number;
 
+  /**
+   * Site-level modifiers on driver behaviour (Phase 3). A destination site is
+   * somewhere people leave the car and go and do something else, so they wait
+   * far longer and arrive less desperate; a corridor hub is the opposite. Both
+   * default to 1 and are the axes the patience sweep moves.
+   */
+  patienceMultiplier?: number;
+  urgencyMultiplier?: number;
+
   energyCostPerKwh: number;
   opexPerSimDay: number;
   upgradeCosts: UpgradeCost[];

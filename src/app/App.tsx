@@ -26,6 +26,7 @@ import { AlertsFeed } from "../ui/components/AlertsFeed.tsx";
 import { WaitTimeTrendChart } from "../ui/components/WaitTimeTrendChart.tsx";
 import { EconomicsTrendChart } from "../ui/components/EconomicsTrendChart.tsx";
 import { EventLogPanel } from "../ui/components/EventLogPanel.tsx";
+import { PostRunSummary } from "../ui/components/PostRunSummary.tsx";
 
 export function App(): ReactElement {
   const sim = useSimulation(roadsideHub, "s1");
@@ -41,6 +42,8 @@ export function App(): ReactElement {
       </div>
 
       <KpiCardGrid state={state} />
+
+      <PostRunSummary state={state} comparison={sim.state.comparison} />
 
       {/* Once the day is scored, every control is spent. A `fieldset` disables
           all of them at once natively — including keyboard focus — while

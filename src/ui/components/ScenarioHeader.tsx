@@ -1,5 +1,12 @@
 import type { ReactElement } from "react";
 import { simClock, waveName } from "../format.ts";
+import type { ScenarioConfig } from "../../game/core/types.ts";
+
+const ARCHETYPE_LABEL: Record<ScenarioConfig["archetype"], string> = {
+  corridor_hub: "corridor hub",
+  commuter_hub: "commuter hub",
+  destination_site: "destination site",
+};
 import type { SimulationState } from "../../game/core/types.ts";
 
 /**
@@ -15,7 +22,8 @@ export function ScenarioHeader({ state }: { state: SimulationState }): ReactElem
       <div className="scenario-id">
         <span className="site-name">{state.scenario.name}</span>
         <span className="site-meta">
-          {state.site.maxBays} bays · {state.site.gridPowerKw} kW supply · corridor hub
+          {state.site.maxBays} bays · {state.site.gridPowerKw} kW supply ·{" "}
+          {ARCHETYPE_LABEL[state.scenario.archetype]}
         </span>
       </div>
 

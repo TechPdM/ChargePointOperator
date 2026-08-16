@@ -5,6 +5,11 @@
  *   npm run sim -- run    [--seed s1] [--policy baseline|none] [--ndjson out.ndjson]
  *   npm run sim -- batch  [--seeds 20] [--policy baseline|none] [--json out.json]
  *   npm run sim -- trace  [--seed s1] [--from 700] [--to 780]
+ *   npm run sim -- sweep  [--seeds 8] [--axis pricePerKwh]
+ *   npm run sim -- archetypes [--seeds 20]
+ *   npm run sim -- strategies [--seeds 8]     — the gate criterion 2 test
+ *
+ * All commands take --scenario roadside|commuter|destination.
  *
  * `batch` is what closes OPEN-3: it reports mean AND p10/p90 per KPI, because a
  * mean inside the expected band tells you nothing about whether 30% of seeds
@@ -15,10 +20,17 @@ import { writeFileSync } from "node:fs";
 import { queueAction } from "./actions/playerActions.ts";
 import { runScenario } from "./core/run.ts";
 import { createInitialState } from "./core/init.ts";
-import { roadsideHub } from "./scenarios/roadsideHub.ts";
+import { ALL_SCENARIOS, findScenario, roadsideHub } from "./scenarios/index.ts";
 import { baselinePolicy, passivePolicy } from "./experiment/baselinePolicy.ts";
 import { stat, summariseRun, type RunSummary, type Stat } from "./experiment/compareRuns.ts";
 import { formatTraceLine, traceTick } from "./validation/trace.ts";
+import { runSweep, sanityAxes, type SweepResult } from "./experiment/sweep.ts";
+import {
+  judgeDominance,
+  scoreStrategy,
+  STRATEGIES,
+  type StrategyScore,
+} from "./experiment/strategies.ts";
 import type {
   MaintenanceLevel,
   PowerPolicy,
@@ -41,6 +53,8 @@ interface Args {
   price?: number;
   partial?: number;
   grid?: number;
+  scenario: string;
+  axis?: string;
 }
 
 /**
@@ -48,13 +62,14 @@ interface Args {
  * under them. This is the seam Phase 3's sensitivity sweeps plug into.
  */
 function withOverrides(args: Args): ScenarioConfig {
+  const base = findScenario(args.scenario);
   return {
-    ...roadsideHub,
-    initialMaintenanceLevel: args.maintenance ?? roadsideHub.initialMaintenanceLevel,
-    initialPowerPolicy: args.power ?? roadsideHub.initialPowerPolicy,
-    initialPricePerKwh: args.price ?? roadsideHub.initialPricePerKwh,
-    initialPartialChargeTargetSoc: args.partial ?? roadsideHub.initialPartialChargeTargetSoc,
-    initialGridPowerKw: args.grid ?? roadsideHub.initialGridPowerKw,
+    ...base,
+    initialMaintenanceLevel: args.maintenance ?? base.initialMaintenanceLevel,
+    initialPowerPolicy: args.power ?? base.initialPowerPolicy,
+    initialPricePerKwh: args.price ?? base.initialPricePerKwh,
+    initialPartialChargeTargetSoc: args.partial ?? base.initialPartialChargeTargetSoc,
+    initialGridPowerKw: args.grid ?? base.initialGridPowerKw,
   };
 }
 
@@ -66,6 +81,7 @@ function parseArgs(argv: string[]): Args {
     policy: "baseline",
     from: 0,
     to: 1_440,
+    scenario: roadsideHub.id,
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -107,6 +123,12 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--grid":
         args.grid = Number(value);
+        break;
+      case "--scenario":
+        args.scenario = value;
+        break;
+      case "--axis":
+        args.axis = value;
         break;
     }
   }
@@ -262,6 +284,149 @@ function commandTrace(args: Args): void {
   }
 }
 
+function printSweep(result: SweepResult): void {
+  console.log(`\n  ${result.axis.toUpperCase()}`);
+  if (result.notes) console.log(`  expected: ${result.notes}`);
+
+  const metrics = result.verdicts.map((v) => v.metric);
+  const header = ["value".padEnd(12), ...metrics.map((m) => m.padStart(22))].join("");
+  console.log(`\n  ${header}`);
+  result.cells.forEach((cell, i) => {
+    const row = metrics.map((m) => {
+      const value = cell.metrics[m].mean;
+      return (Math.abs(value) >= 100 ? value.toFixed(0) : value.toFixed(2)).padStart(22);
+    });
+    console.log(`  ${cell.label.padEnd(12)}${row.join("")}`);
+    void i;
+  });
+
+  console.log("");
+  for (const v of result.verdicts) {
+    const mark = v.pass ? "PASS" : "FAIL";
+    console.log(
+      `  [${mark}] ${v.metric.padEnd(24)} expected ${v.expected.padEnd(13)} observed ${v.observed}`,
+    );
+  }
+}
+
+function commandSweep(args: Args): void {
+  const scenario = withOverrides(args);
+  const axes = sanityAxes().filter((a) => !args.axis || a.name === args.axis);
+  if (axes.length === 0) {
+    console.error(`No axis named "${args.axis}". Available: ${sanityAxes().map((a) => a.name).join(", ")}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`\n  SANITY GRADIENTS — ${scenario.name}, ${args.seeds} seeds per point`);
+  console.log("  Calibration §8: a flat or inverted gradient is a finding-killer.");
+
+  const results = axes.map((axis) => {
+    const result = runSweep(axis, { scenario, seeds: args.seeds });
+    printSweep(result);
+    return result;
+  });
+
+  const all = results.flatMap((r) => r.verdicts);
+  const failed = all.filter((v) => !v.pass);
+  console.log(`\n  ${all.length - failed.length}/${all.length} gradients behave as specified.`);
+  for (const v of failed) {
+    const axis = results.find((r) => r.verdicts.includes(v))?.axis;
+    console.log(`    FAILED: ${axis} → ${v.metric} (expected ${v.expected}, got ${v.observed})`);
+  }
+  if (args.json) {
+    writeFileSync(args.json, JSON.stringify(results, null, 2), "utf8");
+    console.log(`\n  wrote sweep results → ${args.json}`);
+  }
+}
+
+function commandArchetypes(args: Args): void {
+  console.log(`\n  ARCHETYPE BASELINES — ${args.seeds} seeds each\n`);
+  for (const scenario of ALL_SCENARIOS) {
+    const summaries: RunSummary[] = [];
+    for (let i = 1; i <= args.seeds; i++) {
+      const result = runScenario({
+        scenario,
+        seed: `s${i}`,
+        policy: baselinePolicy,
+        policyLabel: "baseline",
+        logLevel: "info",
+        collectLog: false,
+      });
+      summaries.push(summariseRun(result));
+      if (result.finalViolations.length > 0) {
+        console.error(`  ${scenario.id} seed s${i}: invariant violations`);
+        process.exitCode = 1;
+      }
+    }
+    const mean = (f: (s: RunSummary) => number): number =>
+      summaries.reduce((a, s) => a + f(s), 0) / summaries.length;
+    const fails = summaries.filter((s) => s.goalsMetCount < 4).length;
+    const observed = new Set(summaries.flatMap((s) => s.failureStatesObserved));
+
+    console.log(`  ${scenario.name}  (${scenario.archetype})`);
+    console.log(
+      `    served ${mean((s) => s.sessionsCompleted).toFixed(0)}` +
+        ` · margin £${mean((s) => s.cumMargin).toFixed(0)}` +
+        ` · wait ${(mean((s) => s.cumAvgWaitSeconds) / 60).toFixed(1)} min` +
+        ` · trust ${mean((s) => s.trust).toFixed(1)}` +
+        ` · util ${mean((s) => s.cumUtilizationPct).toFixed(0)}%` +
+        ` · uptime ${mean((s) => s.cumUptimePct).toFixed(1)}%`,
+    );
+    console.log(
+      `    D13 floor ${((fails / summaries.length) * 100).toFixed(0)}%` +
+        `${fails / summaries.length >= 0.8 ? " PASS" : " FAIL"}` +
+        ` · failure states seen: ${[...observed].join(", ") || "none"}\n`,
+    );
+  }
+}
+
+function commandStrategies(args: Args): void {
+  console.log(
+    `\n  DOMINANT-STRATEGY TEST (gate criterion 2) — ${args.seeds} seeds per cell\n` +
+      `  A strategy that tops every archetype is dominant, and the criterion fails.\n`,
+  );
+
+  const scores: StrategyScore[] = [];
+  for (const scenario of ALL_SCENARIOS) {
+    console.log(`  ${scenario.name} (${scenario.archetype})`);
+    console.log(
+      `  ${"strategy".padEnd(22)}${"goals".padStart(7)}${"win%".padStart(7)}` +
+        `${"margin".padStart(9)}${"served".padStart(8)}${"trust".padStart(7)}${"wait".padStart(7)}`,
+    );
+    const forScenario = STRATEGIES.map((strategy) => scoreStrategy(strategy, scenario, args.seeds));
+    scores.push(...forScenario);
+    const best = Math.max(...forScenario.map((s) => s.meanGoalsMet));
+    for (const s of forScenario) {
+      const mark = s.meanGoalsMet === best ? " ←" : "";
+      console.log(
+        `  ${s.strategy.padEnd(22)}${s.meanGoalsMet.toFixed(2).padStart(7)}` +
+          `${(s.winRate * 100).toFixed(0).padStart(6)}%` +
+          `${("£" + s.meanMargin.toFixed(0)).padStart(9)}` +
+          `${s.meanSessions.toFixed(0).padStart(8)}` +
+          `${s.meanTrust.toFixed(1).padStart(7)}` +
+          `${(s.meanWaitSeconds / 60).toFixed(1).padStart(6)}m${mark}`,
+      );
+    }
+    console.log("");
+  }
+
+  const verdict = judgeDominance(scores);
+  console.log("  WINNER BY SITE");
+  for (const w of verdict.winners) {
+    console.log(`    ${w.scenarioId.padEnd(22)} ${w.strategy} (${w.meanGoalsMet.toFixed(2)} goals)`);
+  }
+  console.log(
+    `\n  Distinct winning strategies: ${verdict.distinctWinners.join(", ")}` +
+      `\n  Gate criterion 2: ${verdict.pass ? "PASS — no single strategy wins everywhere" : `FAIL — "${verdict.dominantStrategy}" wins every archetype`}`,
+  );
+
+  if (args.json) {
+    writeFileSync(args.json, JSON.stringify({ scores, verdict }, null, 2), "utf8");
+    console.log(`\n  wrote strategy scores → ${args.json}`);
+  }
+}
+
 const args = parseArgs(process.argv.slice(2));
 switch (args.command) {
   case "batch":
@@ -269,6 +434,15 @@ switch (args.command) {
     break;
   case "trace":
     commandTrace(args);
+    break;
+  case "sweep":
+    commandSweep(args);
+    break;
+  case "archetypes":
+    commandArchetypes(args);
+    break;
+  case "strategies":
+    commandStrategies(args);
     break;
   default:
     commandRun(args);

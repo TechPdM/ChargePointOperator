@@ -73,7 +73,14 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
   const batteryCapacityKwh = ctx.rng.range(p.batteryKwh[0], p.batteryKwh[1]);
   const maxChargeRateKw = ctx.rng.range(p.maxChargeRateKw[0], p.maxChargeRateKw[1]);
   const currentSoc = ctx.rng.range(p.arrivalSoc[0], p.arrivalSoc[1]);
-  const urgencyScore = ctx.rng.range(p.urgency[0], p.urgency[1]);
+  // Site type shapes who turns up and how they behave once they do.
+  const urgencyScore = Math.min(
+    1,
+    ctx.rng.range(p.urgency[0], p.urgency[1]) * (state.scenario.urgencyMultiplier ?? 1),
+  );
+  const patienceSeconds = Math.round(
+    p.patienceSeconds * (state.scenario.patienceMultiplier ?? 1),
+  );
 
   const id = `v-${state.nextVehicleSeq}`;
   state.nextVehicleSeq += 1;
@@ -95,7 +102,7 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
       // at session start (D14); this figure is what they wanted.
       requestedKwh: Math.max(0, (p.targetSoc - currentSoc) * batteryCapacityKwh),
       maxAcceptablePricePerKwh: p.maxAcceptablePricePerKwh,
-      patienceSeconds: p.patienceSeconds,
+      patienceSeconds,
     },
   };
 }

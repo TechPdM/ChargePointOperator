@@ -1289,3 +1289,102 @@ input[type="number"] {
 .log-error .log-message {
   color: var(--bad);
 }
+
+
+/* ------------------------------------------------------- post-run summary */
+
+.post-run {
+  border-left: 3px solid var(--rule-bright);
+}
+
+.post-run.is-win {
+  border-left-color: var(--ok);
+}
+.post-run.is-loss {
+  border-left-color: var(--bad);
+}
+
+.post-run-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 1000px) {
+  .post-run-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.post-run-col h3 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.goal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.goal-list li {
+  display: grid;
+  grid-template-columns: 14px 1fr auto 108px;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11.5px;
+  padding: 2px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 50%, transparent);
+}
+
+.goal-mark {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.is-met .goal-mark {
+  color: var(--ok);
+}
+.is-missed .goal-mark {
+  color: var(--bad);
+}
+
+.goal-label {
+  color: var(--ink-2);
+}
+
+.goal-actual {
+  color: var(--ink);
+}
+
+.goal-target {
+  font-size: 10px;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.site-picker select {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--rule-bright);
+  border-radius: var(--radius);
+  padding: 5px 8px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

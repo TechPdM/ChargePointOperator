@@ -2,7 +2,7 @@
 
 A dashboard-first simulation game about running one EV charging site under pressure. You set price, power policy, charging limits, maintenance level and which bays are open; the queue, the grid cap and the faults do the rest.
 
-**Status: Phase 2 built — the dashboard plays.** A full compressed day runs in the browser and scores itself.
+**Status: Phase 3 complete.** Three site archetypes, a sensitivity-sweep harness that scores its own gradients, and a post-run report that tells you whether your decisions or the seed did the work.
 
 The design documents are canonical and come first:
 
@@ -16,6 +16,7 @@ The design documents are canonical and come first:
 | `ChargePointOperator_Decision_Log.md` | decisions taken, and the sole home of open items |
 | `ChargePointOperator_Playtest_Protocol.md` | the Phase 4 script, frozen before the build |
 | `ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
+| `ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
 
 Where code and documents disagree, the documents win — fix the document first, then the code.
 
@@ -61,6 +62,22 @@ Policy overrides work on `run` and `batch`, which is how the maintenance and par
 npm run sim -- batch --seeds 20 --maintenance preventive --partial 0.7 --grid 120
 ```
 
+The Calibration §8 sanity gradients — each axis scored, not just printed:
+
+```bash
+npm run sim -- sweep --seeds 6
+```
+
+All three archetypes side by side, and the dominant-strategy test behind gate criterion 2:
+
+```bash
+npm run sim -- archetypes --seeds 20
+```
+
+```bash
+npm run sim -- strategies --seeds 10
+```
+
 Tests and typecheck:
 
 ```bash
@@ -78,10 +95,10 @@ src/game/
   core/        types · rng · tick pipeline · selectors · run harness · calibration
   systems/     arrivals · admission · queue · power · charging · faults · economics · trust · scoring
   actions/     the seven canonical player actions
-  scenarios/   roadsideHub (Phase 3 adds commuterHub, destinationSite)
+  scenarios/   roadsideHub · commuterHub · destinationSite
   logging/     NDJSON schema · logger · run manifest · replay
   validation/  nine invariants · failure-state detection · trace mode
-  experiment/  baseline actor · run summaries · played-vs-baseline comparison
+  experiment/  baseline actor · summaries · comparison · sweeps · strategy test
   headless.ts  CLI entry point
 src/ui/
   components/  the 15-component MVP cut, one file each

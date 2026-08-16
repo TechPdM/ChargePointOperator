@@ -155,7 +155,3 @@ export const roadsideHub: ScenarioConfig = {
     trustBelowForSeconds: 7_200,
   },
 };
-
-export const scenarios: Record<string, ScenarioConfig> = {
-  [roadsideHub.id]: roadsideHub,
-};

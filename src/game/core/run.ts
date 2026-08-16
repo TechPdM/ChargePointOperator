@@ -27,6 +27,13 @@ export interface RunOptions {
   logLevel?: "debug" | "info";
   wallClock?: WallClock;
   collectLog?: boolean;
+  /**
+   * Experiment-only seam (Phase 3). Lets a sweep perturb something the scenario
+   * config deliberately does not expose — the fault-rate axis works by scaling
+   * each bay's `reliabilityBase`, which is per-state and has no business being
+   * a scenario field. Never used by the game itself.
+   */
+  transformInitialState?: (state: SimulationState) => void;
 }
 
 export interface RunResult {
@@ -51,9 +58,11 @@ export function runScenario(options: RunOptions): RunResult {
     logLevel = "debug",
     wallClock,
     collectLog = true,
+    transformInitialState,
   } = options;
 
   let state = createInitialState(scenario, seed);
+  transformInitialState?.(state);
   const initialStateHash = hashState(state);
 
   const logger = createLogger(

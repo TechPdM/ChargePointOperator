@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { ALL_SCENARIOS } from "../../game/scenarios/index.ts";
 import type { Simulation } from "../hooks/useSimulation.ts";
 
 const SPEEDS = [1, 2, 4] as const;
@@ -44,6 +45,23 @@ export function RunControls({ sim }: { sim: Simulation }): ReactElement {
       <button type="button" className="ghost" onClick={sim.exportNdjson}>
         Export log
       </button>
+
+      <label className="site-picker">
+        <span className="visually-hidden">Site</span>
+        <select
+          value={state.sim.scenario.id}
+          onChange={(e) => {
+            const next = ALL_SCENARIOS.find((s) => s.id === e.target.value);
+            if (next) sim.loadScenario(next);
+          }}
+        >
+          {ALL_SCENARIOS.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <span className="seed-tag" title="Same seed plus the same actions always replays identically">
         seed <b>{state.seed}</b> · tick {state.sim.clock.tick}

@@ -1,6 +1,6 @@
 # ChargePointOperator — Consolidated Design & Delivery Plan
 
-**Version:** 1.6 · **Date:** 2026-08-16 *(v1.1: D5 wave-timing aligned · v1.2: ratification updates · v1.3: final-review fixes · v1.4: readiness-review fixes — C2 panel list vs the MVP cut, O4 baseline maintenance level, phase exit criteria, Phase 0 status · **v1.5: Phase 1 complete — status, findings, OPEN-3 closed, OPEN-4 to OPEN-7 raised · v1.6: OPEN-4 and OPEN-5 closed by D30/D31; Phase 2 exit now fully met**)*
+**Version:** 1.7 · **Date:** 2026-08-16 *(v1.1: D5 wave-timing aligned · v1.2: ratification updates · v1.3: final-review fixes · v1.4: readiness-review fixes — C2 panel list vs the MVP cut, O4 baseline maintenance level, phase exit criteria, Phase 0 status · **v1.5: Phase 1 complete — status, findings, OPEN-3 closed, OPEN-4 to OPEN-7 raised · v1.6: OPEN-4 and OPEN-5 closed by D30/D31; Phase 2 exit now fully met**)*
 **Source:** `original_perplexity_discussion.md` (22-turn research discussion)
 **Purpose:** Decompose the source discussion into its component parts, reconcile them against each other, resolve errors/omissions/contradictions, and produce a single well-formed plan with a defined outcome and a process to reach it. This document is the deliverable — no code, no build.
 
@@ -207,7 +207,7 @@ The original four were ratified by Mark on 2026-08-16 — see the Decision Log f
 
 The readiness review opened two more, both deliberately left open rather than guessed: **OPEN-2** (maintenance tiers are cost-dominant — now confirmed by measurement, with a recommendation) and **OPEN-3** (**closed** — Calibration §7 now holds measured values).
 
-Phase 1's measurement opened four; two are now closed. **OPEN-4** (trust ran to the ceiling) is **closed by D30** — baseline trust now ends at 56.4, in band, and `minTrust` scores. **OPEN-5** (`queue_collapse` unreachable) is **closed by D31** — all five failure states are now reachable, and the cause turned out to be measurement noise in the detector rather than the behaviour the finding blamed. Still open: **OPEN-6** (three of the four partial-charge options are exact no-ops) and **OPEN-7** (the D13 difficulty floor, now failing at 60% rather than 30%, with the fresh distribution measured and a single recommended change ready to make).
+Phase 1's measurement opened four; two are now closed. **OPEN-4** (trust ran to the ceiling) is **closed by D30** — baseline trust now ends at 56.4, in band, and `minTrust` scores. **OPEN-5** (`queue_collapse` unreachable) is **closed by D31** — all five failure states are now reachable, and the cause turned out to be measurement noise in the detector rather than the behaviour the finding blamed. **OPEN-7** is closed — `minOperatingMargin` £2,200 takes the D13 floor to 80% on the corridor, and the two Phase 3 archetypes were calibrated the same way (85% and 80%). Still open, both now measured on all three archetypes and both awaiting a decision rather than more evidence: **OPEN-2** (preventive maintenance wins everywhere — and Phase 3 shows the cause is the per-repair price, not the uptime) and **OPEN-6** (three of the four partial-charge options are exact no-ops).
 
 **The Decision Log is the sole home of open items.**
 
