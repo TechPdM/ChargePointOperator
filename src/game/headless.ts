@@ -8,6 +8,7 @@
  *   npm run sim -- sweep  [--seeds 8] [--axis pricePerKwh]
  *   npm run sim -- archetypes [--seeds 20]
  *   npm run sim -- strategies [--seeds 8]     — the gate criterion 2 test
+ *   npm run sim -- gate   [--seeds 10]        — the Phase 4 scorecard, machine half
  *
  * All commands take --scenario roadside|commuter|destination.
  *
@@ -31,6 +32,12 @@ import {
   STRATEGIES,
   type StrategyScore,
 } from "./experiment/strategies.ts";
+import {
+  gatherDecisionsMatter,
+  gatherDominance,
+  gatherFailureStates,
+  playtestProbes,
+} from "./experiment/gateEvidence.ts";
 import type {
   MaintenanceLevel,
   PowerPolicy,
@@ -427,6 +434,62 @@ function commandStrategies(args: Args): void {
   }
 }
 
+function commandGate(args: Args): void {
+  console.log(`\n  GATE SCORECARD — the machine-measurable half (Plan §6.2)\n`);
+  console.log(
+    `  Criteria 1 and 5 are deliberately absent. Legibility is scored from the three\n` +
+      `  frozen questions asked of external testers, and the one-more-run test is whether\n` +
+      `  a tester volunteers a third go. Neither can be measured here, and inventing them\n` +
+      `  is exactly what a protocol frozen before the build exists to prevent.\n`,
+  );
+
+  console.log("  ── Criterion 2: no dominant strategy ".padEnd(70, "─"));
+  const dominance = gatherDominance(args.seeds);
+  for (const w of dominance.verdict.winners) {
+    console.log(`     ${w.scenarioId.padEnd(22)} won by ${w.strategy} (${w.meanGoalsMet.toFixed(2)} goals)`);
+  }
+  console.log(`     distinct winners: ${dominance.verdict.distinctWinners.join(", ")}`);
+  console.log(`     ${dominance.verdict.pass ? "PASS" : "FAIL"} — needs ≥2 distinct, none winning everywhere\n`);
+
+  console.log("  ── Criterion 3: failure modes reachable ".padEnd(70, "─"));
+  const probes = playtestProbes();
+  const failures = gatherFailureStates(probes);
+  console.log(`     across ${failures.runsInspected} runs (3 scenarios × 3 playtest seeds × 4 plausible approaches)`);
+  for (const [state, count] of Object.entries(failures.observed)) {
+    console.log(`     ${state.padEnd(20)} ${count > 0 ? `${count} runs` : "not seen"}`);
+  }
+  console.log(
+    `     ${failures.pass ? "PASS" : "FAIL"} — ${failures.distinctObserved.length}/5 observed, needs ≥4\n`,
+  );
+
+  console.log("  ── Criterion 4: decisions matter ".padEnd(70, "─"));
+  const decisions = gatherDecisionsMatter();
+  for (const c of decisions.comparisons.slice(0, 3)) {
+    const d = c.comparison.deltas;
+    console.log(
+      `     ${c.scenarioId.padEnd(22)} margin ${fmtDelta(d["cumMargin"] ?? 0, "£")}` +
+        ` · served ${fmtDelta(d["sessionsCompleted"] ?? 0)}` +
+        ` · trust ${fmtDelta(d["trust"] ?? 0)}` +
+        ` · goals ${fmtDelta(d["goalsMetCount"] ?? 0)}`,
+    );
+  }
+  console.log(`     KPIs moved ≥10% vs baseline: ${decisions.movedKpis.join(", ")}`);
+  console.log(`     ${decisions.pass ? "PASS" : "FAIL"} — needs ≥2 goal KPIs moved\n`);
+
+  const machinePass = dominance.verdict.pass && failures.pass && decisions.pass;
+  console.log(
+    `  Machine-measurable criteria: ${machinePass ? "3/3 PASS" : "NOT ALL PASSING"}.\n` +
+      `  Criteria 1 and 5 remain open pending ${PLAYTEST_TESTERS} external testers.`,
+  );
+}
+
+const PLAYTEST_TESTERS = 3;
+
+function fmtDelta(v: number, unit = ""): string {
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${unit}${Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1)}`;
+}
+
 const args = parseArgs(process.argv.slice(2));
 switch (args.command) {
   case "batch":
@@ -443,6 +506,9 @@ switch (args.command) {
     break;
   case "strategies":
     commandStrategies(args);
+    break;
+  case "gate":
+    commandGate(args);
     break;
   default:
     commandRun(args);

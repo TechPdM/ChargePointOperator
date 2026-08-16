@@ -10,7 +10,11 @@ import { useCallback, useMemo, useReducer, useRef } from "react";
 import { queueAction } from "../../game/actions/playerActions.ts";
 import { createInitialState } from "../../game/core/init.ts";
 import { tick } from "../../game/core/tick.ts";
-import { snapshotData } from "../../game/systems/scoring.ts";
+import { evaluateGoals, snapshotData } from "../../game/systems/scoring.ts";
+import { hashState } from "../../game/core/rng.ts";
+import { APP_VERSION } from "../../game/logging/logger.ts";
+import { PLAYTEST_SEEDS } from "../../game/experiment/gateEvidence.ts";
+import type { RunManifest } from "../../game/logging/schema.ts";
 import { SNAPSHOT_CADENCE_SECONDS } from "../../game/core/calibration.ts";
 import {
   compareRuns,
@@ -53,6 +57,9 @@ export interface SimState {
   running: boolean;
   seed: string;
   eventSeq: number;
+  /** Stamped when the run is created — the manifest's only wall-clock field. */
+  startedAtUtc: string;
+  initialStateHash: string;
   /**
    * Computed once, when the day closes: the same seed played passively. This
    * is what answers "did my decisions matter?", and it is the only way
@@ -82,6 +89,8 @@ function init(scenario: ScenarioConfig, seed: string): SimState {
     running: false,
     seed,
     eventSeq: 0,
+    startedAtUtc: new Date().toISOString(),
+    initialStateHash: hashState(sim),
   };
 }
 
@@ -167,7 +176,7 @@ export interface Simulation {
   togglePause: () => void;
   restart: (seed?: string) => void;
   loadScenario: (scenario: ScenarioConfig) => void;
-  exportNdjson: () => void;
+  exportRun: () => void;
 }
 
 export function useSimulation(scenario: ScenarioConfig, seed: string): Simulation {
@@ -188,33 +197,73 @@ export function useSimulation(scenario: ScenarioConfig, seed: string): Simulatio
     [],
   );
 
-  const exportNdjson = useCallback(() => {
+  /**
+   * Export the run as a `RunLogBundle` — manifest plus NDJSON events.
+   *
+   * Playtest protocol §1 requires "run manifests + full NDJSON logs saved per
+   * run, labelled `tester-run`". A bare event stream is not enough: the
+   * manifest is what carries the seed, the outcome, the goals met and
+   * `failure_states_observed`, which is what criterion 3 is counted from.
+   */
+  const exportRun = useCallback(() => {
     const current = stateRef.current;
-    // The run envelope is stamped here rather than in the sim, so run identity
-    // never reaches hashed state (C11).
-    const lines = current.events.map((e) =>
-      JSON.stringify({
-        log_schema_version: 1,
-        service: "chargepoint-operator-mvp",
-        environment: "dev",
-        app_version: "0.1.0-phase2",
-        run_id: `browser-${current.seed}`,
-        scenario_id: current.sim.scenario.id,
-        seed: current.seed,
-        ...e,
-      }),
+    const isPlaytestSeed = PLAYTEST_SEEDS.includes(current.seed as (typeof PLAYTEST_SEEDS)[number]);
+    const runId = `${isPlaytestSeed ? "tester" : "browser"}-${current.sim.scenario.id}-${current.seed}`;
+
+    const envelope = {
+      log_schema_version: 1 as const,
+      service: "chargepoint-operator-mvp" as const,
+      environment: "dev" as const,
+      app_version: APP_VERSION,
+      run_id: runId,
+      scenario_id: current.sim.scenario.id,
+      seed: current.seed,
+    };
+
+    const manifest: RunManifest = {
+      run_id: runId,
+      scenario_id: current.sim.scenario.id,
+      seed: current.seed,
+      app_version: APP_VERSION,
+      // Wall-clock exists only here (C11) — never in sim state.
+      started_at_utc: current.startedAtUtc,
+      completed_at_utc: new Date().toISOString(),
+      outcome: current.sim.result ?? "aborted",
+      duration_sim_seconds: current.sim.clock.secondsElapsed,
+      tick_count: current.sim.clock.tick,
+      initial_state_hash: current.initialStateHash,
+      final_state_hash: hashState(current.sim),
+      policy_label: isPlaytestSeed ? "tester-run" : "played",
+      failure_states_observed: [...current.sim.site.metrics.failureStatesObserved],
+      goals_met: evaluateGoals(current.sim).goalsMet,
+      notes: `${current.actions.length} player actions`,
+    };
+
+    const bundle = {
+      manifest,
+      events: current.events.map((e) => ({ ...envelope, ...e })),
+      actions: current.actions,
+    };
+
+    download(`${runId}.json`, JSON.stringify(bundle, null, 2), "application/json");
+    download(
+      `${runId}.ndjson`,
+      bundle.events.map((e) => JSON.stringify(e)).join("\n"),
+      "application/x-ndjson",
     );
-    const blob = new Blob([lines.join("\n")], { type: "application/x-ndjson" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${current.sim.scenario.id}-${current.seed}.ndjson`;
-    a.click();
-    URL.revokeObjectURL(url);
   }, []);
 
   return useMemo(
-    () => ({ state, act, advance, setSpeed, togglePause, restart, loadScenario, exportNdjson }),
-    [state, act, advance, setSpeed, togglePause, restart, loadScenario, exportNdjson],
+    () => ({ state, act, advance, setSpeed, togglePause, restart, loadScenario, exportRun }),
+    [state, act, advance, setSpeed, togglePause, restart, loadScenario, exportRun],
   );
+}
+
+function download(filename: string, contents: string, mime: string): void {
+  const url = URL.createObjectURL(new Blob([contents], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }

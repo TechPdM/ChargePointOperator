@@ -2,7 +2,7 @@
 
 A dashboard-first simulation game about running one EV charging site under pressure. You set price, power policy, charging limits, maintenance level and which bays are open; the queue, the grid cap and the faults do the rest.
 
-**Status: Phase 3 complete.** Three site archetypes, a sensitivity-sweep harness that scores its own gradients, and a post-run report that tells you whether your decisions or the seed did the work.
+**Status: Phase 4 — the gate, blocked on people.** Criteria 2, 3 and 4 are scored and pass; criteria 1 and 5 need three external testers and cannot be measured any other way. See `ChargePointOperator_Gate_Scorecard.md`.
 
 The design documents are canonical and come first:
 
@@ -15,6 +15,8 @@ The design documents are canonical and come first:
 | `ChargePointOperator_Scenario_RoadsideHub.md` | the MVP scenario |
 | `ChargePointOperator_Decision_Log.md` | decisions taken, and the sole home of open items |
 | `ChargePointOperator_Playtest_Protocol.md` | the Phase 4 script, frozen before the build |
+| `ChargePointOperator_Session_Pack.md` | the observer's sheet — one 30-minute session, start to finish |
+| `ChargePointOperator_Gate_Scorecard.md` | the gate, 3 of 5 criteria scored |
 | `ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
 | `ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
 
@@ -76,6 +78,12 @@ npm run sim -- archetypes --seeds 20
 
 ```bash
 npm run sim -- strategies --seeds 10
+```
+
+The machine-measurable half of the gate scorecard:
+
+```bash
+npm run sim -- gate --seeds 8
 ```
 
 Tests and typecheck:

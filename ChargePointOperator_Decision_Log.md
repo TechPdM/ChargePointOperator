@@ -190,7 +190,9 @@ Original entry: *(raised 2026-08-16, Phase 1; re-measured after D30/D31)* The pr
 
 **Raising `minOperatingMargin` to £2,200 alone takes the floor to ~80%.** Still Mark's call — this is a difficulty decision, not a tune, and the scenario spec is explicit that the margin goal is the one to move rather than the economy constants.
 
-**OPEN-1 — Playtesters** *(renumbered from "O-4" to stop colliding with the Plan's O1–O8 omission series)*. Parked until Phase 3 winds down (per Mark, 2026-08-16). Need 3 externals, ≥1 non-gamer non-EV person (protocol §1). Nudge: start recruiting when the Phase 3 archetype scenarios are playable.
+**OPEN-1 — Playtesters. — `NOW BLOCKING`** *(parked until Phase 3 wound down; Phase 3 is complete)* Everything except the people is ready: the apparatus, the fixed seeds, the per-run artefacts, the observer's session pack, and three of the five gate criteria already scored and passing. **Phase 4 cannot complete without three external testers, at least one neither a gamer nor an EV person.** Two of the five criteria are irreducibly human and will not be filled any other way. Original entry:
+
+**OPEN-1 — Playtesters (original)** *(renumbered from "O-4" to stop colliding with the Plan's O1–O8 omission series)*. Parked until Phase 3 winds down (per Mark, 2026-08-16). Need 3 externals, ≥1 non-gamer non-EV person (protocol §1). Nudge: start recruiting when the Phase 3 archetype scenarios are playable.
 
 **OPEN-2 — Maintenance-tier dominance. — `CLOSED 2026-08-16 by D33`** *(raised readiness review; measured Phase 1; re-measured and diagnosed Phase 3)*
 

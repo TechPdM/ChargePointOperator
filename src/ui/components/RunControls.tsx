@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { ALL_SCENARIOS } from "../../game/scenarios/index.ts";
+import { PLAYTEST_SEEDS } from "../../game/experiment/gateEvidence.ts";
 import type { Simulation } from "../hooks/useSimulation.ts";
 
 const SPEEDS = [1, 2, 4] as const;
@@ -42,9 +43,24 @@ export function RunControls({ sim }: { sim: Simulation }): ReactElement {
       <button type="button" className="ghost" onClick={() => sim.restart(randomSeed(state.seed))}>
         New seed
       </button>
-      <button type="button" className="ghost" onClick={sim.exportNdjson}>
-        Export log
+      <button type="button" className="ghost" onClick={sim.exportRun}>
+        Save run
       </button>
+
+      <label className="site-picker">
+        <span className="visually-hidden">Seed</span>
+        <select
+          value={PLAYTEST_SEEDS.includes(state.seed as (typeof PLAYTEST_SEEDS)[number]) ? state.seed : "free"}
+          onChange={(e) => sim.restart(e.target.value === "free" ? randomSeed(state.seed) : e.target.value)}
+        >
+          <option value="free">Free play</option>
+          {PLAYTEST_SEEDS.map((s) => (
+            <option key={s} value={s}>
+              Playtest {s}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="site-picker">
         <span className="visually-hidden">Site</span>

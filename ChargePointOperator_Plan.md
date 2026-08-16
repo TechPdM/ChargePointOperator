@@ -1,6 +1,6 @@
 # ChargePointOperator — Consolidated Design & Delivery Plan
 
-**Version:** 1.7 · **Date:** 2026-08-16 *(v1.1: D5 wave-timing aligned · v1.2: ratification updates · v1.3: final-review fixes · v1.4: readiness-review fixes — C2 panel list vs the MVP cut, O4 baseline maintenance level, phase exit criteria, Phase 0 status · **v1.5: Phase 1 complete — status, findings, OPEN-3 closed, OPEN-4 to OPEN-7 raised · v1.6: OPEN-4 and OPEN-5 closed by D30/D31; Phase 2 exit now fully met**)*
+**Version:** 1.8 · **Date:** 2026-08-16 *(v1.1: D5 wave-timing aligned · v1.2: ratification updates · v1.3: final-review fixes · v1.4: readiness-review fixes — C2 panel list vs the MVP cut, O4 baseline maintenance level, phase exit criteria, Phase 0 status · **v1.5: Phase 1 complete — status, findings, OPEN-3 closed, OPEN-4 to OPEN-7 raised · v1.6: OPEN-4 and OPEN-5 closed by D30/D31; Phase 2 exit now fully met**)*
 **Source:** `original_perplexity_discussion.md` (22-turn research discussion)
 **Purpose:** Decompose the source discussion into its component parts, reconcile them against each other, resolve errors/omissions/contradictions, and produce a single well-formed plan with a defined outcome and a process to reach it. This document is the deliverable — no code, no build.
 
@@ -174,9 +174,11 @@ The 15-component cut wired to the store via selectors; controls emit the seven c
 Baseline-vs-played comparison view; post-run diagnosis summary; sensitivity sweeps over arrival rate, price elasticity, fault rate, patience (checking outputs move in sane directions — P); calibrate thresholds against the Phase 0 sheet; add commuter-hub and destination-site archetypes; second-wave dashboard components as needed for diagnosis.
 *Exit:* the three operator questions are answerable with logged evidence; thresholds are set from data rather than guesses; three archetypes playable.
 
-**Phase 4 — Playtest & gate.**
+**Phase 4 — Playtest & gate. — `APPARATUS READY; BLOCKED ON TESTERS`**
 Self-playtests plus **3 external testers** (each: 3+ runs, think-aloud, then the three legibility questions) — the protocol's §5 thresholds assume 3, with a documented fallback if only 2 can be found. Run the gate (§6.2). Write a 1–2 page findings note.
-*Exit:* an explicit go / tune / pivot decision, recorded.
+*Status:* **criteria 2, 3 and 4 are scored and all three pass** — `ChargePointOperator_Gate_Scorecard.md`. Criterion 3 came in at **5 of 5** failure states across 36 runs of plausible play, against a threshold of 4. The app supports the fixed `pt-1`/`pt-2`/`pt-3` seeds and writes a manifest + NDJSON per run, auto-labelled `tester-run`; `ChargePointOperator_Session_Pack.md` is the observer's sheet for a 30-minute session.
+**Criteria 1 and 5 are deliberately unscored.** Legibility is measured by asking three frozen questions of someone who did not build this; the one-more-run test is whether a tester *volunteers* a third go. Filling those rows from self-play would produce a number and destroy its meaning — which is the whole reason the protocol was frozen before the build. **This phase cannot complete without three people** (OPEN-1).
+*Exit:* an explicit go / tune / pivot decision, recorded. **Not yet reachable.**
 
 **Phase 5 — Post-MVP (sketch only, do not pre-build).**
 Progression (unlocks, second site, capex/add-bay), longer campaign clock (this is where the 90-day/12-month horizons return), portfolio → network-planner layer (Part F's spec), visual site view (canvas → isometric), and the deferred mechanics backlog. To be planned properly only after the gate passes.
