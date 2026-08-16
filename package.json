@@ -1,0 +1,23 @@
+{
+  "name": "chargepoint-operator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Facility-controller sim: keep one EV charging site flowing under pressure. Phase 1 = headless sim core.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sim": "tsx src/game/headless.ts",
+    "baseline": "tsx src/game/headless.ts batch --seeds 20 --policy baseline",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  }
+}

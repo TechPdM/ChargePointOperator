@@ -1,0 +1,366 @@
+/**
+ * Mechanics tests — each one pins a formula or rule to the document that
+ * defines it, so a silent retune shows up as a red test rather than as a
+ * mysterious change in the seed batch.
+ */
+
+import { describe, expect, it } from "vitest";
+import {
+  ACCEPT_THRESHOLD,
+  ARCHETYPES,
+  MAINTENANCE,
+  taper,
+  TRUST,
+} from "../src/game/core/calibration.ts";
+import { createInitialState } from "../src/game/core/init.ts";
+import { tick } from "../src/game/core/tick.ts";
+import { queueAction } from "../src/game/actions/playerActions.ts";
+import { siteScore } from "../src/game/systems/admission.ts";
+import { priceMultiplier } from "../src/game/systems/arrivals.ts";
+import { abandonProbability } from "../src/game/systems/queue.ts";
+import { faultProbabilityPerTick } from "../src/game/systems/faults.ts";
+import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
+import type { SimulationState, VehicleAgent, VehicleArchetype } from "../src/game/core/types.ts";
+
+function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
+  const p = ARCHETYPES[archetype];
+  return {
+    id: "v-test",
+    archetype,
+    state: "arriving",
+    batteryCapacityKwh: 60,
+    maxChargeRateKw: 120,
+    currentSoc: 0.3,
+    arrivalSecond: 0,
+    urgencyScore: urgency,
+    priceSensitivity: p.priceSensitivity,
+    waitSensitivity: p.waitSensitivity,
+    demand: {
+      targetSoc: p.targetSoc,
+      requestedKwh: 30,
+      maxAcceptablePricePerKwh: p.maxAcceptablePricePerKwh,
+      patienceSeconds: p.patienceSeconds,
+    },
+  };
+}
+
+/** Wait at which siteScore falls to ACCEPT_THRESHOLD. */
+function walkAwayWaitSeconds(archetype: VehicleArchetype, urgency: number): number {
+  let lo = 0;
+  let hi = 20_000;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (siteScore(vehicle(archetype, urgency), 0.79, mid, 60) >= ACCEPT_THRESHOLD) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
+
+describe("admission — Calibration §5 worked example (D21)", () => {
+  it("reproduces the published siteScore intercepts at £0.79 / trust 60", () => {
+    expect(siteScore(vehicle("commuter", 0.4), 0.79, 0, 60)).toBeCloseTo(0.696, 3);
+    expect(siteScore(vehicle("enroute", 0.6), 0.79, 0, 60)).toBeCloseTo(1.512, 3);
+    expect(siteScore(vehicle("panic_low_soc", 0.95), 0.79, 0, 60)).toBeCloseTo(2.188, 3);
+  });
+
+  it("sheds commuters first, then en-route, then panic", () => {
+    const commuter = walkAwayWaitSeconds("commuter", 0.4) / 60;
+    const enroute = walkAwayWaitSeconds("enroute", 0.6) / 60;
+    const panic = walkAwayWaitSeconds("panic_low_soc", 0.95) / 60;
+
+    expect(commuter).toBeGreaterThan(8);
+    expect(commuter).toBeLessThan(10);
+    expect(enroute).toBeGreaterThan(25);
+    expect(enroute).toBeLessThan(29);
+    expect(panic).toBeGreaterThan(95);
+    expect(commuter).toBeLessThan(enroute);
+    expect(enroute).toBeLessThan(panic);
+  });
+
+  it("prices commuters out entirely at £1.10 — the demand-shaping lever", () => {
+    expect(siteScore(vehicle("commuter", 0.4), 1.1, 0, 60)).toBeLessThan(ACCEPT_THRESHOLD);
+    // …and their hard reject has already fired well below that.
+    expect(ARCHETYPES.commuter.maxAcceptablePricePerKwh).toBeLessThan(1.1);
+  });
+});
+
+describe("demand — one elasticity formula (D21)", () => {
+  it("is neutral at the reference price", () => {
+    expect(priceMultiplier(0.79, 0.79, 1.2)).toBe(1);
+  });
+
+  it("uses the wave's own coefficient", () => {
+    // +10% price on a 1.2-elasticity wave ⇒ −12% demand.
+    expect(priceMultiplier(0.79 * 1.1, 0.79, 1.2)).toBeCloseTo(0.88, 6);
+    expect(priceMultiplier(0.79 * 1.1, 0.79, 0.7)).toBeCloseTo(0.93, 6);
+  });
+
+  it("clamps to [0.3, 1.5]", () => {
+    expect(priceMultiplier(1.2, 0.79, 1.2)).toBeGreaterThanOrEqual(0.3);
+    expect(priceMultiplier(0.45, 0.79, 1.2)).toBeLessThanOrEqual(1.5);
+  });
+});
+
+describe("charging — two-segment taper (A1/D14)", () => {
+  it("is full power below 80% SOC and 40% at or above", () => {
+    expect(taper(0.79)).toBe(1);
+    expect(taper(0.8)).toBe(0.4);
+    // A session targeting 0.80 never enters the taper zone.
+    expect(taper(0.799)).toBe(1);
+  });
+});
+
+describe("abandonment ramp (Calibration §5)", () => {
+  it("is zero before patience is spent, then ramps to 0.5/tick over 600 s", () => {
+    expect(abandonProbability(899, 900)).toBe(0);
+    expect(abandonProbability(900, 900)).toBe(0);
+    expect(abandonProbability(1_200, 900)).toBeCloseTo(0.25, 6);
+    expect(abandonProbability(1_500, 900)).toBeCloseTo(0.5, 6);
+    expect(abandonProbability(9_999, 900)).toBeCloseTo(0.5, 6);
+  });
+});
+
+describe("fault model (Calibration §5)", () => {
+  it("integrates to ≈ (1 − reliabilityBase) over a session", () => {
+    const ticks = 20;
+    const p = faultProbabilityPerTick(0.985, ticks, 1);
+    const surviveSession = (1 - p) ** ticks;
+    expect(1 - surviveSession).toBeGreaterThan(0.013);
+    expect(1 - surviveSession).toBeLessThan(0.016);
+  });
+
+  it("scales with the maintenance multiplier", () => {
+    const standard = faultProbabilityPerTick(0.975, 10, MAINTENANCE.standard.faultProbabilityMultiplier);
+    const preventive = faultProbabilityPerTick(0.975, 10, MAINTENANCE.preventive.faultProbabilityMultiplier);
+    expect(preventive).toBeCloseTo(standard * 0.5, 12);
+  });
+});
+
+// --- D19 semantics ----------------------------------------------------------
+
+function advance(state: SimulationState, ticks: number): SimulationState {
+  let s = state;
+  for (let i = 0; i < ticks; i++) s = tick(s).state;
+  return s;
+}
+
+function stateWithBusyBay(seed = "s1"): SimulationState {
+  // The am-commute wave reliably fills bays; run into it.
+  let s = createInitialState(roadsideHub, seed);
+  s = advance(s, 480);
+  return s;
+}
+
+describe("D19 — interruption and deferred bay transitions", () => {
+  it("a fault detaches and finalizes the session before the bay faults", () => {
+    let s = stateWithBusyBay();
+    const busy = Object.values(s.chargers).find((b) => b.state === "charging");
+    expect(busy).toBeDefined();
+    if (!busy) return;
+
+    // Force the fault: p = (1 − reliabilityBase) / expectedSessionTicks, so
+    // zero reliability over a one-tick horizon makes it certain.
+    const bay = s.chargers[busy.id];
+    const session = busy.activeSessionId ? s.sessions[busy.activeSessionId] : undefined;
+    if (!bay || !session) throw new Error("expected a charging bay with a session");
+    bay.spec = { ...bay.spec, reliabilityBase: 0 };
+    session.expectedSessionTicks = 1;
+    session.requestedKwh = 1e6; // don't let it complete before it can fault
+    s = advance(s, 1);
+
+    const after = s.chargers[busy.id];
+    expect(after?.state).toBe("faulted");
+    expect(after?.activeSessionId).toBeUndefined();
+    expect(after?.allocatedPowerKw).toBe(0);
+
+    const finished = s.sessions[session.id];
+    expect(finished?.interruptedByFault).toBe(true);
+    expect(finished?.completed).toBe(false);
+    expect(finished?.deliveredKwh).toBeGreaterThan(0);
+
+    const v = s.vehicles[session.vehicleId];
+    expect(v?.leaveReason).toBe("service_interrupted");
+    expect(v?.state).toBe("left");
+    expect(s.site.metrics.funnel.interruptedByFault).toBeGreaterThan(0);
+  });
+
+  it("closing a busy bay latches rather than terminating the session", () => {
+    let s = stateWithBusyBay();
+    const busy = Object.values(s.chargers).find((b) => b.state === "charging");
+    if (!busy) throw new Error("expected a busy bay");
+    const sessionId = busy.activeSessionId;
+
+    s = queueAction(s, { type: "toggle_bay_group", bayIds: [busy.id], open: false });
+    s = advance(s, 1);
+
+    const after = s.chargers[busy.id];
+    expect(after?.closeRequested).toBe(true);
+    expect(after?.isOpen).toBe(true);
+    expect(after?.activeSessionId).toBe(sessionId);
+
+    // It closes once the session ends — and never sooner.
+    s = advance(s, 200);
+    const later = s.chargers[busy.id];
+    expect(later?.isOpen).toBe(false);
+    expect(later?.closeRequested).toBe(false);
+    expect(later?.activeSessionId).toBeUndefined();
+  });
+
+  it("opening a bay applies immediately and cancels a pending close", () => {
+    let s = stateWithBusyBay();
+    const busy = Object.values(s.chargers).find((b) => b.state === "charging");
+    if (!busy) throw new Error("expected a busy bay");
+
+    s = queueAction(s, { type: "toggle_bay_group", bayIds: [busy.id], open: false });
+    s = advance(s, 1);
+    s = queueAction(s, { type: "toggle_bay_group", bayIds: [busy.id], open: true });
+    s = advance(s, 1);
+
+    expect(s.chargers[busy.id]?.closeRequested).toBe(false);
+    expect(s.chargers[busy.id]?.isOpen).toBe(true);
+  });
+
+  it("upgrading a busy bay debits capex now and swaps the spec when it idles", () => {
+    let s = stateWithBusyBay();
+    const busy = Object.values(s.chargers).find(
+      (b) => b.state === "charging" && b.spec.type === "rapid_dc",
+    );
+    if (!busy) throw new Error("expected a busy rapid bay");
+    const cashBefore = s.site.economics.cash;
+
+    s = queueAction(s, {
+      type: "upgrade_charger",
+      chargerBayId: busy.id,
+      newType: "ultrarapid_dc",
+    });
+    s = advance(s, 1);
+
+    expect(s.site.economics.capexSpentToday).toBe(40_000);
+    expect(cashBefore - s.site.economics.cash).toBeGreaterThan(39_900);
+    expect(s.chargers[busy.id]?.pendingUpgradeType).toBe("ultrarapid_dc");
+    expect(s.chargers[busy.id]?.spec.type).toBe("rapid_dc");
+
+    s = advance(s, 200);
+    expect(s.chargers[busy.id]?.spec.type).toBe("ultrarapid_dc");
+    expect(s.chargers[busy.id]?.pendingUpgradeType).toBeUndefined();
+    // Capex is a one-off, not a recurring charge.
+    expect(s.site.economics.capexSpentToday).toBe(40_000);
+  });
+});
+
+describe("repair rules — Architecture §4.4", () => {
+  it("a faulted bay waits indefinitely until schedule_repair is issued", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    const bay = s.chargers["bay-3"];
+    if (!bay) throw new Error("no bay-3");
+    bay.state = "faulted";
+    bay.faultedAtSecond = 0;
+
+    s = advance(s, 300);
+    expect(s.chargers["bay-3"]?.state).toBe("faulted");
+    expect(s.site.metrics.downtimeFaultSeconds).toBeGreaterThan(17_000);
+  });
+
+  it("schedule_repair debits immediately and returns the bay after the repair time", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    const bay = s.chargers["bay-3"];
+    if (!bay) throw new Error("no bay-3");
+    bay.state = "faulted";
+    const cashBefore = s.site.economics.cash;
+
+    s = queueAction(s, { type: "schedule_repair", chargerBayId: "bay-3" });
+    s = advance(s, 1);
+    expect(s.chargers["bay-3"]?.state).toBe("repairing");
+    // £200 under `standard`, minus nothing else material on tick 1.
+    expect(cashBefore - s.site.economics.cash).toBeGreaterThan(190);
+
+    // rapid_dc repairs in 2,700 s at ×1.0 ⇒ 45 ticks.
+    s = advance(s, 44);
+    expect(s.chargers["bay-3"]?.state).toBe("repairing");
+    s = advance(s, 2);
+    expect(s.chargers["bay-3"]?.state).toBe("idle");
+  });
+
+  it("schedule_repair on a healthy bay is a logged no-op with no cost", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    const cashBefore = s.site.economics.cash;
+    s = queueAction(s, { type: "schedule_repair", chargerBayId: "bay-2" });
+    const { state: next, events } = tick(s);
+    expect(next.chargers["bay-2"]?.state).toBe("idle");
+    expect(cashBefore - next.site.economics.cash).toBeLessThan(1);
+    const marker = events.find((e) => e.event_name === "charger.repair_scheduled");
+    expect(marker?.level).toBe("warn");
+    expect(marker?.data?.["applied"]).toBe(false);
+  });
+
+  it("preventive maintenance repairs faster than standard", () => {
+    expect(MAINTENANCE.preventive.repairTimeMultiplier).toBeLessThan(
+      MAINTENANCE.standard.repairTimeMultiplier,
+    );
+  });
+});
+
+describe("partial charge (D14)", () => {
+  it("caps requested energy, flags the session, and costs a little trust", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    s = queueAction(s, { type: "set_partial_charge_target", targetSoc: 0.7 });
+    s = advance(s, 700);
+
+    const capped = Object.values(s.sessions).filter((x) => x.partialChargeCapped);
+    expect(capped.length).toBeGreaterThan(0);
+    for (const session of capped) {
+      expect(session.targetSoc).toBeLessThanOrEqual(0.7);
+    }
+    expect(TRUST.partialChargeCapped).toBeLessThan(0);
+  });
+
+  it("never raises a driver's own target above what they asked for", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    s = queueAction(s, { type: "set_partial_charge_target", targetSoc: 0.9 });
+    s = advance(s, 700);
+    for (const session of Object.values(s.sessions)) {
+      const v = s.vehicles[session.vehicleId];
+      if (v) expect(session.targetSoc).toBeLessThanOrEqual(v.demand.targetSoc);
+    }
+  });
+});
+
+describe("KPI definitions (D12)", () => {
+  it("player-closed bay time is excluded from the uptime denominator", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    s = queueAction(s, {
+      type: "toggle_bay_group",
+      bayIds: ["bay-1", "bay-2", "bay-3"],
+      open: false,
+    });
+    s = advance(s, 60);
+
+    expect(s.site.metrics.downtimeClosedSeconds).toBeGreaterThan(0);
+    // Closing bays must not be a trick to inflate uptime — it stays at 100%.
+    expect(s.site.metrics.uptimePct).toBe(100);
+    expect(s.site.openBayIds.length).toBe(3);
+  });
+
+  it("counts a faulted bay against uptime", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    const bay = s.chargers["bay-1"];
+    if (bay) bay.state = "faulted";
+    s = advance(s, 30);
+    expect(s.site.metrics.uptimePct).toBeLessThan(100);
+    expect(s.site.metrics.uptimePct).toBeGreaterThan(70);
+  });
+});
+
+describe("trust (Calibration §5)", () => {
+  it("stacks the completion and fast-completion bonuses", () => {
+    expect(TRUST.completion + TRUST.fastCompletionBonus).toBeCloseTo(0.4, 10);
+  });
+
+  it("clamps net movement to ±5 over a rolling sim-hour", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    // 60 ticks = one sim-hour.
+    s = advance(s, 60);
+    expect(Math.abs(s.site.metrics.trust - roadsideHub.initialTrust)).toBeLessThanOrEqual(5.0001);
+    expect(Math.abs(s.site.metrics.trustDeltaThisHour)).toBeLessThanOrEqual(5.0001);
+  });
+});

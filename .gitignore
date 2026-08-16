@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+
+# Run artefacts — regenerate with `npm run baseline`; logs are large and seeded,
+# so they are reproducible rather than precious.
+runs/*.ndjson
+runs/*.json
+!runs/.gitkeep
+
+.DS_Store
+*.log
