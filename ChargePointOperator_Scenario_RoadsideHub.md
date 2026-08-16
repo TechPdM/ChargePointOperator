@@ -1,6 +1,6 @@
 # ChargePointOperator — Scenario Spec: Roadside Hub
 
-**Version:** 2.3 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14 · v2.1: bankruptcy phrasing, margin-trap observability · v2.2: readiness-review fixes — scripted-fault target pinned, §2 completed against D20, §5a upgrade-value analysis, re-derived load math · **v2.3: `minOperatingMargin` set to £2,000 from the measured distribution (Mark, OPEN-7)**)*
+**Version:** 2.3 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14 · v2.1: bankruptcy phrasing, margin-trap observability · v2.2: readiness-review fixes — scripted-fault target pinned, §2 completed against D20, §5a upgrade-value analysis, re-derived load math · **v2.3: `minOperatingMargin` set to £2,200 from the measured distribution — D13 difficulty floor now PASSES (Mark, OPEN-7 closed)**)*
 **Companions:** Calibration sheet v2.2 (constants), KPI dictionary (goal + failure-state definitions), Architecture §5.7 (`ScenarioConfig`), Decision log (D8–D26)
 **This is the MVP scenario (Plan D5)** — `scenarios/roadsideHub.ts` in prose form. Commuter-hub and destination-site variants follow in Phase 3 (O6).
 
@@ -78,7 +78,7 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 
 | Goal | Value |
 | :-- | :-- |
-| `minOperatingMargin` | ≥ **£2,000** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *set by Mark from the post-D30/D31 measured baseline distribution: above the median £1,722, below the p80 £2,196* |
+| `minOperatingMargin` | ≥ **£2,200** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *set by Mark from the post-D30/D31 measured baseline distribution (p80 £2,196); the lowest round value that closes the D13 floor* |
 | `maxAvgWaitSeconds` | ≤ 480 (8 sim-min, CUM) |
 | `minTrust` | ≥ 55 |
 | `minSessionsCompleted` | ≥ 110 |
@@ -89,16 +89,11 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 
 **Failure states** are defined in the KPI dictionary (D24) and detected every tick. They don't end the run; they're recorded so gate criterion 3 is a count rather than an opinion.
 
-**Difficulty floor (D13, ratified): measured 70% at these goals — still short of ≥80%.** The margin goal is doing the work as intended (baseline meets it on 6/20 seeds) and `minTrust` adds a little (12/20), but the two are correlated: every seed that misses on trust also misses on margin, so the union is the margin figure. `maxAvgWaitSeconds` (20/20) and `minSessionsCompleted` (20/20) still score nothing.
+**Difficulty floor (D13, ratified): measured 80% — PASSES.** The passive baseline fails ≥1 goal on 16 of 20 seeds, meeting the ≥80% requirement for the first time. `minOperatingMargin` at £2,200 is the goal doing the work (met on 4/20); `minTrust` contributes (12/20) but is **correlated with it** — every seed that misses on trust also misses on margin, because the same broken charger costs both takings and reputation.
 
-**Six seeds clear everything** — s5, s6, s8, s9, s10, s20 — and two of them have to fail something for the floor to close. Measured options, each sufficient on its own:
+**Why £2,200 and not £2,100.** The six seeds the baseline used to win outright sit at margins of £2,154, £2,190, £2,220, £2,312, £2,506 and £2,772. Any goal below £2,190 catches none of them; £2,200 catches two, which is exactly what the floor needed. Goals are scored only at close-out and do not affect the simulation, so this was computed against the existing seed batch rather than re-run.
 
-| Change | Catches | Floor |
-| :-- | :-- | :-- |
-| `minSessionsCompleted` 110 → **180** | s10 (172), s9 (174) | **80%** — and turns a decorative goal into a live one |
-| `minTrust` 55 → 59 | s10 (58.4), s20 (59.0) | 80%, but 59 is a suspiciously precise number |
-| `maxAvgWaitSeconds` 480 → 330 s | four of the six | 100% — too blunt |
-| `minOperatingMargin` → £2,200 (p80) | two more on margin alone | 80%, at the cost of a harsher single goal |
+**Known consequence, accepted at the time:** `maxAvgWaitSeconds` (20/20) and `minSessionsCompleted` (20/20) still score nothing, so the four-goal scorecard is effectively one number. That is a deliberate choice — this is a business game and the business number is margin — but it is worth re-examining at Phase 4 if playtesters read the other three as noise. The alternative measured at the time was `minSessionsCompleted` 110 → 180, which reaches the same 80% by spreading the pressure across two uncorrelated goals.
 
 Standing instruction unchanged: raise a goal, never the economy constants, for difficulty reasons.
 

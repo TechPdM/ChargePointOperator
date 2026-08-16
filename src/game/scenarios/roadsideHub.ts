@@ -140,9 +140,11 @@ export const roadsideHub: ScenarioConfig = {
 
   goals: {
     // Set by Mark, 2026-08-16, from the post-D30/D31 measured distribution
-    // (OPEN-7). Between the median (£1,722) and the p80 (£2,196): a passively
-    // run site clears it on a good seed and misses on a mediocre one.
-    minOperatingMargin: 2_000,
+    // (OPEN-7). The lowest round number that closes D13's difficulty floor:
+    // the six days the passive baseline used to win outright sit at £2,154,
+    // £2,190, £2,220, £2,312, £2,506 and £2,772, so anything below £2,200
+    // catches none of them. At £2,200 the baseline fails on 80% of seeds.
+    minOperatingMargin: 2_200,
     maxAvgWaitSeconds: 480,
     minTrust: 55,
     minSessionsCompleted: 110,
