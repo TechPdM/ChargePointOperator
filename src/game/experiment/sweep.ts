@@ -309,17 +309,22 @@ export function sanityAxes(): SweepAxis[] {
     },
     {
       name: "maintenanceLevel",
-      notes: "reactive → preventive: uptime ↑; margin SHOULD fall short-term — OPEN-2 says it does not",
+      notes:
+        "reactive → preventive: uptime ↑ everywhere; margin's SIGN is archetype-dependent by design (OPEN-2 resolved)",
       points: (["reactive", "standard", "preventive"] as const).map((level) => ({
         label: level,
         scenario: (base) => ({ ...base, initialMaintenanceLevel: level }),
       })),
       expect: [
         { metric: "cumUptimePct", direction: "up", tolerance: 0.01 },
-        // The §8 table says margin ↓. It does not. That is OPEN-2, and the
-        // sweep is expected to FAIL here until the mechanic changes — an
-        // expectation deliberately left as written so it keeps reporting.
-        { metric: "cumMargin", direction: "down" },
+        // Margin deliberately has NO expectation here. Before OPEN-2 was
+        // resolved, §8 asserted it must fall, and it rose on every archetype —
+        // that was the dominance. Now it rises on a busy site (buying
+        // reliability pays where things break) and falls on a quiet one (it
+        // does not), which is the trade the mechanic is supposed to be. A
+        // single-scenario gradient cannot express a sign that varies by
+        // scenario; `strategies` is the test that can, and does.
+        { metric: "cumUptimePct", direction: "up", tolerance: 0.01 },
       ],
     },
   ];

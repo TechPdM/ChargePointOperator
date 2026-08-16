@@ -1,6 +1,6 @@
 # ChargePointOperator — Calibration Sheet & Assumptions Register
 
-**Version:** 3.1 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed**)*
+**Version:** 3.2 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped**)*
 **Companions:** `ChargePointOperator_Plan.md` (C9, O7), `ChargePointOperator_Architecture.md` (§6, §9.3), `ChargePointOperator_Decision_Log.md` (D8–D26)
 **Status of every number: FIRST GUESS** — chosen for plausible ratios and gradients so Phase 1 has something to assert against and Phase 3 something to tune. When a value proves wrong, change it here first, then in code. Currency £ (realistic magnitudes — D10).
 
@@ -52,7 +52,7 @@ All `*Seconds` fields are sim-seconds at real-world magnitude (a 10-minute wait 
 
 **Effective charging power (D14, D15):** `effectivePowerKw = min(bayAllocatedKw, vehicle.maxChargeRateKw) × taper(soc)` where **taper = 1.0 below 0.80 SOC, 0.4 at/above 0.80 SOC** (two-segment first guess). This is what makes the partial-charge policy a real trade: charging past 80% is slow, so a site-imposed 80% cap frees bays dramatically at peaks.
 
-**Partial-charge policy (D14 — core):** `partialChargeTargetSoc` selectable off / 0.90 / 0.80 / 0.70. When set below a driver's own target, mild trust penalty per affected session (−0.1) — you're sending people away with less than they wanted; they mostly understand at a busy site.
+**Partial-charge policy (D14 — core):** `partialChargeTargetSoc` selectable **off / 0.70 / 0.60 / 0.50** *(re-scoped from off/0.90/0.80/0.70 — D33/OPEN-6: every driver already targets 0.80 or less, so the top two settings were exact no-ops)*. When set below a driver's own target, mild trust penalty per affected session (−0.1) — you're sending people away with less than they wanted; they mostly understand at a busy site.
 
 ## 4. Pricing & economics (realistic £ — D10)
 
@@ -65,9 +65,10 @@ All `*Seconds` fields are sim-seconds at real-world magnitude (a 10-minute wait 
 | `energyCostPerKwh` | £0.28 |
 | `opexPerSimDay` | £150 (rent, rates, comms) |
 | **Starting capital** | **£50,000** — an investment float, not a score; the scored economic metric is operating margin (D10) |
-| Maintenance — `reactive` | £0/day standing; £300 per call-out; fault probability ×1.25; repair time ×1.2 |
-| Maintenance — `standard` (default) | £25/day contract; £200 per repair; ×1.0 / ×1.0 |
-| Maintenance — `preventive` | £45/day; £150 per repair; fault probability ×0.5; repair time ×0.7 |
+| **Repair call-out cost** *(flat across tiers — D33)* | **£200**, whatever your contract |
+| Maintenance — `reactive` | £0/day standing; fault probability ×1.25; repair time ×1.2 |
+| Maintenance — `standard` (default) | £25/day contract; ×1.0 / ×1.0 |
+| Maintenance — `preventive` | **£150/day** (£55k/yr = £9.1k per bay — a normal comprehensive O&M contract); fault probability ×0.5; repair time ×0.7 |
 
 **Price elasticity — `AMENDED (D21)`.** v2.1 hard-coded a coefficient of 1.2 here while `DemandWave.priceElasticity` independently varied 0.7–1.2, and never said how the two combined. **The wave value *is* the coefficient.** One formula:
 
@@ -78,19 +79,21 @@ effectiveArrivalRatePerMinute = wave.arrivalRatePerMinute × priceMultiplier
 
 Per-archetype `maxAcceptablePricePerKwh` hard rejections apply on top, at admission. Still expected to be the most-tuned constant in the project.
 
-### 4a. Maintenance-tier dominance — **confirmed by measurement** (OPEN-2)
+### 4a. Maintenance tiers — **dominance resolved (D33)**
 
-The tiers above do not form a trade. **Measured, 20 seeds per tier, re-run after D30/D31:**
+The tiers used to price the same call-out at £300 / £200 / £150, which paid preventive **twice**: fewer faults *and* a discount on each one. Removing that double-count is what made the fix affordable — the break-even standing charge fell from ~£460/day (which genuinely did break D10) to a figure inside normal contract pricing.
 
-| Tier | Faults/day | Uptime | Sessions | **Cum margin** | Trust |
-| :-- | :-- | :-- | :-- | :-- | :-- |
-| `reactive` | 5.75 | 95.54% | 175 | **£942** | 52.8 |
-| `standard` | 4.35 | 97.15% | 178 | **£1,815** | 56.4 |
-| `preventive` | 2.65 | 98.73% | 178 | **£2,229** | 60.8 |
+**Measured after, 10 seeds per cell — the sign now varies by site, which is the trade the mechanic was always supposed to be:**
 
-`preventive` is **£414/day better on margin** than `standard` *and* better on uptime, trust and throughput simultaneously. That is a strictly dominant option, and gate criterion 2 ("no dominant strategy") is exactly what it threatens. The v2.2 first-guess arithmetic below predicted this to within ~£20/day, so the model is behaving; it is the prices that are wrong.
+| Site | as-shipped | preventive | Verdict |
+| :-- | --: | --: | :-- |
+| Junction 42 (corridor, 3.7 faults/day) | 2.90 goals | **3.40 goals** | buying reliability pays where things break |
+| Eastgate (commuter, 2.1 faults/day) | 2.70 | 2.90 | marginal |
+| Kesteven (destination, 1.5 faults/day) | **3.00** | 2.40 | **a waste of money on a site that rarely breaks** |
 
-It has deliberately **not** been silently repriced. The measured break-even standing charge is **~£460/day** (£45 current + £414 of advantage) — close to the estimate below, confirmed twice under different trust models. For preventive to merely break even on cost, its standing charge would need to be ~£500/day — £182k/year on a six-bay site, which breaks the realistic-magnitudes commitment Mark ratified in D10. That's a decision, not a tune. The two candidate fixes are in OPEN-2: accept a balance-over-realism exception for the maintenance tiers, or give preventive a real cost in bay-time (scheduled maintenance windows), which is a new mechanic. **Resolve in Phase 3, with measured fault rates in hand.** Until then, expect every competent player to pick preventive and every sweep to say so.
+Before D33 the dominant-strategy test returned two winners, both containing `preventive`. It now returns **three distinct winners** — `preventive`, `premium+preventive`, `premium` — and preventive alone is the third-worst strategy on the quiet site.
+
+*(Historical note: this section previously argued the dominance could only be fixed by breaking realism or adding a new mechanic. That was true of the pricing as it then stood, and false once the call-out ladder was flattened. The arithmetic was right; the option set was incomplete.)*
 
 ## 5. Behavioural & system constants
 
@@ -199,7 +202,7 @@ So ≈21 sessions are lost to the energy wall outright, and the queueing that pr
 | Arrival rate | queue ↑, abandonment ↑, utilization ↑ then plateau |
 | Fault probability | uptime ↓, session success ↓, trust ↓ |
 | `patienceSeconds` | abandonment ↓, avg wait ↑ |
-| Maintenance → preventive | uptime ↑, margin ↓ short-term; sessions ↑ at high demand — **but see §4a: margin currently goes *up*, which is the bug, not the gradient** |
+| Maintenance → preventive | uptime ↑ **everywhere**; margin's **sign is archetype-dependent by design** (D33) — up on a busy site, down on a quiet one. A single-scenario sweep cannot express that; the dominant-strategy test is what checks it |
 | Grid cap | throughput ↑ until bay-limited, then flat |
 | Partial-charge target ↓ (D14) | kWh/session ↓, sessions/hr ↑ **at peaks**, wait ↓, trust ↘ mild; **negligible effect off-peak** (the signature that the taper is working) |
 | Power policy `equal_share` → `queue_relief` (D23) | avg wait ↓, sessions/hr ↑ at peaks, kWh unchanged — it reorders service, it doesn't create power |

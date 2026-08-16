@@ -106,8 +106,18 @@ export function taper(soc: number): number {
   return soc >= TAPER_KNEE_SOC ? TAPER_ABOVE_KNEE : 1.0;
 }
 
-/** Options offered by ChargingPolicyPanel (D14). */
-export const PARTIAL_CHARGE_OPTIONS = [null, 0.9, 0.8, 0.7] as const;
+/**
+ * Options offered by ChargingPolicyPanel (D14), **re-scoped under OPEN-2/OPEN-6**
+ * (Mark, 2026-08-16) from off/0.90/0.80/0.70.
+ *
+ * Every driver already targets 0.80 or less, so the old 0.90 and 0.80 settings
+ * were exact no-ops — measured identical to "off" across 20 seeds, to the last
+ * decimal. Three dead settings on a live control is a legibility bug in a build
+ * whose gate criterion is legibility. The range below 0.80 is where the
+ * mechanic actually lives: at ×1.6 demand, off/70/60/50% gives 203/215/265/330
+ * sessions at 30.4/24.9/19.5/12.6 kWh each.
+ */
+export const PARTIAL_CHARGE_OPTIONS = [null, 0.7, 0.6, 0.5] as const;
 
 // --- §4 Pricing & economics -------------------------------------------------
 
@@ -121,23 +131,48 @@ export interface MaintenanceProfile {
   repairTimeMultiplier: number;
 }
 
+/**
+ * OPEN-2, option 2 (Mark, 2026-08-16): **the per-repair cost is flat across
+ * tiers**. The tiers now differ only on how often things break and how fast
+ * they are fixed — not on what a call-out costs.
+ *
+ * Phase 3 measured preventive winning on all three archetypes and traced part
+ * of it to the repair-price ladder (£300/£200/£150), which paid preventive
+ * twice: fewer faults *and* a discount on each one. Flattening removes the
+ * double-count. Whether it removes the dominance is an empirical question —
+ * see the measurement in the Phase 3 findings.
+ */
+export const REPAIR_CALL_OUT_COST = 200;
+
 export const MAINTENANCE: Record<MaintenanceLevel, MaintenanceProfile> = {
   reactive: {
     standingCostPerSimDay: 0,
-    costPerRepair: 300,
+    costPerRepair: REPAIR_CALL_OUT_COST,
     faultProbabilityMultiplier: 1.25,
     repairTimeMultiplier: 1.2,
   },
   standard: {
     standingCostPerSimDay: 25,
-    costPerRepair: 200,
+    costPerRepair: REPAIR_CALL_OUT_COST,
     faultProbabilityMultiplier: 1.0,
     repairTimeMultiplier: 1.0,
   },
-  // OPEN-2: currently cost-dominant. Deliberately not silently repriced.
   preventive: {
-    standingCostPerSimDay: 45,
-    costPerRepair: 150,
+    /**
+     * £150/day = £55k/year = **£9.1k per bay per year**, which is a normal
+     * price for a comprehensive O&M contract with scheduled servicing on DC
+     * rapid hardware. The old £45/day was £2.7k per bay — cheap even for a
+     * basic break-fix agreement, let alone a preventive one.
+     *
+     * This is the second half of OPEN-2 option 2, and it only became available
+     * once the repair ladder was flattened. The earlier estimate said preventive
+     * would need ~£460/day to break even, which genuinely did break D10's
+     * realism commitment — but that figure was computed while preventive was
+     * *also* getting a discount on every call-out. Removing the double-count
+     * cut the break-even by two thirds and brought it inside realistic pricing.
+     */
+    standingCostPerSimDay: 150,
+    costPerRepair: REPAIR_CALL_OUT_COST,
     faultProbabilityMultiplier: 0.5,
     repairTimeMultiplier: 0.7,
   },
