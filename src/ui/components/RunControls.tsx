@@ -1,0 +1,62 @@
+import type { ReactElement } from "react";
+import type { Simulation } from "../hooks/useSimulation.ts";
+
+const SPEEDS = [1, 2, 4] as const;
+
+/**
+ * Run control. Speed changes how many ticks run per real second and never the
+ * tick size (D26) — so a run played at 4× is the same run, and still replays.
+ */
+export function RunControls({ sim }: { sim: Simulation }): ReactElement {
+  const { state } = sim;
+  const finished = !state.sim.running;
+
+  return (
+    <div className="run-controls">
+      <button
+        type="button"
+        className={`transport ${state.running ? "is-running" : ""}`}
+        onClick={sim.togglePause}
+        disabled={finished}
+      >
+        {state.running ? "Pause" : state.sim.clock.tick === 0 ? "Start the day" : "Resume"}
+      </button>
+
+      <div className="speed-group" role="group" aria-label="Speed">
+        {SPEEDS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            className={`speed ${state.speed === s ? "is-active" : ""}`}
+            onClick={() => sim.setSpeed(s)}
+          >
+            {s}×
+          </button>
+        ))}
+      </div>
+
+      <button type="button" className="ghost" onClick={() => sim.restart()}>
+        Restart
+      </button>
+      <button type="button" className="ghost" onClick={() => sim.restart(randomSeed(state.seed))}>
+        New seed
+      </button>
+      <button type="button" className="ghost" onClick={sim.exportNdjson}>
+        Export log
+      </button>
+
+      <span className="seed-tag" title="Same seed plus the same actions always replays identically">
+        seed <b>{state.seed}</b> · tick {state.sim.clock.tick}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Seeds are strings (D26). Derived from the current one so the sequence is
+ * reproducible from a written-down starting point.
+ */
+function randomSeed(current: string): string {
+  const match = /^s(\d+)$/.exec(current);
+  return match ? `s${Number(match[1]) + 1}` : `${current}-b`;
+}

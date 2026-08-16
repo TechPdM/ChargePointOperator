@@ -5,6 +5,7 @@
  * coefficient. There is no `baseDemand` and no second global elasticity.
  */
 
+import { archetypeName } from "../core/labels.ts";
 import {
   ARCHETYPES,
   PRICE_MULTIPLIER_MAX,
@@ -41,7 +42,7 @@ export function spawnArrivals(ctx: TickContext): void {
     const vehicle = createVehicle(ctx, wave);
     state.vehicles[vehicle.id] = vehicle;
     state.site.metrics.funnel.arrived += 1;
-    emit(ctx, "debug", "vehicle.arrived", `${vehicle.archetype} arrived`, {
+    emit(ctx, "debug", "vehicle.arrived", `${archetypeName(vehicle.archetype)} arrived`, {
       entity_type: "vehicle",
       entity_id: vehicle.id,
       data: dataOf({

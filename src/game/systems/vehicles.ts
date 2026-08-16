@@ -7,6 +7,7 @@
  * the terminal-state write lives here (so there is only one of them).
  */
 
+import { archetypeName } from "../core/labels.ts";
 import { dataOf, emit, type TickContext } from "../core/context.ts";
 import type { QueueLeaveReason, VehicleAgent } from "../core/types.ts";
 
@@ -21,7 +22,7 @@ export function departVehicle(
   vehicle.leftAtSecond = ctx.state.clock.secondsElapsed;
   ctx.state.departedVehicleIds.push(vehicle.id);
 
-  emit(ctx, "debug", "vehicle.departed", `${vehicle.archetype} departed (${reason})`, {
+  emit(ctx, "debug", "vehicle.departed", `${archetypeName(vehicle.archetype)} departed (${reason})`, {
     entity_type: "vehicle",
     entity_id: vehicle.id,
     data: dataOf({

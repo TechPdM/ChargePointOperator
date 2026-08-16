@@ -1,0 +1,76 @@
+/**
+ * The dashboard IS the site (D3/C2). There is no picture of the forecourt, so
+ * the layout below carries the whole legibility burden — it follows
+ * Architecture §8.1 exactly: top bar, KPI strip, controls left, diagnosis and
+ * trends centre, live state right, logs along the bottom.
+ */
+
+import type { ReactElement } from "react";
+
+import { useGameLoop } from "../ui/hooks/useGameLoop.ts";
+import { useSimulation } from "../ui/hooks/useSimulation.ts";
+import { roadsideHub } from "../game/scenarios/roadsideHub.ts";
+
+import { ScenarioHeader } from "../ui/components/ScenarioHeader.tsx";
+import { RunControls } from "../ui/components/RunControls.tsx";
+import { KpiCardGrid } from "../ui/components/KpiCardGrid.tsx";
+import { PricingControlPanel } from "../ui/components/PricingControlPanel.tsx";
+import { PowerPolicyPanel } from "../ui/components/PowerPolicyPanel.tsx";
+import { ChargingPolicyPanel } from "../ui/components/ChargingPolicyPanel.tsx";
+import { MaintenancePanel } from "../ui/components/MaintenancePanel.tsx";
+import { BayAvailabilityPanel } from "../ui/components/BayAvailabilityPanel.tsx";
+import { ActiveQueueTable } from "../ui/components/ActiveQueueTable.tsx";
+import { FaultsAndRepairsPanel } from "../ui/components/FaultsAndRepairsPanel.tsx";
+import { DiagnosisPanel } from "../ui/components/DiagnosisPanel.tsx";
+import { AlertsFeed } from "../ui/components/AlertsFeed.tsx";
+import { WaitTimeTrendChart } from "../ui/components/WaitTimeTrendChart.tsx";
+import { EconomicsTrendChart } from "../ui/components/EconomicsTrendChart.tsx";
+import { EventLogPanel } from "../ui/components/EventLogPanel.tsx";
+
+export function App(): ReactElement {
+  const sim = useSimulation(roadsideHub, "s1");
+  useGameLoop(sim.state.running, sim.state.speed, sim.advance);
+
+  const state = sim.state.sim;
+
+  return (
+    <div className="shell">
+      <div className="top-bar">
+        <ScenarioHeader state={state} />
+        <RunControls sim={sim} />
+      </div>
+
+      <KpiCardGrid state={state} />
+
+      {/* Once the day is scored, every control is spent. A `fieldset` disables
+          all of them at once natively — including keyboard focus — while
+          leaving the numbers readable, which is the whole point of the
+          post-run screen. */}
+      <fieldset className="floor" disabled={!state.running}>
+        <div className="rail rail-left">
+          <PricingControlPanel sim={sim} />
+          <ChargingPolicyPanel sim={sim} />
+          <MaintenancePanel sim={sim} />
+        </div>
+
+        <div className="centre">
+          <PowerPolicyPanel sim={sim} />
+          <DiagnosisPanel state={state} snapshots={sim.state.snapshots} />
+          <div className="chart-pair">
+            <WaitTimeTrendChart state={state} snapshots={sim.state.snapshots} />
+            <EconomicsTrendChart state={state} snapshots={sim.state.snapshots} />
+          </div>
+        </div>
+
+        <div className="rail rail-right">
+          <AlertsFeed state={state} />
+          <FaultsAndRepairsPanel sim={sim} />
+          <ActiveQueueTable state={state} />
+          <BayAvailabilityPanel sim={sim} />
+        </div>
+      </fieldset>
+
+      <EventLogPanel events={sim.state.events} actions={sim.state.actions} />
+    </div>
+  );
+}

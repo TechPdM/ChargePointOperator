@@ -2,6 +2,7 @@
  * Queue mechanics: placement, abandonment, refill. FCFS only (A3).
  */
 
+import { archetypeName } from "../core/labels.ts";
 import {
   ABANDON_MAX_PROBABILITY_PER_TICK,
   ABANDON_RAMP_SECONDS,
@@ -51,7 +52,7 @@ export function enqueue(ctx: TickContext, vehicle: VehicleAgent): void {
   });
   state.site.metrics.funnel.queueJoined += 1;
 
-  emit(ctx, "debug", "vehicle.queue_joined", `${vehicle.archetype} joined the queue`, {
+  emit(ctx, "debug", "vehicle.queue_joined", `${archetypeName(vehicle.archetype)} joined the queue`, {
     entity_type: "vehicle",
     entity_id: vehicle.id,
     data: dataOf({
@@ -85,7 +86,7 @@ export function processQueueAbandonment(ctx: TickContext): void {
       ctx.sample.queueAbandons += 1;
       ctx.trustDeltaRaw += TRUST.abandon;
 
-      emit(ctx, "info", "vehicle.queue_abandoned", `${vehicle.archetype} gave up waiting`, {
+      emit(ctx, "info", "vehicle.queue_abandoned", `${archetypeName(vehicle.archetype)} gave up waiting`, {
         entity_type: "vehicle",
         entity_id: vehicle.id,
         data: dataOf({

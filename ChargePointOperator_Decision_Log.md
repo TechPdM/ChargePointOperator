@@ -40,7 +40,15 @@ Rule of use: before re-litigating anything, check here first. To reverse a decis
 
 **D16 — Private repo until the gate passes.** *(ratified by Mark 2026-08-16; resolves former O-1)* Licence chosen at Phase 5 with a working prototype in hand.
 
-**D17 — Store/chart library choice deferred to Phase 2 start.** *(ratified by Mark 2026-08-16; resolves former O-2)* Candidates on the table: `useReducer` + Recharts (boring, zero deps) vs Zustand + Recharts (nicer slice subscriptions). Decide when the dashboard's real subscription patterns are visible; revisit this entry then.
+**D17 — Store/chart library choice deferred to Phase 2 start.** *(ratified by Mark 2026-08-16; resolves former O-2)* Candidates on the table: `useReducer` + Recharts (boring, zero deps) vs Zustand + Recharts (nicer slice subscriptions). Decide when the dashboard's real subscription patterns are visible; revisit this entry then. **Resolved by D28.**
+
+**D28 — Store: `useReducer` + context. Charts: hand-rolled SVG, no chart library.** *(2026-08-16, Phase 2 start; resolves D17)*
+
+*Store.* `useReducer` + a React context, with `useMemo`'d selectors at the leaves. **Why, now that the subscription pattern is actually visible:** the sim replaces the *entire* `SimulationState` object every tick — that is the D4 purity contract, not an implementation detail — and at 4.8 ticks per real second (up to ~19 at 4× speed) essentially every panel's data changes on every tick. Zustand's advantage is letting a component subscribe to a slice that changes *less often* than the rest of the store; here no such slice exists. It would add a dependency to solve a problem this architecture cannot have. The one genuinely slow-changing thing — snapshot history for the trend charts — is append-only and already memoised by array identity.
+
+*Charts.* The two MVP charts (`WaitTimeTrendChart`, `EconomicsTrendChart`) plot a fixed-cadence, fixed-domain series that the sim already snapshots every 300 sim-seconds (D9). A chart library earns its weight on axes, tooltips, responsiveness and interaction; here the domain is known in advance, there are ≤288 points, and every visual detail needs overriding anyway to match the instrument-panel aesthetic. Hand-rolled SVG is ~120 lines and no dependency. **This is a deviation from D7's "chart library for trends"** and is recorded as such: revisit at Phase 3, when the second-wave charts (`PowerLoadChart`, `UtilizationAndUptimeChart`) may want brushing and shared crosshairs — that is the point at which a library starts paying for itself.
+
+*Consequence:* the browser build has exactly two runtime dependencies, `react` and `react-dom`. If either half of this proves wrong it is a contained swap, which is part of why it was chosen.
 
 **D18 — End-of-run close-out sweep.** *(2026-08-16, final review)* At 24:00, still-charging sessions finalize as completed (partial delivery recorded in the post-run summary); still-queueing vehicles leave with reason `scenario_end`, excluded from the abandonment-rate numerator. *Why:* reconciles the KPI-dictionary funnel identity with architecture invariant 7 — vehicles mid-service at run end previously had no bucket. *Consequence:* `QueueLeaveReason` gains `scenario_end`.
 
@@ -98,6 +106,16 @@ Rule of use: before re-litigating anything, check here first. To reverse a decis
 6. **A distributive `PlayerActionDraft` type** is the pre-stamp form of an action. A plain `Omit` over the union silently collapses to the shared keys and drops every payload field.
 
 *Consequence:* documented in `Architecture` terms in the code comments at each site; nothing here needs a spec amendment, but item 1 is the one most worth knowing when reading the dashboard's utilization number.
+
+**D29 — Dashboard conventions settled during the Phase 2 build.** *(2026-08-16, Phase 2)* Five decisions the architecture's component spec did not reach, each recorded because it changes what a player reads:
+
+1. **Goal cards are coloured by pace against *demand*, not against the clock.** A cumulative goal is scored at midnight, so a card must answer "am I on track?" mid-run. Judging that on elapsed time paints the strip red all night, when 00:00–05:00 carries ~3% of the day's arrivals and there is nothing to be behind on. The tone compares progress with the share of the day's arrivals that has actually been through the site.
+2. **Controls are disabled once the day is scored**, via a `fieldset` around the floor. Found by clicking a live-looking "Call out a repair" after 24:00 and watching nothing happen — precisely the class of thing the playtest protocol counts as a legibility bug.
+3. **Event `message` carries prose, `data` carries the token.** The log was showing `panic_low_soc charging on Bay 3` to the player. `data.archetype` keeps the canonical value for analysis and replay; the message says "Low-battery driver". Internal identifiers in player-facing copy are a legibility bug, not a cosmetic one.
+4. **The power bus is the dashboard's one picture.** 350 kW of supply, segmented by bay and coloured by tier, with the uncommitted remainder hatched. It exists so `power_choke` is *seen* rather than inferred, which is what C2 asks of a build with no spatial view. It is also why the two charger tiers own the only two identity colours on the page: every other colour is a status.
+5. **`ChargingPolicyPanel` shows how many drivers each limit would cut short.** An OPEN-6 mitigation, not a fix: with every driver targeting 80%, the 90% and 80% settings do nothing, and the panel now says so ("no one on site right now") instead of hiding it. Remove this readout only if OPEN-6 resolves by giving driver targets real spread.
+
+*Consequence:* items 1–3 are general rules for the second-wave components too. Item 5 is provisional on OPEN-6.
 
 ## Open
 

@@ -30,6 +30,7 @@ import {
   checkScenarioOutcome,
   evaluateGoals,
   recomputeDerivedKPIs,
+  settleAvailablePower,
   snapshotData,
   updateKPIs,
 } from "../systems/scoring.ts";
@@ -151,6 +152,7 @@ export function closeOutRun(ctx: TickContext): void {
     }
   }
 
+  settleAvailablePower(state);
   recomputeDerivedKPIs(state);
 
   const outcome = evaluateGoals(state);

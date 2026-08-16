@@ -111,6 +111,18 @@ export interface GoalOutcome {
   cumAvgWaitSeconds: number;
 }
 
+/**
+ * Re-derive spare power from the bays. Only the close-out sweep needs this:
+ * during a tick, `availablePowerKw` must stay as the rebalance left it, because
+ * that is what the site actually drew — recomputing it after completions would
+ * under-report the draw and stop `power_choke` ever firing.
+ */
+export function settleAvailablePower(state: SimulationState): void {
+  let allocated = 0;
+  for (const bay of bayList(state)) allocated += bay.allocatedPowerKw;
+  state.site.availablePowerKw = state.site.gridPowerKw - allocated;
+}
+
 export function evaluateGoals(state: SimulationState): GoalOutcome {
   const goals = state.scenario.goals;
   const m = state.site.metrics;

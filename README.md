@@ -2,7 +2,7 @@
 
 A dashboard-first simulation game about running one EV charging site under pressure. You set price, power policy, charging limits, maintenance level and which bays are open; the queue, the grid cap and the faults do the rest.
 
-**Status: Phase 1 complete — headless sim core.** There is no UI yet; that's Phase 2.
+**Status: Phase 2 built — the dashboard plays.** A full compressed day runs in the browser and scores itself.
 
 The design documents are canonical and come first:
 
@@ -23,6 +23,12 @@ Where code and documents disagree, the documents win — fix the document first,
 
 ```bash
 npm install
+```
+
+The dashboard:
+
+```bash
+npm run dev
 ```
 
 One run, printed as a summary:
@@ -77,6 +83,10 @@ src/game/
   validation/  nine invariants · failure-state detection · trace mode
   experiment/  baseline actor · run summaries · played-vs-baseline comparison
   headless.ts  CLI entry point
+src/ui/
+  components/  the 15-component MVP cut, one file each
+  hooks/       useSimulation (store) · useGameLoop (fixed timestep)
+src/app/       App.tsx — the §8.1 layout
 tests/         87 tests, each pinned to the document that defines the rule
 ```
 

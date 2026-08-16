@@ -7,6 +7,7 @@
  * wait), en-route tolerate a real queue, panic arrivals effectively never leave.
  */
 
+import { archetypeName } from "../core/labels.ts";
 import { ACCEPT_THRESHOLD, ARCHETYPES, SITE_SCORE, TRUST } from "../core/calibration.ts";
 import { dataOf, emit, round, type TickContext } from "../core/context.ts";
 import { getProjectedWait } from "../core/selectors.ts";
@@ -50,7 +51,7 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
     if (!accepted) {
       state.site.metrics.funnel.rejectedSite += 1;
       ctx.trustDeltaRaw += TRUST.priceRejection;
-      emit(ctx, "debug", "vehicle.site_rejected", `${vehicle.archetype} drove on`, {
+      emit(ctx, "debug", "vehicle.site_rejected", `${archetypeName(vehicle.archetype)} drove on`, {
         entity_type: "vehicle",
         entity_id: vehicle.id,
         data: dataOf({
@@ -66,7 +67,7 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
       continue;
     }
 
-    emit(ctx, "debug", "vehicle.site_accepted", `${vehicle.archetype} pulled in`, {
+    emit(ctx, "debug", "vehicle.site_accepted", `${archetypeName(vehicle.archetype)} pulled in`, {
       entity_type: "vehicle",
       entity_id: vehicle.id,
       data: dataOf({

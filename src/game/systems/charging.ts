@@ -6,6 +6,7 @@
  * session advances, `bay.allocatedPowerKw` already is the effective power.
  */
 
+import { archetypeName } from "../core/labels.ts";
 import { taper, TRUST } from "../core/calibration.ts";
 import { dataOf, emit, round, type TickContext } from "../core/context.ts";
 import type { ChargerBay, ChargingSession, SimulationState, VehicleAgent } from "../core/types.ts";
@@ -76,7 +77,7 @@ export function startSession(ctx: TickContext, vehicle: VehicleAgent, bay: Charg
   ctx.sample.sessionsStarted += 1;
   ctx.sample.startedWaitSecondsSum += waitSeconds;
 
-  emit(ctx, "info", "session.started", `${vehicle.archetype} charging on ${bay.label}`, {
+  emit(ctx, "info", "session.started", `${archetypeName(vehicle.archetype)} charging on ${bay.label}`, {
     entity_type: "session",
     entity_id: id,
     parent_entity_type: "charger",
