@@ -1,8 +1,8 @@
 # ChargePointOperator — Phase 1 Findings (Headless Sim Core)
 
-**Version:** 1.0 · **Date:** 2026-08-16
+**Version:** 1.1 · **Date:** 2026-08-16 *(v1.1: OPEN-4 and OPEN-5 closed by D30/D31 — §5.1, §5.2 and §5.3 annotated with the resolution and the re-measured numbers)*
 **Companions:** `ChargePointOperator_Plan.md` §6.4 (Phase 1 exit criteria) · `ChargePointOperator_Calibration.md` §7/§7a · `ChargePointOperator_Decision_Log.md` (OPEN-2, OPEN-3)
-**Status:** Phase 1 build complete. Exit criteria met. **Four items need a decision before Phase 2 tuning is worth doing** — all four are recorded in the decision log; none of them blocks the dashboard build.
+**Status:** Phase 1 build complete. Exit criteria met. Four items needed a decision; **two are now closed** — OPEN-4 by D30 and OPEN-5 by D31, both after this note was written. The sections below are left as they were found, each with a resolution box, because the reasoning that led to the fix is worth more than a tidied-up version of it.
 
 ---
 
@@ -122,6 +122,8 @@ Three consequences, in order of seriousness:
 
 **Recommendation:** this is a model change, so decision log first (**OPEN-4**). The cheapest defensible fix is to make the positive deltas the *exception* rather than the norm: drop the flat `completion` bonus to 0 and keep only the fast-completion bonus, and gate the uptime bonus on ≥98% rather than ≥95%. That leaves trust roughly flat under good operation and falling under bad — which is what "reputation" is supposed to mean. Do not simply lower the clamp: the clamp is a rate limit, and the problem is the sign.
 
+> **RESOLVED — D30.** Broadly as recommended, plus one thing this note missed: **a long wait cost nothing**. Trust only moved on a *wait* when someone gave up, so a site with 20-minute queues that everyone tolerated lost no reputation at all. A `slowCompletionPenalty` of −0.05 closes that, and the price-rejection penalty went to −0.15 — 23% of the day's demand leaves at the gate, which is a reputation event rather than a rounding error. **Measured after: 56.4** [p10 49.6 · p90 62.2], in the 45–70 band. `minTrust` is now a live goal and `trust_crash` is reachable.
+
 ### 5.2 Admission is doing abandonment's job
 
 Abandonment measured 2.4% against an expected 8–25%, and `site_full` fired **zero times in every run**. Peak queue length with all six bays open is 5–6 against a capacity of 12.
@@ -129,6 +131,10 @@ Abandonment measured 2.4% against an expected 8–25%, and `site_full` fired **z
 The cause is not a bug — it is A4 (perfect driver information) meeting D21 (admission reads per-archetype wait sensitivity). Every arrival sees the true projected wait and drives on rather than joining a queue long enough to be painful. The queue is self-limiting, so the demand that §7a expected to be shed *by abandonment* is shed *at the gate* instead. Both are "lost drivers", and the funnel accounts for them correctly — but they are different mechanics with different levers, and only one of them is currently doing any work.
 
 **Recommendation (OPEN-5):** A4 already sanctions the fix — *"add noise to `expectedWait` if admission feels twitchy."* A multiplicative noise term on the projected wait each arrival sees (say ±30%) would let some drivers misjudge and join a queue they then abandon, which is both more realistic and the only way the queue-management half of the game gets exercised. This is a one-line mechanic with a calibrated constant, so it is a tune — but it changes the funnel shape materially, so it should be a recorded decision.
+
+> **RESOLVED — D31, but not the way this section predicted.** The noise (±35%) went in and barely moved abandonment: 2.4% → 1.8%. **The diagnosis here was half right.** Admission *is* shedding the demand, but that is correct behaviour, not a bug — with drivers who can see a queue and leave, a competently-run six-bay site does not generate mass abandonment, and the funnel accounts for the loss at the gate instead. The 8–25% expectation predates D21 and is now recorded as a superseded guess.
+>
+> What actually made `queue_collapse` unreachable was **measurement, not behaviour**: its abandonment arm read a 900-second window that swings 0%↔50% every time a session starts, and a single tick's dip reset the whole 30-minute sustain clock. Fixing both — read the arm over the sustain window, and tolerate a 300 s lapse — plus setting the pressure threshold from the joint distribution (0 ticks under baseline at every combination tried; 44 ticks at ≥1.0/≥30% under a price cut) made it fire. **The lesson is the one OPEN-3 already taught: set thresholds from a measured distribution, not from a plausible-sounding number.**
 
 ### 5.3 Gate criterion 3 is at risk: only 2 of 5 failure states arise naturally
 
@@ -143,6 +149,8 @@ Across the 20-seed baseline batch: `power_choke` 13/20 seeds, `reliability_spira
 | `trust_crash` | ❌ unreachable by play while trust climbs to 100 (§5.1) |
 
 Criterion 3 needs ≥4 of 5. **Fixing §5.1 and §5.2 fixes criterion 3**; nothing else needs to change. Both detectors themselves are verified working — the tests drive each one into its conditions directly.
+
+> **RESOLVED — D30/D31. All five are now reachable.** The baseline still shows only `power_choke` (17/20 seeds) and `reliability_spiral` (11/20), which is correct — it is a competent operator and should not be collapsing. Cutting the price to £0.45, the classic "I'll attract customers" mistake, produces `queue_collapse` **and** `trust_crash` alongside them; neglecting repairs produces `reliability_spiral` and `trust_crash`; `margin_trap` needs the paired baseline and is asserted in `compareRuns`. There is now a regression test that fails if any of the four in-sim states stops being reachable.
 
 ### 5.4 Three of the four partial-charge options do nothing
 

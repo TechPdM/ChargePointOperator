@@ -19,6 +19,7 @@
 import {
   ALERT_RULES,
   ALERT_THRESHOLDS,
+  FAILURE_ENTER_GRACE_SECONDS,
   FAILURE_RULES,
   FAILURE_THRESHOLDS,
 } from "../core/calibration.ts";
@@ -37,7 +38,6 @@ export function detectFailureStates(ctx: TickContext): void {
   const { state } = ctx;
   const roll = rollWindow(state);
   const pressure = queuePressure(state);
-  const abandonmentPct = rollAbandonmentFraction(roll) * 100;
   const uptimePct = rollUptimeFraction(roll) * 100;
   const allocatedPct =
     state.site.gridPowerKw > 0
@@ -46,12 +46,23 @@ export function detectFailureStates(ctx: TickContext): void {
   const baysDown = bayList(state).filter(isDown).length;
   const trust = state.site.metrics.trust;
 
+  // D31: the abandonment arm reads the SUSTAIN window, not the 900 s card
+  // window. Over 900 s the rate swings between 0% and 50% every time a session
+  // starts, so a condition asked to hold for half an hour was being reset by
+  // its own measurement noise. A sustained condition is measured over the span
+  // it is meant to be sustained across.
+  const sustainedAbandonmentPct =
+    rollAbandonmentFraction(rollWindow(state, FAILURE_RULES.queue_collapse.sustainSeconds)) * 100;
+
   evaluate(ctx, "queue_collapse", {
     enter:
       pressure >= FAILURE_THRESHOLDS.queueCollapsePressure &&
-      abandonmentPct >= FAILURE_THRESHOLDS.queueCollapseAbandonmentPct,
+      sustainedAbandonmentPct >= FAILURE_THRESHOLDS.queueCollapseAbandonmentPct,
     clear: pressure < FAILURE_THRESHOLDS.queueCollapseClearPressure,
-    context: { queue_pressure: round(pressure, 2), abandonment_rate_pct: round(abandonmentPct, 1) },
+    context: {
+      queue_pressure: round(pressure, 2),
+      abandonment_rate_pct: round(sustainedAbandonmentPct, 1),
+    },
   });
 
   evaluate(ctx, "power_choke", {
@@ -100,9 +111,17 @@ function evaluate(ctx: TickContext, name: FailureState, ev: Evaluation): void {
 
   if (!active) {
     if (!ev.enter) {
-      delete state.detectors.failureEnterSince[name];
+      // A brief lapse does not restart the clock — see the grace constant.
+      if (state.detectors.failureEnterSince[name] === undefined) return;
+      const lapsedAt = state.detectors.failureLapseSince[name] ?? now;
+      state.detectors.failureLapseSince[name] = lapsedAt;
+      if (now - lapsedAt >= FAILURE_ENTER_GRACE_SECONDS) {
+        delete state.detectors.failureEnterSince[name];
+        delete state.detectors.failureLapseSince[name];
+      }
       return;
     }
+    delete state.detectors.failureLapseSince[name];
     const since = state.detectors.failureEnterSince[name] ?? now;
     state.detectors.failureEnterSince[name] = since;
     if (ev.immediate === true || now - since >= rule.sustainSeconds) {
@@ -111,6 +130,7 @@ function evaluate(ctx: TickContext, name: FailureState, ev: Evaluation): void {
         state.site.metrics.failureStatesObserved.push(name);
       }
       delete state.detectors.failureClearSince[name];
+      delete state.detectors.failureLapseSince[name];
       emit(ctx, "warn", "failure_state.entered", `Failure state: ${name}`, {
         entity_type: "site",
         entity_id: state.site.id,
@@ -131,6 +151,7 @@ function evaluate(ctx: TickContext, name: FailureState, ev: Evaluation): void {
       (f) => f !== name,
     );
     delete state.detectors.failureEnterSince[name];
+    delete state.detectors.failureLapseSince[name];
     delete state.detectors.failureClearSince[name];
     emit(ctx, "info", "failure_state.cleared", `Failure state cleared: ${name}`, {
       entity_type: "site",

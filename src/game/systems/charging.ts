@@ -168,11 +168,14 @@ export function completeSession(
       vehicle.queuedAtSecond === undefined || vehicle.chargingStartedAtSecond === undefined
         ? 0
         : vehicle.chargingStartedAtSecond - vehicle.queuedAtSecond;
-    // Completion and fast-completion bonuses stack (Calibration §5).
+    // D30: no flat reward for completing — that is the job. A plug free on
+    // arrival earns goodwill; a long queue spends it, even when the driver
+    // stayed to the end.
     ctx.trustDeltaRaw += TRUST.completion;
-    if (waitSeconds < TRUST.fastCompletionWaitSeconds) {
-      ctx.trustDeltaRaw += TRUST.fastCompletionBonus;
-    }
+    ctx.trustDeltaRaw +=
+      waitSeconds < TRUST.fastCompletionWaitSeconds
+        ? TRUST.fastCompletionBonus
+        : TRUST.slowCompletionPenalty;
     if (session.partialChargeCapped) {
       ctx.trustDeltaRaw += TRUST.partialChargeCapped;
     }

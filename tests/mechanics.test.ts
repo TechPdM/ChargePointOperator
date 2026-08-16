@@ -11,8 +11,11 @@ import {
   MAINTENANCE,
   taper,
   TRUST,
+  WAIT_PERCEPTION_NOISE,
 } from "../src/game/core/calibration.ts";
 import { createInitialState } from "../src/game/core/init.ts";
+import { runScenario } from "../src/game/core/run.ts";
+import { baselinePolicy } from "../src/game/experiment/baselinePolicy.ts";
 import { tick } from "../src/game/core/tick.ts";
 import { queueAction } from "../src/game/actions/playerActions.ts";
 import { siteScore } from "../src/game/systems/admission.ts";
@@ -351,9 +354,43 @@ describe("KPI definitions (D12)", () => {
   });
 });
 
-describe("trust (Calibration §5)", () => {
-  it("stacks the completion and fast-completion bonuses", () => {
-    expect(TRUST.completion + TRUST.fastCompletionBonus).toBeCloseTo(0.4, 10);
+describe("trust (Calibration §5, rebalanced by D30)", () => {
+  it("pays nothing for merely completing a session", () => {
+    // Serving someone is the job. A day has ~183 completions against ~10
+    // failures, so any per-completion reward swamps every penalty — which is
+    // exactly how trust used to run to the ceiling on every competent run.
+    expect(TRUST.completion).toBe(0);
+  });
+
+  it("rewards a short wait and penalises a long one, exclusively", () => {
+    expect(TRUST.fastCompletionBonus).toBeGreaterThan(0);
+    expect(TRUST.slowCompletionPenalty).toBeLessThan(0);
+    // They are alternatives, not a stack: one or the other applies per session.
+    expect(TRUST.fastCompletionBonus + TRUST.slowCompletionPenalty).toBeLessThan(
+      TRUST.fastCompletionBonus,
+    );
+  });
+
+  it("treats driving past as a reputation event, not a rounding error", () => {
+    // ~18% of the day's demand leaves at the gate; at −0.05 that was −2 trust
+    // a day against +60 of completion bonuses.
+    expect(Math.abs(TRUST.priceRejection)).toBeGreaterThanOrEqual(0.15);
+  });
+
+  it("keeps the baseline's trust inside the calibrated band", () => {
+    const trusts = ["s1", "s2", "s3", "s4"].map(
+      (seed) =>
+        runScenario({
+          scenario: roadsideHub,
+          seed,
+          policy: baselinePolicy,
+          collectLog: false,
+        }).finalState.site.metrics.trust,
+    );
+    for (const trust of trusts) {
+      expect(trust).toBeGreaterThan(40);
+      expect(trust).toBeLessThan(75);
+    }
   });
 
   it("clamps net movement to ±5 over a rolling sim-hour", () => {
@@ -362,5 +399,41 @@ describe("trust (Calibration §5)", () => {
     s = advance(s, 60);
     expect(Math.abs(s.site.metrics.trust - roadsideHub.initialTrust)).toBeLessThanOrEqual(5.0001);
     expect(Math.abs(s.site.metrics.trustDeltaThisHour)).toBeLessThanOrEqual(5.0001);
+  });
+});
+
+describe("perceived wait (OPEN-5 / A4, D31)", () => {
+  it("drivers judge a wait they can only estimate", () => {
+    expect(WAIT_PERCEPTION_NOISE).toBeGreaterThan(0);
+  });
+
+  it("the wait a driver acted on is recorded, and it is not the true one", () => {
+    // With perfect information every arrival read the true projected wait and
+    // drove on, so the queue capped itself and abandonment did no work at all.
+    let s = createInitialState(roadsideHub, "s2");
+    s = advance(s, 900);
+    const judged = Object.values(s.vehicles)
+      .map((v) => v.expectedWaitSeconds)
+      .filter((w): w is number => w !== undefined && w > 0);
+    expect(judged.length).toBeGreaterThan(5);
+    // Perceived waits spread around the truth rather than all matching it.
+    expect(new Set(judged.map((w) => Math.round(w))).size).toBeGreaterThan(3);
+  });
+
+  it("the log carries both the perceived and the true wait", () => {
+    const run = runScenario({ scenario: roadsideHub, seed: "s2", policy: baselinePolicy });
+    const judged = run.logger
+      .getEvents()
+      .filter((e) => e.event_name === "vehicle.site_rejected" || e.event_name === "vehicle.site_accepted");
+    expect(judged.length).toBeGreaterThan(50);
+    const withBoth = judged.filter(
+      (e) => e.data?.["expected_wait_seconds"] !== undefined && e.data?.["true_wait_seconds"] !== undefined,
+    );
+    expect(withBoth.length).toBe(judged.length);
+    // …and they genuinely differ, or the noise isn't reaching the decision.
+    const differing = withBoth.filter(
+      (e) => e.data?.["expected_wait_seconds"] !== e.data?.["true_wait_seconds"],
+    );
+    expect(differing.length).toBeGreaterThan(0);
   });
 });

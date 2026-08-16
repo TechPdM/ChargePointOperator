@@ -1,6 +1,6 @@
 # ChargePointOperator — KPI Dictionary
 
-**Version:** 1.3 · **Date:** 2026-08-16 *(v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24)*
+**Version:** 1.4 · **Date:** 2026-08-16 *(v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24 · **v1.4: D31 — `queue_collapse` thresholds set from the measured joint distribution, and its abandonment arm reads the sustain window**)*
 **Companions:** Architecture doc §5.3 (`SiteMetrics`), §7 (logging), §8 (dashboard)
 **Purpose:** one precise definition per KPI — formula, denominator, window, units — shared by the sim, the logs, and the dashboard. This closes the gap the paired-schema rule (C6) doesn't cover: it checks that names *match*, not that they *mean the same thing*. Any change to a definition here is a schema change and travels with the C6 pair.
 
@@ -140,11 +140,13 @@ Gate criterion 3 requires "≥4 of 5 failure states observed arising naturally a
 
 | State | Enters when | Clears when | Reads as |
 | :-- | :-- | :-- | :-- |
-| `queue_collapse` | queue pressure ≥ 2.0 **and** ROLL abandonment ≥ 30%, both sustained ≥ 1,800 sim-s | queue pressure < 1.2 for 900 sim-s | "more people are giving up than getting served" |
+| `queue_collapse` *(D31)* | queue pressure ≥ **1.0** **and** abandonment ≥ 30% **measured over the 1,800 s sustain window**, both holding ≥ 1,800 sim-s | queue pressure < **0.7** for 900 sim-s | "a car queued for every bay you own, and a third of the people who committed walking away" |
 | `power_choke` | Σ allocated ≥ 95% of `gridPowerKw` **and** queue length ≥ 3, sustained ≥ 1,800 sim-s | allocated < 85% for 900 sim-s | "the grid cap, not the bays, is the wall" |
 | `reliability_spiral` | ROLL uptime < 85% for ≥ 3,600 sim-s, **or** ≥ 3 bays simultaneously `faulted`/`repairing` | ROLL uptime ≥ 90% for 900 sim-s | "the site is falling apart faster than it's fixed" |
 | `margin_trap` | CUM capex > 0 **and** projected end-of-run goals-met count ≤ the same-seed baseline's | never clears within a run (evaluated at close-out) | "you spent £40k and it bought nothing" |
 | `trust_crash` | trust < 40 **and** falling over the preceding 1,800 sim-s | trust ≥ 45 | "reputation is in a downward spiral" — distinct from the hard fail at < 30 for 7,200 s |
+
+**Two things D31 changed, both from measurement rather than argument.** (1) The abandonment arm reads the **sustain window**, not the 900 s card window: over 900 s the rate swings between 0% and 50% every time a session starts, so a condition asked to hold for half an hour was being reset by its own measurement noise. (2) The pressure threshold came down from 2.0 — which with six bays and a queue capacity of 12 required the queue to be *exactly full* — to 1.0, chosen from the joint distribution: across 5 seeds the longest window in which both arms held was **0 ticks under baseline at every combination tried**, and **44 ticks at ≥1.0 / ≥30%** under a deliberate price cut. Entering a failure state also now tolerates a brief lapse (`FAILURE_ENTER_GRACE_SECONDS = 300`), for the same reason hysteresis exists on the clear side.
 
 Two deliberate choices. **The dual conditions matter**: `power_choke` without the queue term fires every peak by design (the cap is *meant* to bind), and `queue_collapse` without the abandonment term fires whenever demand simply exceeds capacity. Both would make criterion 3 trivially satisfiable and therefore meaningless. And `margin_trap` needs the paired baseline run, so it is only evaluable in the baseline-comparison harness (O4) — which is one more reason that harness is MVP-core (D6) rather than a Phase 3 nicety.
 
@@ -154,7 +156,7 @@ Two deliberate choices. **The dual conditions matter**: `power_choke` without th
 
 | Alert | Trigger | Clear |
 | :-- | :-- | :-- |
-| `queue_overload` | queue pressure > 1.5 for ≥ 300 sim-s | < 1.0 |
+| `queue_overload` | queue pressure > **1.0** for ≥ 300 sim-s | < **0.7** |
 | `low_uptime` | uptime (ROLL) < 90% | ≥ 93% |
 | `negative_margin` | margin (ROLL) < **−£25** for ≥ 900 sim-s | ≥ £0 |
 | `power_saturation` | allocated ≥ 95% of `gridPowerKw` for ≥ 300 sim-s | < 85% |

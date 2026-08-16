@@ -125,7 +125,12 @@ export function createInitialState(scenario: ScenarioConfig, seed: string): Simu
     pendingActions: [],
     eventLog: [],
     tickSamples: [],
-    detectors: { failureEnterSince: {}, failureClearSince: {}, alertRaiseSince: {} },
+    detectors: {
+      failureEnterSince: {},
+      failureLapseSince: {},
+      failureClearSince: {},
+      alertRaiseSince: {},
+    },
     nextVehicleSeq: 1,
     nextSessionSeq: 1,
     paused: false,

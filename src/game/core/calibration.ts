@@ -165,6 +165,19 @@ export const ACCEPT_THRESHOLD = 0.15;
 export const ABANDON_RAMP_SECONDS = 600;
 export const ABANDON_MAX_PROBABILITY_PER_TICK = 0.5;
 
+/**
+ * Trust deltas — **rebalanced under D30.**
+ *
+ * The v2.2 set was net-positive by ~+42/day under baseline play, so trust ran
+ * to the 0–100 ceiling on every competent run and stopped being a resource at
+ * all. Measured event volumes are what fixed it: a day has ~183 completions
+ * against ~10 failures, so *any* per-completion reward swamps every penalty.
+ *
+ * The structure now is: serving someone is the job, not a favour. Reputation
+ * moves on the exceptional — a plug free on arrival — and on the things that
+ * actually annoy people: a long wait, a fault, giving up, and driving past a
+ * site that looked too busy to bother with.
+ */
 export const TRUST = {
   min: 0,
   max: 100,
@@ -173,16 +186,39 @@ export const TRUST = {
   abandon: -1.5,
   faultMidSession: -2.0,
   faultIdle: -0.5,
-  completion: 0.1,
-  /** Cumulative with `completion` — a fast completion is +0.4 total. */
-  fastCompletionBonus: 0.3,
+  /** D30: was +0.1. Completing a session is the baseline expectation. */
+  completion: 0,
+  /** Served with little or no wait — the experience worth talking about. */
+  fastCompletionBonus: 0.1,
   fastCompletionWaitSeconds: 300,
+  /**
+   * NEW (D30): served, but kept waiting. Before this, wait touched trust only
+   * when someone gave up — so a site with 20-minute queues that everyone
+   * tolerated lost no reputation at all.
+   */
+  slowCompletionPenalty: -0.05,
   /** Awarded per sim-hour while ROLL uptime stays above the threshold. */
   uptimeBonusPerSimHour: 0.5,
-  uptimeBonusThresholdPct: 95,
-  priceRejection: -0.05,
+  /** D30: was 95%, which is ordinary. 98% is a site that genuinely never breaks. */
+  uptimeBonusThresholdPct: 98,
+  /**
+   * D30: was −0.05. A driver who sees the queue and drives on is a reputation
+   * event, not a rounding error — and it is where 18% of the day's demand goes.
+   */
+  priceRejection: -0.15,
   partialChargeCapped: -0.1,
 } as const;
+
+/**
+ * OPEN-5 / A4: drivers judge the wait they can see, and they misjudge it.
+ *
+ * With perfect information every arrival read the true projected wait and drove
+ * on, so the queue capped itself at ~5 of 12 and abandonment measured 2.4%
+ * against an expected 8–25%. A4 always allowed for this ("add noise to
+ * expectedWait if admission feels twitchy"); this is that noise. Perceived wait
+ * is scaled by a uniform draw in [1−WAIT_PERCEPTION_NOISE, 1+…].
+ */
+export const WAIT_PERCEPTION_NOISE = 0.35;
 
 /** Mean service time used by the wait projection before any session exists. */
 export const FALLBACK_SESSION_SECONDS = 1_400;
@@ -196,6 +232,20 @@ export interface FailureStateRule {
   clearSeconds: number;
 }
 
+/**
+ * D31: how long the enter condition may lapse before the sustain clock resets.
+ *
+ * Without this, a single tick where the condition dips wipes out half an hour
+ * of genuine collapse — and the conditions *do* flicker, because ROLL
+ * abandonment moves every time one session starts. Measured: both
+ * `queue_collapse` conditions held for 3–17 consecutive ticks against a
+ * 30-tick requirement, but for 17–49 ticks in total across the same window.
+ * The KPI dictionary already argues this case for alerts ("flapping destroys
+ * the legibility the whole design depends on"); it applies to entering a
+ * failure state just as much as to leaving one.
+ */
+export const FAILURE_ENTER_GRACE_SECONDS = 300;
+
 export const FAILURE_RULES: Record<FailureState, FailureStateRule> = {
   queue_collapse: { sustainSeconds: 1_800, clearSeconds: 900 },
   power_choke: { sustainSeconds: 1_800, clearSeconds: 900 },
@@ -205,9 +255,21 @@ export const FAILURE_RULES: Record<FailureState, FailureStateRule> = {
 };
 
 export const FAILURE_THRESHOLDS = {
-  queueCollapsePressure: 2.0,
+  /**
+   * D31: was 2.0, set on paper. Measured: with six bays and a queue capacity of
+   * 12, pressure 2.0 needs the queue *exactly full*, and even 1.2 never holds
+   * long enough to fire. Threshold set from the joint distribution instead —
+   * across 5 seeds, the longest window where pressure and sustained
+   * abandonment both held was 0 ticks under baseline at every combination
+   * tried, and 44 ticks at pressure ≥ 1.0 with abandonment ≥ 30%. So 1.0 both
+   * never fires on a competent run and fires reliably on a real mistake.
+   *
+   * It also reads plainly: a car queued for every bay you own, and a third of
+   * the people who committed walking away, for half an hour.
+   */
+  queueCollapsePressure: 1.0,
   queueCollapseAbandonmentPct: 30,
-  queueCollapseClearPressure: 1.2,
+  queueCollapseClearPressure: 0.7,
   powerChokeAllocatedPct: 95,
   powerChokeQueueLength: 3,
   powerChokeClearPct: 85,
@@ -234,8 +296,11 @@ export const ALERT_RULES: Record<AlertName, AlertRule> = {
 };
 
 export const ALERT_THRESHOLDS = {
-  queueOverloadPressure: 1.5,
-  queueOverloadClearPressure: 1.0,
+  // Kept below the failure-state entry so the alert is a genuine early warning
+  // of the same condition: 5 minutes of pressure here, half an hour of pressure
+  // plus abandonment there.
+  queueOverloadPressure: 1.0,
+  queueOverloadClearPressure: 0.7,
   lowUptimePct: 90,
   lowUptimeClearPct: 93,
   /** −£25, not £0: quiet overnight ROLL windows legitimately run slightly negative. */

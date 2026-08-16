@@ -1,6 +1,6 @@
 # ChargePointOperator — Calibration Sheet & Assumptions Register
 
-**Version:** 3.0 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing**)*
+**Version:** 3.1 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed**)*
 **Companions:** `ChargePointOperator_Plan.md` (C9, O7), `ChargePointOperator_Architecture.md` (§6, §9.3), `ChargePointOperator_Decision_Log.md` (D8–D26)
 **Status of every number: FIRST GUESS** — chosen for plausible ratios and gradients so Phase 1 has something to assert against and Phase 3 something to tune. When a value proves wrong, change it here first, then in code. Currency £ (realistic magnitudes — D10).
 
@@ -80,17 +80,17 @@ Per-archetype `maxAcceptablePricePerKwh` hard rejections apply on top, at admiss
 
 ### 4a. Maintenance-tier dominance — **confirmed by measurement** (OPEN-2)
 
-The tiers above do not form a trade. **Measured, Phase 1, 20 seeds per tier:**
+The tiers above do not form a trade. **Measured, 20 seeds per tier, re-run after D30/D31:**
 
 | Tier | Faults/day | Uptime | Sessions | **Cum margin** | Trust |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| `reactive` | 4.80 | 96.36% | 177 | **£1,230** | 94.5 |
-| `standard` | 4.35 | 97.19% | 183 | **£1,844** | 96.3 |
-| `preventive` | 2.75 | 98.72% | 185 | **£2,300** | 98.3 |
+| `reactive` | 5.75 | 95.54% | 175 | **£942** | 52.8 |
+| `standard` | 4.35 | 97.15% | 178 | **£1,815** | 56.4 |
+| `preventive` | 2.65 | 98.73% | 178 | **£2,229** | 60.8 |
 
-`preventive` is **£456/day better on margin** than `standard` *and* better on uptime, trust and throughput simultaneously. That is a strictly dominant option, and gate criterion 2 ("no dominant strategy") is exactly what it threatens. The v2.2 first-guess arithmetic below predicted this to within ~£20/day, so the model is behaving; it is the prices that are wrong.
+`preventive` is **£414/day better on margin** than `standard` *and* better on uptime, trust and throughput simultaneously. That is a strictly dominant option, and gate criterion 2 ("no dominant strategy") is exactly what it threatens. The v2.2 first-guess arithmetic below predicted this to within ~£20/day, so the model is behaving; it is the prices that are wrong.
 
-It has deliberately **not** been silently repriced. The measured break-even standing charge is **£500/day** (£45 current + £456 of advantage) — the estimate below, confirmed. For preventive to merely break even on cost, its standing charge would need to be ~£500/day — £182k/year on a six-bay site, which breaks the realistic-magnitudes commitment Mark ratified in D10. That's a decision, not a tune. The two candidate fixes are in OPEN-2: accept a balance-over-realism exception for the maintenance tiers, or give preventive a real cost in bay-time (scheduled maintenance windows), which is a new mechanic. **Resolve in Phase 3, with measured fault rates in hand.** Until then, expect every competent player to pick preventive and every sweep to say so.
+It has deliberately **not** been silently repriced. The measured break-even standing charge is **~£460/day** (£45 current + £414 of advantage) — close to the estimate below, confirmed twice under different trust models. For preventive to merely break even on cost, its standing charge would need to be ~£500/day — £182k/year on a six-bay site, which breaks the realistic-magnitudes commitment Mark ratified in D10. That's a decision, not a tune. The two candidate fixes are in OPEN-2: accept a balance-over-realism exception for the maintenance tiers, or give preventive a real cost in bay-time (scheduled maintenance windows), which is a new mechanic. **Resolve in Phase 3, with measured fault rates in hand.** Until then, expect every competent player to pick preventive and every sweep to say so.
 
 ## 5. Behavioural & system constants
 
@@ -126,9 +126,12 @@ That ordering is the design intent made checkable: commuters shed first — righ
 | Fault model | Per-tick `P(fault) = (1 − reliabilityBase) / expectedSessionTicks × maintenanceMultiplier`, evaluated only on `charging` bays, where `expectedSessionTicks = max(1, round(session.estimatedDurationSeconds / 60))` — **that session's own** estimate, taken at start. Integrates to ≈ `1 − reliabilityBase` per session, which is what `reliabilityBase` is supposed to mean. Plus the scripted fault (scenario spec §4), which no maintenance level prevents |
 | Abandonment | 0 while `waited < patience`; then ramps linearly to 0.5/tick over the next 600 s |
 | Trust — start / bounds | 60 / clamp 0–100, max ±5 over a **rolling** 3,600 sim-second window |
-| Trust deltas | abandon −1.5 · fault mid-session −2.0 · fault idle −0.5 · **completion +0.1, plus a further +0.3 if wait < 300 s (cumulative — a fast completion is +0.4 total)** · uptime (ROLL) > 95% sustained +0.5/sim-hr · price-rejection −0.05 · partial-charge-capped session −0.1 (D14) |
+| Trust deltas *(rebalanced — **D30**)* | abandon −1.5 · fault mid-session −2.0 · fault idle −0.5 · **completion 0** · **wait < 300 s: +0.1 · wait ≥ 300 s: −0.05** (exclusive, not cumulative) · uptime (ROLL) > **98%** sustained +0.5/sim-hr · price-rejection **−0.15** · partial-charge-capped session −0.1 (D14) |
+| Perceived-wait noise *(new — **D31**)* | `perceivedWait = trueWait × U(0.65, 1.35)` — each arrival judges the wait it can see, and misjudges it (A4) |
 
-*(The completion deltas were previously listed as two bullets with no statement of whether they stacked. Over ~170 sessions that ambiguity is worth ±18 trust points — the difference between passing and failing `minTrust`. They stack.)*
+**Why these changed (D30).** The v2.2 set was net **+42/day** under baseline play, so trust ran to the 0–100 ceiling on every competent run and stopped being a resource at all. The measured event volumes explain it: a day carries **183 completions against ~10 failures**, so any per-completion reward swamps every penalty. The structure now is *serving someone is the job* — reputation moves on the exceptional (a plug free on arrival) and on the things that actually annoy people. The **slow-completion penalty is new**, and it closes a real gap: before it, wait touched trust only when someone gave up, so a site with 20-minute queues that everyone tolerated lost no reputation at all.
+
+*Measured:* baseline trust ends **56.4** [p10 49.6 · p90 62.2], against 96.3 before. Recompute the §5 admission table whenever these move — the trust term feeds `siteScore`, and at trust 96 it was handing every arrival +0.6 against a threshold of 0.15.
 
 ## 6. Demand waves
 
@@ -143,20 +146,22 @@ Baseline (D22) = £0.79 flat, **`standard`** maintenance, `equal_share` power, a
 | KPI | **Measured** mean [p10 · p90] | v2.2 guess | If a change moves it, suspect (in order) |
 | :-- | :-- | :-- | :-- |
 | Arrivals/day | **235** [215 · 256] | 239 (derived) | wave rates, elasticity |
-| Utilization | **64.9%** [62.4 · 68.5] | 40–60% ❌ | siteScore — inflated by the trust runaway (OPEN-4) |
-| Avg wait | **6.1 sim-min** [5.4 · 7.1] | 3–10 ✅ | peaks vs cap-bound capacity |
-| Abandonment rate | **2.4%** [1.1 · 3.7] | 8–25% ❌ | admission is shedding it first — OPEN-5 |
-| Uptime | **97.19%** [95.64 · 98.76] | 94–98 ✅ | fault model, repair means, baseline repair latency |
-| Sessions completed | **183** [174 · 197] | 150–190 ✅ | downstream of everything above |
-| Session success rate | **97.7%** | ≥ 90 ✅ | fault model |
-| Cumulative operating margin | **£1,844** [£1,226 · £2,436] | £1,300–£1,800 ⚠ | price/energy gap, maintenance, opex |
-| End cash (no upgrade) | **£51,844** — reconciles exactly | reconciliation check | invariant 6 if this doesn't reconcile |
-| End trust | **96.3** [88.7 · 100] | 45–70 ❌❌ | trust deltas — **the deltas are net-positive; see OPEN-4** |
-| Faults/day | **4.35** [2.0 · 7.1] | 4.4 assumed ✅ | fault model is well-formed |
+| Utilization | **64.5%** [60.1 · 69.2] | 40–60% ⚠ | siteScore; the band was written before D21 gave archetypes real admission behaviour |
+| Avg wait | **5.5 sim-min** [4.5 · 6.5] | 3–10 ✅ | peaks vs cap-bound capacity |
+| Abandonment rate | **1.8%** [0.6 · 3.3] | 8–25% ❌ | **the expectation is wrong, not the sim — see below** |
+| Uptime | **97.15%** [96.09 · 98.76] | 94–98 ✅ | fault model, repair means, baseline repair latency |
+| Sessions completed | **178** [165 · 192] | 150–190 ✅ | downstream of everything above |
+| Session success rate | **97.6%** | ≥ 90 ✅ | fault model |
+| Cumulative operating margin | **£1,815** [£1,399 · £2,331] | £1,300–£1,800 ⚠ | price/energy gap, maintenance, opex |
+| End cash (no upgrade) | **£51,815** — reconciles exactly | reconciliation check | invariant 6 if this doesn't reconcile |
+| End trust | **56.4** [49.6 · 62.2] | 45–70 ✅ | **fixed by D30** — was 96.3 and pinned at the ceiling |
+| Faults/day | **4.35** [2.0 · 6.0] | 4.4 assumed ✅ | fault model is well-formed |
+
+**On abandonment (D31).** The 8–25% expectation predates D21, which gave each archetype its own wait sensitivity. With drivers who can see a queue and leave, a competently-run six-bay site does not generate mass abandonment — the demand goes **at the gate** instead (55 rejections/day, 23% of arrivals), and the funnel accounts for it there. Adding perceived-wait noise (D31) was the right fix for *reachability* and it did not move this number much, because the admission gate is doing the shedding by design. **Treat 8–25% as a superseded guess.** The figure to watch is the funnel split, not this rate on its own.
 
 The p10–p90 spread on margin is £1,200 wide. **Any goal set inside that band is a coin flip** — which is what the difficulty-floor result below reflects.
 
-**Difficulty floor check (D13): measured 30%. FAILS** (needs ≥80%). The baseline meets `maxAvgWaitSeconds`, `minTrust` and `minSessionsCompleted` on 20/20 seeds — all three are decorative — and `minOperatingMargin` on 14/20. Recommended re-set from the measured distribution, per the scenario spec's own instruction to raise the margin goal first rather than touch the economy constants: **`minOperatingMargin` £1,750 → £2,300** (measured p80), optionally **`minSessionsCompleted` 110 → 190** and **`maxAvgWaitSeconds` 480 → 360**. `minTrust` cannot be set meaningfully until OPEN-4 is resolved. These are goal changes, so they are Mark's call, not a tune — see the findings note §3.
+**Difficulty floor check (D13): measured 60% after D30/D31 (was 30%). Still FAILS** (needs ≥80%). `minTrust` is no longer decorative — the baseline meets it on 12/20 rather than 20/20, which is D30 working. `minOperatingMargin` bites on 9/20. `maxAvgWaitSeconds` and `minSessionsCompleted` remain decorative at 20/20. Recommended re-set from the measured distribution, per the scenario spec's own instruction to raise the margin goal first rather than touch the economy constants: **`minOperatingMargin` £1,750 → £2,200** (the re-measured p80, and enough on its own to close the floor), optionally **`minSessionsCompleted` 110 → 185** and **`maxAvgWaitSeconds` 480 → 360**. `minTrust` can now be set meaningfully; 55 already scores, 60 would add a second axis. These are goal changes, so they are Mark's call, not a tune — OPEN-7.
 
 ### 7a. Where the pre-measurement estimates came from — **read before tuning anything**
 

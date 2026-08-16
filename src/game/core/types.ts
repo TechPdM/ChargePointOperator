@@ -448,6 +448,8 @@ export interface ScenarioConfig {
  */
 export interface DetectorState {
   failureEnterSince: Partial<Record<FailureState, SimSeconds>>;
+  /** When the enter condition last lapsed — see FAILURE_ENTER_GRACE_SECONDS. */
+  failureLapseSince: Partial<Record<FailureState, SimSeconds>>;
   failureClearSince: Partial<Record<FailureState, SimSeconds>>;
   alertRaiseSince: Partial<Record<AlertName, SimSeconds>>;
   /** Seconds trust has been continuously below failRules.trustBelow. */

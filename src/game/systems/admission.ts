@@ -8,7 +8,13 @@
  */
 
 import { archetypeName } from "../core/labels.ts";
-import { ACCEPT_THRESHOLD, ARCHETYPES, SITE_SCORE, TRUST } from "../core/calibration.ts";
+import {
+  ACCEPT_THRESHOLD,
+  ARCHETYPES,
+  SITE_SCORE,
+  TRUST,
+  WAIT_PERCEPTION_NOISE,
+} from "../core/calibration.ts";
 import { dataOf, emit, round, type TickContext } from "../core/context.ts";
 import { getProjectedWait } from "../core/selectors.ts";
 import type { SimulationState, VehicleAgent } from "../core/types.ts";
@@ -36,13 +42,18 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
 
   for (const vehicle of arriving) {
     vehicle.state = "evaluating_site";
-    const expectedWait = getProjectedWait(state, state.queue.length);
-    vehicle.expectedWaitSeconds = expectedWait;
+    const trueWait = getProjectedWait(state, state.queue.length);
+    // A4/D31: the driver judges the wait they can see, and they misjudge it.
+    // Perfect information made every arrival read the true wait and drive on,
+    // which capped the queue and left abandonment doing no work at all.
+    const perceivedWait =
+      trueWait * ctx.rng.range(1 - WAIT_PERCEPTION_NOISE, 1 + WAIT_PERCEPTION_NOISE);
+    vehicle.expectedWaitSeconds = perceivedWait;
 
     const score = siteScore(
       vehicle,
       state.site.policy.pricePerKwh,
-      expectedWait,
+      perceivedWait,
       state.site.metrics.trust,
     );
     const priceRejected = state.site.policy.pricePerKwh > vehicle.demand.maxAcceptablePricePerKwh;
@@ -57,7 +68,8 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
         data: dataOf({
           site_score: round(score, 3),
           accept_threshold: ACCEPT_THRESHOLD,
-          expected_wait_seconds: round(expectedWait, 0),
+          expected_wait_seconds: round(perceivedWait, 0),
+          true_wait_seconds: round(trueWait, 0),
           price_per_kwh: round(state.site.policy.pricePerKwh, 2),
           hard_price_reject: priceRejected,
           archetype: vehicle.archetype,
@@ -72,7 +84,8 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
       entity_id: vehicle.id,
       data: dataOf({
         site_score: round(score, 3),
-        expected_wait_seconds: round(expectedWait, 0),
+        expected_wait_seconds: round(perceivedWait, 0),
+        true_wait_seconds: round(trueWait, 0),
         archetype: vehicle.archetype,
       }),
     });

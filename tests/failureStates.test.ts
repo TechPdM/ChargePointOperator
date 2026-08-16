@@ -167,70 +167,64 @@ describe("margin_trap — only evaluable against the paired baseline", () => {
   });
 });
 
-describe("queue_collapse — reachability (Phase 1 finding)", () => {
-  it("the detector fires when both of its conditions are genuinely met", () => {
-    // Driven directly: three waiting vehicles against one open bay is
-    // pressure 3.0, and every started session is outnumbered by abandonments.
-    let s = createInitialState(roadsideHub, "s1");
-    for (const id of ["bay-2", "bay-3", "bay-4", "bay-5", "bay-6"]) {
-      const bay = s.chargers[id];
-      if (bay) bay.isOpen = false;
+describe("queue_collapse — reachable by play, not by competence (D31)", () => {
+  it("the baseline never reaches it — a competent operator shouldn't", () => {
+    for (const seed of ["s1", "s2", "s3"]) {
+      const s = play(roadsideHub, seed, [], true);
+      expect(s.site.metrics.failureStatesObserved).not.toContain("queue_collapse");
     }
-    s.site.openBayIds = ["bay-1"];
-
-    // Hand-fill the sample ring so the ROLL abandonment window is unambiguous.
-    for (let i = 0; i < 40; i++) {
-      s = tick(s).state;
-      s.site.metrics.failureStatesActive = s.site.metrics.failureStatesActive.filter(
-        (f) => f !== "queue_collapse",
-      );
-      for (const sample of s.tickSamples) {
-        sample.queueAbandons = 1;
-        sample.sessionsStarted = 0;
-      }
-      // Three vehicles waiting on one open bay ⇒ pressure 3.0.
-      let stub = 0;
-      while (s.queue.length < 3) {
-        const id = `v-stub-${i}-${stub++}`;
-        s.vehicles[id] = {
-          id,
-          archetype: "enroute",
-          state: "queueing",
-          batteryCapacityKwh: 60,
-          maxChargeRateKw: 150,
-          currentSoc: 0.2,
-          arrivalSecond: s.clock.secondsElapsed,
-          urgencyScore: 0.6,
-          priceSensitivity: 0.4,
-          waitSensitivity: 0.5,
-          demand: {
-            targetSoc: 0.8,
-            requestedKwh: 36,
-            maxAcceptablePricePerKwh: 1.1,
-            patienceSeconds: 99_999,
-          },
-          queuedAtSecond: s.clock.secondsElapsed,
-        };
-        s.queue.push({
-          vehicleId: id,
-          queuedAtSecond: s.clock.secondsElapsed,
-          predictedWaitSeconds: 1_800,
-          preferredChargerTypes: ["rapid_dc", "ultrarapid_dc"],
-        });
-      }
-    }
-    expect(s.site.metrics.failureStatesObserved).toContain("queue_collapse");
   });
 
-  it("PHASE 1 FINDING: the roadside hub cannot reach it with all six bays open", () => {
-    // Admission (D21) sheds demand before the queue can fill: arriving drivers
-    // see the true projected wait (A4, perfect information) and drive on, so
-    // queue pressure tops out around 1.0 against a 2.0 threshold. Recorded as
-    // a test so a future tune to A4 noise or to the threshold shows up here.
-    for (const cap of [350, 120]) {
-      const s = play({ ...roadsideHub, initialGridPowerKw: cap }, "s1", [], false);
-      expect(s.site.metrics.failureStatesObserved).not.toContain("queue_collapse");
-      expect(s.site.metrics.funnel.siteFull).toBe(0);
+  it("a price cut does reach it — the classic 'I'll attract customers' mistake", () => {
+    // Measured before the thresholds were set: across 5 seeds the longest
+    // window where pressure and sustained abandonment both held was 0 ticks
+    // under baseline at every combination tried, and 44 ticks here.
+    const seen = ["s1", "s2", "s3"].map((seed) =>
+      play(roadsideHub, seed, [[2, { type: "set_price", pricePerKwh: 0.45 }]], true)
+        .site.metrics.failureStatesObserved,
+    );
+    expect(seen.some((states) => states.includes("queue_collapse"))).toBe(true);
+    // …and it drags trust down with it, which is the point.
+    expect(seen.some((states) => states.includes("trust_crash"))).toBe(true);
+  });
+
+  it("a brief lapse in the conditions does not restart the sustain clock (D31)", () => {
+    // ROLL abandonment swings every time a session starts, so an unbroken-run
+    // requirement was being defeated by its own measurement noise.
+    let s = createInitialState(roadsideHub, "s1");
+    s = advance(s, 3);
+    s.detectors.failureEnterSince["power_choke"] = s.clock.secondsElapsed;
+    const since = s.clock.secondsElapsed;
+
+    // Two ticks with the condition false — inside the grace window.
+    s = advance(s, 2);
+    expect(s.detectors.failureEnterSince["power_choke"]).toBe(since);
+
+    // Well past the grace window, the clock resets.
+    s = advance(s, 8);
+    expect(s.detectors.failureEnterSince["power_choke"]).toBeUndefined();
+  });
+});
+
+describe("all five failure states are reachable (gate criterion 3)", () => {
+  it("four arise in the sim; margin_trap needs the paired baseline", () => {
+    // Gate criterion 3 counts across ALL runs a playtest produces, not within
+    // one — queue_collapse is seed-dependent even under the same mistake.
+    const observed = new Set<string>();
+    const cut: [number, PlayerActionDraft][] = [[2, { type: "set_price", pricePerKwh: 0.45 }]];
+    for (const s of [
+      play(roadsideHub, "s1", [], true),
+      play(roadsideHub, "s1", [], false),
+      ...["s1", "s2", "s3", "s4"].map((seed) => play(roadsideHub, seed, cut, true)),
+    ]) {
+      for (const f of s.site.metrics.failureStatesObserved) observed.add(f);
     }
+    expect(observed).toContain("power_choke");
+    expect(observed).toContain("reliability_spiral");
+    expect(observed).toContain("trust_crash");
+    expect(observed).toContain("queue_collapse");
+    // margin_trap is asserted in its own block above — it cannot be detected
+    // inside a single run by definition.
+    expect(observed.size).toBeGreaterThanOrEqual(4);
   });
 });
