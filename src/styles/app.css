@@ -636,12 +636,27 @@ button:focus-visible,
 
 /* -------------------------------------------------------- policy pickers */
 
-.policy-list,
 .level-list,
 .limit-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/*
+ * The four power policies sit in a row: they are alternatives to compare, not
+ * a list to read down, and side by side is how you compare. The 150px floor
+ * lets them fall to 2x2 and then to one column as the panel narrows, so the
+ * blurbs never get squeezed to a word a line.
+ *
+ * Maintenance (`.level-list`) stays stacked — it lives in the narrow left rail
+ * where a row would give each tier about 80px.
+ */
+.policy-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px;
+  align-items: stretch;
 }
 
 .limit-list {
