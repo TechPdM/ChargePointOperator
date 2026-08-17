@@ -61,34 +61,30 @@ export function App(): ReactElement {
         <BayAvailabilityPanel sim={sim} />
       </fieldset>
 
-      {/* What is wrong, and what is shouting about it — read together, because
-          the diagnosis explains the alerts. Both are read-only, so they sit
-          outside the fieldset and stay live after the day is scored. */}
-      <div className="split-row">
+      {/* Everything that is going wrong, in one glance: the diagnosis, what is
+          shouting about it, what is broken, and who is waiting. They belong on
+          one line because a tester reading left to right gets cause, alarm,
+          hardware, people — which is the order you would work the problem. */}
+      <fieldset className="status-row" disabled={!state.running}>
         <DiagnosisPanel state={state} snapshots={sim.state.snapshots} />
         <AlertsFeed state={state} />
-      </div>
+        <FaultsAndRepairsPanel sim={sim} />
+        <ActiveQueueTable state={state} />
+      </fieldset>
+
+      {/* The two standing policies — what you set once and live with, as
+          opposed to the price and power controls you keep touching. */}
+      <fieldset className="controls-row" disabled={!state.running}>
+        <ChargingPolicyPanel sim={sim} />
+        <MaintenancePanel sim={sim} />
+      </fieldset>
 
       <PostRunSummary state={state} comparison={sim.state.comparison} />
 
-      <fieldset className="floor" disabled={!state.running}>
-        <div className="rail rail-left">
-          <ChargingPolicyPanel sim={sim} />
-          <MaintenancePanel sim={sim} />
-        </div>
-
-        <div className="centre">
-          <div className="chart-pair">
-            <WaitTimeTrendChart state={state} snapshots={sim.state.snapshots} />
-            <EconomicsTrendChart state={state} snapshots={sim.state.snapshots} />
-          </div>
-        </div>
-
-        <div className="rail rail-right">
-          <FaultsAndRepairsPanel sim={sim} />
-          <ActiveQueueTable state={state} />
-        </div>
-      </fieldset>
+      <div className="chart-pair">
+        <WaitTimeTrendChart state={state} snapshots={sim.state.snapshots} />
+        <EconomicsTrendChart state={state} snapshots={sim.state.snapshots} />
+      </div>
 
       <EventLogPanel events={sim.state.events} actions={sim.state.actions} />
     </div>
