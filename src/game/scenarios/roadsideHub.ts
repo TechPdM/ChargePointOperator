@@ -163,7 +163,24 @@ export const roadsideHub: ScenarioConfig = {
   initialGridPowerKw: 650,
   maxQueueLength: 12,
 
-  initialCash: 50_000,
+  /**
+   * **Raised 2026-08-17 with the upgrade re-pricing, and it is a fix, not a
+   * gift.** £50,000 against a £75,000 ultra-rapid swap left the upgrade button
+   * permanently disabled — `BayAvailabilityPanel` gates on
+   * `cash >= capexCost`, and a day nets ~£3,500, so it was unaffordable at
+   * 00:00 and still unaffordable at 23:59. That silently killed a core lever
+   * and falsified this sheet's own "starting capital funds at most one".
+   *
+   * The headless action path does **not** check affordability — it just debits
+   * — which is why the scripted margin_trap test bought one happily and no
+   * test caught this. Worth knowing before trusting a capex test again.
+   *
+   * £100,000 funds exactly one upgrade with £25,000 left, so the bankruptcy
+   * rule still has teeth after the buy. It is also the more realistic of the
+   * two available fixes: £75k for a 350 kW unit is the researched figure, and
+   * £50k of working capital for a six-bay corridor hub never was.
+   */
+  initialCash: 100_000,
   initialPricePerKwh: 0.79,
   initialConnectionFee: 0.99,
   initialTrust: 60,

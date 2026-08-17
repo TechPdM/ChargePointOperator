@@ -114,7 +114,10 @@ export const destinationSite: ScenarioConfig = {
   initialGridPowerKw: 350,
   maxQueueLength: 10,
 
-  initialCash: 50_000,
+  // Raised with the upgrade re-pricing (2026-08-17) — see roadsideHub. £100,000
+  // affords one ultra step or two DC posts, which is the trade this site is
+  // actually about: a little speed for a few, or a bit more speed for more.
+  initialCash: 100_000,
   // Cheap: the charging is an amenity that keeps people on site, not the
   // business. The margin per session is thin and the volume is the point.
   initialPricePerKwh: 0.55,
@@ -133,9 +136,13 @@ export const destinationSite: ScenarioConfig = {
   energyCostPerKwh: 0.28,
   // A car park with posts on it — barely any standing cost.
   opexPerSimDay: 60,
+  // Re-priced with the hardware (2026-08-17). `slow_ac → rapid_dc` is now a
+  // 22 → 150 kW step, not 22 → 50, so £18,000 no longer buys it; £35,000 is a
+  // 150 kW DC unit on a site that already has the groundwork. The ultra step
+  // is the same £75,000 unit as everywhere else.
   upgradeCosts: [
-    { from: "slow_ac", to: "rapid_dc", capexCost: 18_000 },
-    { from: "rapid_dc", to: "ultrarapid_dc", capexCost: 40_000 },
+    { from: "slow_ac", to: "rapid_dc", capexCost: 35_000 },
+    { from: "rapid_dc", to: "ultrarapid_dc", capexCost: 75_000 },
   ],
 
   scriptedFaults: [{ atSecond: 11 * H, bayId: "bay-8", category: "software_fault" }],

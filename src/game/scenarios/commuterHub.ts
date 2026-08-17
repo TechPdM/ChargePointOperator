@@ -139,7 +139,12 @@ export const commuterHub: ScenarioConfig = {
   initialGridPowerKw: 450,
   maxQueueLength: 14,
 
-  initialCash: 50_000,
+  // Raised with the upgrade re-pricing (2026-08-17) so the ultra swap stays a
+  // decision rather than a greyed-out button — see roadsideHub for the full
+  // note. It matters more here, not less: this is the scenario whose whole
+  // point is that the upgrade is *not* worth buying, and a lesson you are
+  // prevented from learning the hard way is not a lesson.
+  initialCash: 100_000,
   // Cheaper than the corridor: this is a competitive urban site and the
   // customers are the price-sensitive archetype.
   initialPricePerKwh: 0.72,
@@ -154,7 +159,10 @@ export const commuterHub: ScenarioConfig = {
 
   energyCostPerKwh: 0.28,
   opexPerSimDay: 120,
-  upgradeCosts: [{ from: "rapid_dc", to: "ultrarapid_dc", capexCost: 40_000 }],
+  // Same hardware, same price as the corridor (2026-08-17): a 150 → 350 kW
+  // swap. Leaving it at £40,000 would have made the same unit cost different
+  // money in different scenarios.
+  upgradeCosts: [{ from: "rapid_dc", to: "ultrarapid_dc", capexCost: 75_000 }],
 
   // Right at the top of the evening spike, when there is no slack anywhere.
   scriptedFaults: [{ atSecond: 16.75 * H, bayId: "bay-3", category: "connector_fault" }],

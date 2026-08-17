@@ -334,3 +334,68 @@ of hardcoding, so they do not rot again the next time hardware is re-priced.
 3. **Is ×1.8 a scenario change too far?** It is one constant and reverting it is a one-line edit,
    but it is a demand-model decision made as a *consequence* of a hardware decision, which is
    arguably a D-entry rather than a dev-log line.
+
+---
+
+## 10. The upgrade nobody could buy — a regression §9 shipped
+
+**Trigger:** Mark, reading the running dashboard, queried the header and power panel. Both were
+correct — "6 bays · 650 kW supply" renders fine and `0 of 650 kW` is right at 00:00 because no car
+has arrived — but the bay panel next to them was showing **"Not enough cash — this costs £75,000"**
+on every upgrade button.
+
+**The bug §9 introduced.** Re-pricing the ultra swap £40,000 → £75,000 left `initialCash` at
+£50,000. `BayAvailabilityPanel` gates on `cash >= upgrade.capexCost`, so the button was disabled at
+00:00 — and a day nets ~£3,500, so it was still disabled at 23:59. A core decision lever was dead
+for the entire run, and the calibration sheet's "starting capital funds at most one" — which §9
+itself re-asserted — was false. It funded zero.
+
+**Why no test caught it, which is the part worth keeping.** The headless action path does not check
+affordability; `playerActions` debits `capexSpentToday` and moves on. So the scripted margin_trap
+test bought a £75,000 upgrade out of £50,000 quite happily and asserted the debit landed. **Every
+capex test in the suite passes on a purchase the UI would refuse.** The gate exists in exactly one
+place, and it is not the place the tests look.
+
+Found by opening the dashboard, not by running anything.
+
+### Fix
+
+| | From | To |
+|---|---|---|
+| all three `initialCash` | £50,000 | **£100,000** |
+| commuter rapid→ultra | £40,000 | **£75,000** |
+| destination slow_ac→rapid | £18,000 | **£35,000** |
+| destination rapid→ultra | £40,000 | **£75,000** |
+
+Raising cash rather than dropping the price, because £75,000 for a 350 kW unit is the researched
+figure and £50,000 of working capital for a six-bay corridor hub never was — the cash line was the
+unrealistic half. £100,000 funds exactly one upgrade with £25,000 left, so bankruptcy still has
+teeth after the buy.
+
+The other two scenarios were re-priced for consistency: the same 150 → 350 kW unit was costing
+different money in different scenarios, and destination's `slow_ac → rapid_dc` had silently become a
+22 → 150 kW step still priced for a 50 kW one. Commuter's cash matters most, not least — that is the
+scenario whose whole point is that the upgrade is *not* worth buying, and a lesson you are prevented
+from learning the hard way is not a lesson.
+
+D13 unaffected, as expected: goals key on margin, and D12 keeps capex out of margin.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | 116 passed |
+| D13 floor, 20 seeds | roadside 80% · commuter 85% · destination 85% — unchanged |
+| Dashboard, live | 4/4 upgrade buttons enabled, "Fit a 350 kW charger for £75,000" |
+| Peak draw, headless | 650 of 650 kW at 08:08 — the cap binds, as designed |
+
+### Carried forward
+
+1. **`upgrade_charger` does not check affordability.** The UI is the only gate. Either the reducer
+   should refuse an unaffordable buy, or the affordability rule should be a selector both the panel
+   and the action share — right now the sim will happily take a site to −£25,000 and the only
+   reason a player cannot is that the button is grey. Left alone because it is a rule change and
+   wants a D-entry, not a dev-log line.
+2. **The browser pane still cannot drive the sim** (dev log §5, unchanged). The clock sat at 00:00
+   through a Start-the-day click and a 4× speed click; peak-draw figures above are headless.
