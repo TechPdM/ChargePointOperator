@@ -133,9 +133,9 @@ body {
  */
 .board-thirds {
   display: grid;
-  /* 60/20/20: the metrics carry the most, and the two controls beside them are
+  /* 50/25/25: the metrics carry the most, and the two controls beside them are
      a bar chart and a slider — both fine narrow. */
-  grid-template-columns: 3fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: var(--gap);
   align-items: stretch;
 }
