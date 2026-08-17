@@ -210,3 +210,127 @@ frozen copy, so it is literally true.
 | `npm run typecheck` | clean |
 | Drag / arrow / Enter / blur / duplicate-blur / Restart | all six verified live, action counts as above |
 | Sim drain of the queued action | **not** re-verified in-browser — rAF frozen, see §5. Unchanged code path. |
+
+---
+
+## 9. Charger hardware re-rated, and everything that fell out of it
+
+**Trigger:** Mark, reading `power.ts`, said `gridPowerKw` looked very low — "it would usually be in
+the MW range" — and asked for research on what a real site runs.
+
+**The research said he was half right, and pointed somewhere else.** Real corridor sites *are* in
+the MW range, but that is a function of bay count, not of connection philosophy: ~1.5 MVA for a
+10–12 × 150 kW hub, and a dedicated **14 MVA** substation for GRIDSERVE's 32-bay super hub at Moto
+Tamworth. For a 6-bay site, MW-range would be wrong. The number that had actually gone stale was the
+**bay ratings**: 50 kW rapid / 150 kW ultra is 2019–2021 spec, where current UK classification puts
+rapid at 100–150 kW and corridor ultra-rapid at 350–400 kW. The archetype table has allowed
+60–250 kW vehicles since v2.2, so a 50 kW "rapid" bay was throttling every car on site — including
+the ones the taper model exists to describe.
+
+Sources: [GRIDSERVE Tamworth](https://www.gridserve.com/latest-gridserve-electric-super-hub-at-moto-tamworth-services-launches-with-32-bays-and-dedicated-provision-for-extra-large-electric-vehicles/) ·
+[GRIDSERVE/Extra super hubs, 400 kW](https://www.gridserve.com/ev-super-hubs-uk-motorway-charging/) ·
+[Mer, rapid & ultra-rapid explained](https://uk.mer.eco/chargers/rapid-ultra-rapid-ev-charging/) ·
+[GOV.UK, grid connection process](https://www.gov.uk/government/publications/improving-the-grid-connection-process-for-electric-vehicle-charging-infrastructure/improving-the-grid-connection-process-for-electric-vehicle-charging-infrastructure).
+
+### What changed
+
+| Constant | From | To |
+|---|---|---|
+| `rapid_dc` maxPowerKw | 50 | **150** |
+| `ultrarapid_dc` maxPowerKw | 150 | **350** |
+| `slow_ac` maxPowerKw | 22 | 22 — unchanged, still correct |
+| roadside `initialGridPowerKw` | 350 | **650** |
+| commuter `initialGridPowerKw` | 250 | **450** |
+| destination `initialGridPowerKw` | 300 | **350** |
+| roadside upgrade rapid→ultra | £40,000 | **£75,000** |
+| roadside demand | — | **×1.8** via a new `DEMAND_SCALE` constant |
+
+The connection sizes were **measured, not guessed**. Scanning the grid cap at 8 seeds with the new
+bays: throughput climbs to ~650 kW, plateaus by 800, and returns bit-identical runs at 1,100 and
+1,300 kW. So a connection sized the way the industry actually sizes them (70–83% of a 1,300 kW
+nameplate ⇒ 0.9–1.1 MVA) would put this site **permanently above its own plateau and make
+`power_choke` unreachable**. 650 kW is 50% of nameplate — a site connected for typical rather than
+absolute peak, which is both the common UK position and the only band where the mechanic lives.
+
+### The part that was not asked for
+
+Re-rating the hardware roughly halved service time, and a 6-bay site that turns cars around twice as
+fast is under no pressure at all. Measured immediately after the swap: **D13 difficulty floor fell
+80% → 25%**, avg wait 5.5 → 1.9 sim-min, abandonment 1.8% → 0.1%, trust 56 → 76. The sim was easier,
+not more realistic.
+
+Raising demand alongside the hardware is the honest fix rather than a fudge — the fleet grew with
+the chargers. Scanned ×1.0–×2.4 at 20 seeds each, floor by factor:
+
+| ×1.0 | ×1.2 | ×1.4 | ×1.6 | ×1.8 | ×2.0 | ×2.4 |
+|---|---|---|---|---|---|---|
+| 25% | 20% | 10% | **40%** | **80%** | 100% | 100% |
+
+×1.8 is the point that restores the floor to exactly 80%. ×2.0 and up is a site in permanent
+collapse (`trust_crash` on 9/20 seeds and rising), so the usable window is narrow and ×1.8 is the
+top of it. The non-monotonicity between ×1.2 and ×1.6 is real and worth knowing: more demand raises
+margin faster than it costs trust until the queue starts turning people away.
+
+**Goals re-fitted on all three scenarios,** because the re-rating slackened them all at once — on
+roadside, margin went from met-on-20% to met-on-100% and 110 sessions became a dead threshold
+against a measured 298–336. Each was re-set the way the originals were, from the measured 20-seed
+baseline spread. `minTrust` on roadside deliberately stays at its original 55: the re-rating moved
+every other number but not what a good reputation is worth, and at 55 it carries the floor alone.
+
+Destination needed the per-seed goal matrix rather than a threshold scan — the five seeds passing
+all four goals (s1, s4, s10, s11, s14) were the same five at every candidate wait threshold, because
+wait runs anti-correlated with margin there. Margin £520 and 95 sessions are the smallest moves that
+break s1 and s4.
+
+### Bug found in passing — invariant 7, early termination
+
+The 300 kW squeeze in `invariants.test.ts` started tripping invariant 7: vehicles ending in
+`queueing`, funnel buckets not summing to arrivals. Not a test-constant problem. **`checkScenarioOutcome`
+sets `running = false` on a fail rule and returns, while `closeOutRun` fires only at
+`secondsElapsed >= durationSeconds`** — so every run ending on bankruptcy or trust collapse left
+whoever was queueing at that moment stranded in a non-terminal state forever.
+
+Pre-existing, and unreachable before this change only because the old scenario never tripped a fail
+rule before the clock ran out. Fixed by splitting the sweep out of `closeOutRun` as
+`sweepUpOpenVehicles` and calling it from `tick` when a fail rule fires, so the fail reason survives
+instead of being re-derived from goals.
+
+### Sweep axes re-ranged
+
+Five of the eight axes composed a demand multiplier onto the base scenario, which now carries ×1.8
+of its own; they would have run at ×2.9–×4.0. `arrivalRate` rescaled to ×0.5–×1.3 (same absolute
+span as before), the extra multipliers on `patienceSeconds` / `partialChargeTarget` / `gridPowerKw`
+removed, `gridPowerKw` re-ranged to 350–900 kW (the old 100–500 now sits entirely on the rising limb
+and would have hidden the plateau the axis exists to show), and `powerPolicy`'s contention point
+moved 150 → 350 kW to keep the same degree of squeeze against the larger nameplate.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | **116 passed, 7 files** |
+| Sanity sweep, 8 seeds | **19/19 gradients behave as specified** |
+| Gate scorecard, 10 seeds | **3/3 machine-measurable criteria PASS**; all 5 failure states still reachable |
+| D13 floor, 20 seeds | roadside **80%** · commuter **85%** · destination **85%** — all PASS |
+
+Nine test expectations were updated, all of them hardcoded old arithmetic (50/150 kW allocations,
+£40k capex). The two behavioural power-policy tests — queue_relief clearing more sessions than
+equal_share, fast_first being worst for abandonment — passed **unchanged** throughout, which is the
+evidence that the mechanic itself survived the re-rating rather than being re-fitted around it.
+
+Test expectations that referenced the upgrade cost now read it from `scenario.upgradeCosts` instead
+of hardcoding, so they do not rot again the next time hardware is re-priced.
+
+### Carried forward
+
+1. **Calibration §8's capacity derivation is stale and flagged, not rewritten.** The 350 kW /
+   50-150 kW arithmetic (deficit windows, £1,540 margin at 170 sessions) no longer describes the
+   scenario. Re-deriving it is a deliberate exercise, not a find-and-replace, and it is the
+   derivation the measured table gets checked against — so it should be redone rather than deleted.
+2. **Criterion 2 narrowed from three distinct winners to two** (`preventive`,
+   `premium+preventive`). Still passes — needs ≥2, none winning everywhere — but the margin is
+   thinner than it was and worth watching if anything else moves.
+3. **Is ×1.8 a scenario change too far?** It is one constant and reverting it is a one-line edit,
+   but it is a demand-model decision made as a *consequence* of a hardware decision, which is
+   arguably a D-entry rather than a dev-log line.
