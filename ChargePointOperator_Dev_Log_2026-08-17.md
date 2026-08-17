@@ -331,9 +331,10 @@ of hardcoding, so they do not rot again the next time hardware is re-priced.
 2. **Criterion 2 narrowed from three distinct winners to two** (`preventive`,
    `premium+preventive`). Still passes — needs ≥2, none winning everywhere — but the margin is
    thinner than it was and worth watching if anything else moves.
-3. **Is ×1.8 a scenario change too far?** It is one constant and reverting it is a one-line edit,
-   but it is a demand-model decision made as a *consequence* of a hardware decision, which is
-   arguably a D-entry rather than a dev-log line.
+3. **Is ×1.8 a scenario change too far?** — `CLOSED 2026-08-17 by D36`. Written up as a decision
+   at Mark's direction, with the measured window and the accepted risk recorded there. The hardware
+   re-rating itself became **D35**, which also amends D10's £40k/£50k constants — those had been
+   silently contradicted and were the more serious omission.
 
 ---
 
@@ -392,11 +393,8 @@ D13 unaffected, as expected: goals key on margin, and D12 keeps capex out of mar
 
 ### Carried forward
 
-1. **`upgrade_charger` does not check affordability.** The UI is the only gate. Either the reducer
-   should refuse an unaffordable buy, or the affordability rule should be a selector both the panel
-   and the action share — right now the sim will happily take a site to −£25,000 and the only
-   reason a player cannot is that the button is grey. Left alone because it is a rule change and
-   wants a D-entry, not a dev-log line.
+1. **`upgrade_charger` does not check affordability.** — `CLOSED 2026-08-17 by D37` (§11). Both:
+   the reducer refuses, and the rule is a shared selector.
 2. **The browser pane still cannot drive the sim** (dev log §5, unchanged). The clock sat at 00:00
    through a Start-the-day click and a 4× speed click; peak-draw figures above are headless.
 
