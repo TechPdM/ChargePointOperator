@@ -117,6 +117,11 @@ export function PostRunSummary({
           <h3>What the day did to you</h3>
           <ul className="goal-list">
             <li>
+              {/* The empty marker keeps this column on the same four-track grid
+                  as the other two, so all three read across at the same stops.
+                  Without it the label falls into the 14px marker track and
+                  wraps one character wide. */}
+              <span className="goal-mark" aria-hidden="true" />
               <span className="goal-label">Turned away at the entrance</span>
               <span className="mono goal-actual">{m.funnel.rejectedSite}</span>
               <span className="goal-target">
@@ -126,16 +131,19 @@ export function PostRunSummary({
               </span>
             </li>
             <li>
+              <span className="goal-mark" aria-hidden="true" />
               <span className="goal-label">Gave up waiting</span>
               <span className="mono goal-actual">{m.funnel.abandonedQueue}</span>
               <span className="goal-target">{m.sessionsAbandoned > 0 ? "queue too long" : ""}</span>
             </li>
             <li>
+              <span className="goal-mark" aria-hidden="true" />
               <span className="goal-label">Cut short by a fault</span>
               <span className="mono goal-actual">{m.funnel.interruptedByFault}</span>
               <span className="goal-target">{m.funnel.interruptedByFault > 0 ? "−2 trust each" : ""}</span>
             </li>
             <li>
+              <span className="goal-mark" aria-hidden="true" />
               <span className="goal-label">Energy sold</span>
               <span className="mono goal-actual">{m.kwhDelivered.toFixed(0)} kWh</span>
               <span className="goal-target" />

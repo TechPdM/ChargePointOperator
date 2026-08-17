@@ -103,6 +103,36 @@ body {
   margin: 0 auto;
 }
 
+/*
+ * The board — the live state of the site, above the controls that change it.
+ * Both of these are fieldsets for the disabled-when-scored semantics, so both
+ * need their default chrome stripped.
+ */
+.board {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.board-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+  /* Both halves share a height so the board reads as one block rather than two
+     panels of different lengths. The KPI cards take up the slack. */
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .board-split {
+    grid-template-columns: 1fr;
+  }
+}
+
 .floor {
   /* Reset the fieldset's own chrome — it is here for the disabled semantics. */
   margin: 0;
@@ -119,7 +149,10 @@ body {
 .floor:disabled .limit,
 .floor:disabled .mini,
 .floor:disabled .apply,
-.floor:disabled input {
+.floor:disabled input,
+.board:disabled .policy,
+.board:disabled .mini,
+.board:disabled input {
   opacity: 0.45;
 }
 
@@ -429,7 +462,8 @@ button:focus-visible,
 
 .kpi-strip {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  /* Nine cards at half width: three columns, three clean rows, no orphan cell. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -437,12 +471,7 @@ button:focus-visible,
   overflow: hidden;
 }
 
-@media (max-width: 1400px) {
-  .kpi-strip {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-@media (max-width: 760px) {
+@media (max-width: 560px) {
   .kpi-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -541,7 +570,7 @@ button:focus-visible,
   transform: translateY(0);
 }
 
-.kpi:nth-child(n + 7) .kpi-detail {
+.kpi:nth-child(3n) .kpi-detail {
   left: auto;
   right: 0;
 }
@@ -772,9 +801,15 @@ input[type="number"] {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  /* At full width the bays read as a rank across the forecourt rather than as
+     six rows stretched over a metre of screen.
+     The 400px floor is measured, not chosen: a bay row needs 311px for its
+     content (lamp, name, tier, state, draw, two buttons) and overflows below
+     that. 400 gives three across on a desktop — six bays as a tidy 3×2 — and
+     drops to two, then one, as the window narrows. */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 4px 10px;
 }
 
 .bay {

@@ -41,14 +41,27 @@ export function App(): ReactElement {
         <RunControls sim={sim} />
       </div>
 
-      <KpiCardGrid state={state} />
+      {/* The board: what the site IS right now. The KPI strip answers "how is
+          it going", the power bus answers "where is the capacity going", and
+          the bay rank answers "what have I got" — the three things a duty
+          operator glances at before touching anything. Controls, diagnosis and
+          history sit below.
+
+          Once the day is scored, every control is spent. A `fieldset` disables
+          them all at once natively — including keyboard focus — while leaving
+          the numbers readable, which is the whole point of the post-run
+          screen. */}
+      <fieldset className="board" disabled={!state.running}>
+        <div className="board-split">
+          <KpiCardGrid state={state} />
+          <PowerPolicyPanel sim={sim} />
+        </div>
+
+        <BayAvailabilityPanel sim={sim} />
+      </fieldset>
 
       <PostRunSummary state={state} comparison={sim.state.comparison} />
 
-      {/* Once the day is scored, every control is spent. A `fieldset` disables
-          all of them at once natively — including keyboard focus — while
-          leaving the numbers readable, which is the whole point of the
-          post-run screen. */}
       <fieldset className="floor" disabled={!state.running}>
         <div className="rail rail-left">
           <PricingControlPanel sim={sim} />
@@ -57,7 +70,6 @@ export function App(): ReactElement {
         </div>
 
         <div className="centre">
-          <PowerPolicyPanel sim={sim} />
           <DiagnosisPanel state={state} snapshots={sim.state.snapshots} />
           <div className="chart-pair">
             <WaitTimeTrendChart state={state} snapshots={sim.state.snapshots} />
@@ -69,7 +81,6 @@ export function App(): ReactElement {
           <AlertsFeed state={state} />
           <FaultsAndRepairsPanel sim={sim} />
           <ActiveQueueTable state={state} />
-          <BayAvailabilityPanel sim={sim} />
         </div>
       </fieldset>
 
