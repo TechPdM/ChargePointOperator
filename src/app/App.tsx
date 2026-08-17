@@ -55,7 +55,12 @@ export function App(): ReactElement {
         <div className="board-thirds">
           <KpiCardGrid state={state} />
           <PowerPolicyPanel sim={sim} />
-          <PricingControlPanel sim={sim} />
+          {/* Keyed on the run. The price panel holds a local draft so the
+              slider stays smooth under the thumb, and Restart / New seed /
+              a scenario swap resets the policy beneath it — with no Apply
+              button left to reconcile a stale draft, the panel starts fresh
+              with the run instead. */}
+          <PricingControlPanel key={sim.state.startedAtUtc} sim={sim} />
         </div>
 
         <BayAvailabilityPanel sim={sim} />

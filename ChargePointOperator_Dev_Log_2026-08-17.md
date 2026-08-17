@@ -164,3 +164,49 @@ Responsive: checked 1280 / 900 / 780 / 375. No overflow at any. At mobile the ex
 2. **Session success definition.** See §2 — correction or ruling? If ruling, needs a D-entry.
 3. **Archived run manifests.** §3 — re-record before the next tester session if the archive is to stay verifiable.
 4. **`ChargingPolicyPanel`'s OPEN-6 note** still stands: the panel now tells the truth about how many drivers a limit would bite on, which was the interim measure. The underlying question — whether the control earns its place — is unchanged.
+
+---
+
+## 8. Price commits itself — the Apply button, removed (post-close addendum)
+
+Mark asked for the price slider to auto-submit so the Apply button could go. Done, plus a
+staleness bug the button had been masking.
+
+**Where the commit fires.** Not on `onChange`. A pointer drag fires that on every step, and each
+`set_price` writes one `site.price_updated` decision-marker event (C6) — one drag would have put
+forty of them in the run log and buried the decision they were meant to record. So the panel keeps
+its local `draft` for the live readout and sends on release: `onPointerUp`, `onKeyUp`, `onBlur` for
+the slider; blur or Enter for the connection fee. Measured in the browser: **one drag → exactly one
+action**, payload `£0.57/kWh, £0.99 connection`.
+
+**Keyboard is one action per press,** and left that way deliberately. A held arrow key gives
+repeated `keydown`s and a single `keyup`, so it coalesces on its own; discrete taps do not, and three
+taps wrote three actions. Debouncing them was considered and rejected — at 4.8 ticks per real second
+(§5's rate, so ~208ms per tick at 1× and ~52ms at 4×) even a 500ms debounce would silently swallow
+2–10 ticks of arrivals. In a real-time sim, prompt beats tidy.
+
+**The `pushed` ref is load-bearing.** The obvious guard — compare draft against `policy` — breaks
+while the run is paused: the queued action sits undrained, `policy` still reads the old price, and
+every subsequent blur re-sends the same value. Tracking what was last sent instead makes a stray
+release or blur free. Verified: blur after an already-committed value adds **no** second action.
+
+**Bug fixed in passing.** `PricingControlPanel`'s draft never resynced, so Restart / New seed /
+scenario swap reset the policy underneath it and left the readout showing the old price. The Apply
+button had hidden this — it would read "Apply price" and one click reconciled it. With the button
+gone the readout would simply have lied, so the panel is now keyed on `sim.state.startedAtUtc` in
+`App.tsx` and starts fresh with the run. Verified: £0.57 / £1.75 → Restart → **£0.79 / £0.99**, zero
+actions.
+
+The panel gains a note line in place of the button, because the button was also the only
+confirmation the change had landed: the slider sends itself on release, the fee on leaving the box,
+and either way it applies to sessions that start from here on. That last clause is not decoration —
+`charging.ts` freezes `pricePerKwh` and `connectionFee` onto the session at start and bills from the
+frozen copy, so it is literally true.
+
+`.apply` stays in the stylesheet; `FaultsAndRepairsPanel` still uses it.
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| Drag / arrow / Enter / blur / duplicate-blur / Restart | all six verified live, action counts as above |
+| Sim drain of the queued action | **not** re-verified in-browser — rAF frozen, see §5. Unchanged code path. |

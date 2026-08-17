@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { ARCHETYPES, PRICE_MAX, PRICE_MIN } from "../../game/core/calibration.ts";
 import { priceMultiplier } from "../../game/systems/arrivals.ts";
@@ -39,26 +39,45 @@ function hardRejectors(price: number, wave: DemandWave): { names: string[]; shar
 /**
  * Price. Writes `set_price` only — the dynamic-pricing toggle the wireframe
  * once had is cut, because no mechanic sits behind it (C5).
+ *
+ * There is no Apply step. Both controls send themselves the moment the player
+ * lets go, which is how every other control on the board already behaves — the
+ * charging limit and the power policies all commit on the click.
  */
 export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement {
   const { policy } = sim.state.sim.site;
   const state = sim.state.sim;
   const [draft, setDraft] = useState(policy.pricePerKwh);
   const [fee, setFee] = useState(policy.connectionFee);
+  const pushed = useRef({ price: policy.pricePerKwh, fee: policy.connectionFee });
 
   const wave = getActiveWave(state.clock.secondsElapsed, state.scenario.demandWaves);
   const demand = wave
     ? priceMultiplier(draft, state.scenario.referencePricePerKwh, wave.priceElasticity)
     : 1;
   const refused = wave ? hardRejectors(draft, wave) : { names: [], share: 0 };
-  const changed = draft !== policy.pricePerKwh || fee !== policy.connectionFee;
 
-  const apply = (): void => {
+  /**
+   * Send the pair to the sim — on release, deliberately not from `onChange`.
+   *
+   * A drag fires `onChange` on every step, and every `set_price` is one
+   * decision-marker event in the run log (C6). Committing per step would write
+   * forty of them for one decision and bury the decision itself. The player
+   * still watches the number and the demand hint move live off `draft`; the sim
+   * hears the answer once, when the thumb is let go.
+   *
+   * `pushed` is what makes a stray release or blur free. While the run is paused
+   * the queued action sits unapplied, so `policy` still reads the old price —
+   * comparing against it would re-send the same price on every lost focus.
+   */
+  const commit = (price: number, connectionFee: number): void => {
+    if (price === pushed.current.price && connectionFee === pushed.current.fee) return;
+    pushed.current = { price, fee: connectionFee };
     sim.act(
-      { type: "set_price", pricePerKwh: draft, connectionFee: fee },
+      { type: "set_price", pricePerKwh: price, connectionFee },
       {
         label: "Price",
-        detail: `£${draft.toFixed(2)}/kWh, £${fee.toFixed(2)} connection`,
+        detail: `£${price.toFixed(2)}/kWh, £${connectionFee.toFixed(2)} connection`,
       },
     );
   };
@@ -92,6 +111,9 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
         value={draft}
         aria-label="Price per kWh"
         onChange={(e) => setDraft(Number(e.target.value))}
+        onPointerUp={() => commit(draft, fee)}
+        onKeyUp={() => commit(draft, fee)}
+        onBlur={() => commit(draft, fee)}
       />
       <div className="range-ends">
         <span>£{PRICE_MIN.toFixed(2)}</span>
@@ -106,12 +128,18 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
           step={0.25}
           value={fee}
           onChange={(e) => setFee(Number(e.target.value))}
+          onBlur={() => commit(draft, fee)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit(draft, fee);
+          }}
         />
       </label>
 
-      <button type="button" className="apply" onClick={apply} disabled={!changed}>
-        {changed ? "Apply price" : "Applied"}
-      </button>
+      <p className="note">
+        The slider sends itself when you let go, the fee when you leave the box. Either way it
+        applies to sessions that start from here on — anyone already plugged in keeps the price they
+        arrived on.
+      </p>
     </Panel>
   );
 }
