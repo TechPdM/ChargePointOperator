@@ -89,11 +89,21 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
         tone="idle"
         detail="Share of working bay-time with a car plugged in."
       />
+      <Kpi
+        label="Queue"
+        value={String(m.queueLength)}
+        unit={`waiting · ${queuePressureOf(state).toFixed(1)} per bay`}
+        tone={toneFor(queuePressureOf(state), 0.5, 1.5)}
+        detail={`Capacity ${state.scenario.maxQueueLength}. Beyond that, drivers are turned away at the entrance.`}
+      />
 
       {/* Welded into one cell, not merely placed next to each other. Card order
           alone does not survive a change of column count — at three columns
           these two landed diagonally opposite, which is exactly the reading the
-          rule exists to prevent. */}
+          rule exists to prevent.
+
+          It sits second-to-last so that, spanning two of the three tracks, it
+          fills the last row alongside Served — nine cards, three clean rows. */}
       <div className="kpi-duo">
       <Kpi
         label="Average wait"
@@ -117,13 +127,6 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
       />
       </div>
 
-      <Kpi
-        label="Queue"
-        value={String(m.queueLength)}
-        unit={`waiting · ${queuePressureOf(state).toFixed(1)} per bay`}
-        tone={toneFor(queuePressureOf(state), 0.5, 1.5)}
-        detail={`Capacity ${state.scenario.maxQueueLength}. Beyond that, drivers are turned away at the entrance.`}
-      />
       <Kpi
         label="Served"
         value={String(m.sessionsCompleted)}

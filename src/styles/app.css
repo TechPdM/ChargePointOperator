@@ -477,10 +477,19 @@ button:focus-visible,
 
 .kpi-strip {
   display: grid;
-  /* Flows to whatever the container gives it — five across at 60% of a desktop,
-     fewer as it narrows. The avg-wait/abandonment pairing is protected
-     structurally by .kpi-duo below, not by hoping about column counts. */
-  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  /*
+   * Three across, always — a 3×3 block of nine cards.
+   *
+   * Fixed rather than auto-fit because the strip now has an exact shape to
+   * hold: nine cards in eight grid children (the duo spans two tracks), which
+   * divides into three full rows and leaves no ragged tail. Auto-fit chose a
+   * different column count at every width, so the same nine cards regrouped
+   * as you resized and no row meant anything.
+   *
+   * The contract that keeps it square: card count stays a multiple of three,
+   * counting the duo as two. Break that and the last row goes ragged again.
+   */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -492,15 +501,6 @@ button:focus-visible,
   .kpi-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-/* The duo spans two tracks, so the row rarely divides evenly and leaves bare
-   cells at the end showing the hairline colour. This fills the remainder to the
-   last grid line in panel colour, whatever that remainder turns out to be. */
-.kpi-strip::after {
-  content: "";
-  grid-column: auto / -1;
-  background: var(--panel);
 }
 
 .kpi {
