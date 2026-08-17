@@ -18,11 +18,23 @@ import type { PowerPolicy, SimulationState } from "../src/game/core/types.ts";
 
 /**
  * Six bays, all charging, all wanting more than the cap can give:
- * 4 × 50 kW rapid + 2 × 150 kW ultra = 500 kW of appetite against a 350 kW cap.
+ * 4 × 150 kW rapid + 2 × 350 kW ultra = 1,300 kW of nameplate against a 650 kW
+ * cap. Every car here accepts 250 kW, so the **ultra bays are vehicle-limited
+ * at 250 and the rapid bays are bay-limited at 150** — which is the realistic
+ * arrangement after the 2026-08-17 re-rating, and the reason the two tiers
+ * still behave differently under every policy.
+ *
+ * `gridPowerKw` is a parameter because a couple of the cases below need a
+ * specific squeeze to exercise one branch; it defaults to the scenario's own.
  */
-function saturatedSite(policy: PowerPolicy, remainingKwh: number[] = []): SimulationState {
+function saturatedSite(
+  policy: PowerPolicy,
+  remainingKwh: number[] = [],
+  gridPowerKw: number = roadsideHub.initialGridPowerKw,
+): SimulationState {
   const state = createInitialState(roadsideHub, "s1");
   state.site.policy.powerPolicy = policy;
+  state.site.gridPowerKw = gridPowerKw;
 
   roadsideHub.bays.forEach((entry, i) => {
     const bay = state.chargers[entry.id];
@@ -119,24 +131,37 @@ describe("power policies never exceed the cap", () => {
 });
 
 describe("equal_share", () => {
-  it("splits evenly, clamps to each bay's ceiling, and redistributes the surplus", () => {
+  it("splits evenly when no ceiling binds", () => {
     const alloc = allocate(saturatedSite("equal_share"));
-    // 350 / 6 = 58.3 > the 50 kW rapid ceiling, so rapids clamp at 50 and the
-    // freed 50 kW goes to the two ultras: (350 − 200) / 2 = 75 each.
-    expect(alloc["bay-1"]).toBeCloseTo(50, 6);
-    expect(alloc["bay-4"]).toBeCloseTo(50, 6);
-    expect(alloc["bay-5"]).toBeCloseTo(75, 6);
-    expect(alloc["bay-6"]).toBeCloseTo(75, 6);
+    // 650 / 6 = 108.3, under every ceiling here (150 rapid, 250 ultra), so
+    // nothing clamps and the split really is even. After the re-rating this is
+    // the ordinary case: the bays are big enough that the pool divides cleanly.
+    for (const id of ["bay-1", "bay-4", "bay-5", "bay-6"]) {
+      expect(alloc[id]).toBeCloseTo(650 / 6, 6);
+    }
+  });
+
+  it("clamps to each bay's ceiling and redistributes the surplus", () => {
+    // Needs a pool big enough that the even share exceeds the rapid ceiling:
+    // 1,000 / 6 = 166.7 > 150, so the four rapids clamp at 150 (600 kW) and the
+    // freed 400 kW goes to the two ultras — 200 each, still under their 250.
+    const alloc = allocate(saturatedSite("equal_share", [], 1_000));
+    expect(alloc["bay-1"]).toBeCloseTo(150, 6);
+    expect(alloc["bay-4"]).toBeCloseTo(150, 6);
+    expect(alloc["bay-5"]).toBeCloseTo(200, 6);
+    expect(alloc["bay-6"]).toBeCloseTo(200, 6);
+    expect(total(alloc)).toBeCloseTo(1_000, 6);
   });
 });
 
 describe("fast_first", () => {
   it("feeds the biggest bays first and starves the marginal one", () => {
     const alloc = allocate(saturatedSite("fast_first"));
-    expect(alloc["bay-5"]).toBeCloseTo(150, 6);
-    expect(alloc["bay-6"]).toBeCloseTo(150, 6);
-    // 50 kW left for four rapid bays: the first takes it, the rest get nothing.
-    expect(alloc["bay-1"]).toBeCloseTo(50, 6);
+    // Ultras sort first on spec (350) and take their vehicle-limited 250 each.
+    expect(alloc["bay-5"]).toBeCloseTo(250, 6);
+    expect(alloc["bay-6"]).toBeCloseTo(250, 6);
+    // 150 kW left for four rapid bays: the first takes it, the rest get nothing.
+    expect(alloc["bay-1"]).toBeCloseTo(150, 6);
     expect(alloc["bay-2"]).toBe(0);
     expect(alloc["bay-3"]).toBe(0);
     expect(alloc["bay-4"]).toBe(0);
@@ -154,11 +179,11 @@ describe("queue_relief", () => {
   it("serves shortest-remaining-time first, not biggest-bay first", () => {
     // bay-1 (rapid) is nearly done; bay-5/6 (ultra) have just started.
     const alloc = allocate(saturatedSite("queue_relief", [2, 60, 60, 60, 70, 70]));
-    expect(alloc["bay-1"]).toBeCloseTo(50, 6);
+    expect(alloc["bay-1"]).toBeCloseTo(150, 6);
     // …which is exactly what fast_first would NOT do: the ultras still get fed
     // after it, but the almost-finished slow bay outranks them.
-    expect(total(alloc)).toBeCloseTo(350, 6);
-    expect(alloc["bay-2"] ?? 0).toBeLessThanOrEqual(50);
+    expect(total(alloc)).toBeCloseTo(650, 6);
+    expect(alloc["bay-2"] ?? 0).toBeLessThanOrEqual(150);
   });
 
   it("differs from fast_first when slow bays are closest to finishing", () => {
@@ -168,12 +193,12 @@ describe("queue_relief", () => {
     const fast = allocate(saturatedSite("fast_first", remaining));
     expect(relief).not.toEqual(fast);
     // queue_relief clears the three almost-finished rapids first…
-    expect(relief["bay-2"]).toBeCloseTo(50, 6);
-    expect(relief["bay-3"]).toBeCloseTo(50, 6);
-    expect(relief["bay-4"]).toBeCloseTo(50, 6);
+    expect(relief["bay-2"]).toBeCloseTo(150, 6);
+    expect(relief["bay-3"]).toBeCloseTo(150, 6);
+    expect(relief["bay-4"]).toBeCloseTo(150, 6);
     // …where fast_first starves them to feed both ultras.
     expect(fast["bay-2"]).toBe(0);
-    expect(fast["bay-5"]).toBeCloseTo(150, 6);
+    expect(fast["bay-5"]).toBeCloseTo(250, 6);
   });
 });
 
@@ -185,9 +210,10 @@ describe("manual", () => {
       "bay-5": 999,
     };
     const alloc = allocate(state);
-    // Clamped to 50 and 150, which sums to 200 — under the cap, so no scaling.
-    expect(alloc["bay-1"]).toBeCloseTo(50, 6);
-    expect(alloc["bay-5"]).toBeCloseTo(150, 6);
+    // Clamped to 150 (bay-limited) and 250 (vehicle-limited), summing to 400 —
+    // under the 650 kW cap, so no scaling.
+    expect(alloc["bay-1"]).toBeCloseTo(150, 6);
+    expect(alloc["bay-5"]).toBeCloseTo(250, 6);
     // Unlisted bays get nothing.
     expect(alloc["bay-2"]).toBe(0);
   });
@@ -207,11 +233,20 @@ describe("vehicle-side cap (D15)", () => {
     const v = state.vehicles["v-5"];
     if (v) v.currentSoc = 0.85;
     const alloc = allocate(state);
-    expect(alloc["bay-5"]).toBeCloseTo(150 * 0.4, 6);
+    // The taper applies to the ceiling, and on a 350 kW bay with a 250 kW car
+    // the ceiling is the car: 250 × 0.4, not 350 × 0.4.
+    expect(alloc["bay-5"]).toBeCloseTo(250 * 0.4, 6);
   });
 });
 
 describe("policy choice is visible in outcomes — but only when the cap binds", () => {
+  /**
+   * ~23% of the site's 1,300 kW nameplate, which is the same degree of squeeze
+   * the pre-re-rating 120 kW applied to the old 500 kW nameplate. Hard enough
+   * that who-waits is the whole story.
+   */
+  const SQUEEZED_KW = 300;
+
   /** Runs a whole day under one policy, with the baseline's repair behaviour. */
   const play = (policy: PowerPolicy, gridPowerKw: number, seed: string) => {
     const scenario = { ...roadsideHub, initialGridPowerKw: gridPowerKw };
@@ -239,16 +274,16 @@ describe("policy choice is visible in outcomes — but only when the cap binds",
 
   it("queue_relief clears more sessions than equal_share under a hard cap", () => {
     // Calibration §8 sanity gradient: equal_share → queue_relief must lift
-    // sessions/hr at peaks. At the scenario's own 350 kW the cap only binds in
+    // sessions/hr at peaks. At the scenario's own 650 kW the cap only binds in
     // three windows, so the effect is small; squeeze it to make it legible.
-    expect(mean("queue_relief", 120, "sessions")).toBeGreaterThan(
-      mean("equal_share", 120, "sessions"),
+    expect(mean("queue_relief", SQUEEZED_KW, "sessions")).toBeGreaterThan(
+      mean("equal_share", SQUEEZED_KW, "sessions"),
     );
   });
 
   it("fast_first is the worst policy for abandonment when power is scarce", () => {
-    expect(mean("fast_first", 120, "abandons")).toBeGreaterThan(
-      mean("queue_relief", 120, "abandons"),
+    expect(mean("fast_first", SQUEEZED_KW, "abandons")).toBeGreaterThan(
+      mean("queue_relief", SQUEEZED_KW, "abandons"),
     );
   });
 });

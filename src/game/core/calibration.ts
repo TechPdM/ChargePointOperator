@@ -32,12 +32,26 @@ export const EVENT_RING_SIZE = 400;
 
 // --- §2 Site & hardware -----------------------------------------------------
 
+/**
+ * **Re-rated to current hardware (Mark, 2026-08-17).** The old 50 kW rapid /
+ * 150 kW ultra-rapid pair was 2019–2021 spec and had drifted a full generation
+ * behind the fleet: driver archetypes already accept 60–250 kW (below), so a
+ * 50 kW "rapid" bay throttled every car on site, including the ones the taper
+ * model exists to describe.
+ *
+ * Current UK classification puts rapid at 100–150 kW (50 kW is the legacy tier)
+ * and ultra-rapid at 150 kW upwards, with the corridor sites this scenario
+ * models — Ionity, GRIDSERVE/Extra — running 350–400 kW units.
+ *
+ * `slow_ac` is unchanged: 22 kW is still the top of the AC range and destination
+ * posts really do sit at 7/11/22 kW.
+ */
 export const CHARGER_SPECS: Record<ChargerType, ChargerSpec> = {
   slow_ac: { type: "slow_ac", maxPowerKw: 22, reliabilityBase: 0.99, repairSecondsMean: 1_800 },
-  rapid_dc: { type: "rapid_dc", maxPowerKw: 50, reliabilityBase: 0.985, repairSecondsMean: 2_700 },
+  rapid_dc: { type: "rapid_dc", maxPowerKw: 150, reliabilityBase: 0.985, repairSecondsMean: 2_700 },
   ultrarapid_dc: {
     type: "ultrarapid_dc",
-    maxPowerKw: 150,
+    maxPowerKw: 350,
     reliabilityBase: 0.975,
     repairSecondsMean: 3_600,
   },

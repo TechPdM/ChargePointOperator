@@ -229,7 +229,11 @@ export function sanityAxes(): SweepAxis[] {
     {
       name: "arrivalRate",
       notes: "queue ↑, abandonment ↑, utilization ↑ then plateau",
-      points: [0.6, 1.0, 1.6, 2.2].map((factor) => ({
+      // Rescaled 2026-08-17: the scenario's own waves now carry a ×1.8 demand
+      // scale, so these multipliers compose with it. ×0.5–×1.3 here spans
+      // ×0.9–×2.3 in absolute terms — the same span the old ×0.6–×2.2 covered
+      // against the unscaled waves.
+      points: [0.5, 0.75, 1.0, 1.3].map((factor) => ({
         label: `×${factor.toFixed(1)}`,
         scenario: (base) => scaleWaves(base, factor),
       })),
@@ -257,9 +261,9 @@ export function sanityAxes(): SweepAxis[] {
       notes: "abandonment ↓, avg wait ↑",
       points: [0.4, 1.0, 2.0, 4.0].map((factor) => ({
         label: `×${factor.toFixed(1)}`,
-        // Demand is raised alongside so there is a queue to be patient in;
-        // at baseline load almost nobody waits long enough for it to matter.
-        scenario: (base) => ({ ...scaleWaves(base, 1.8), patienceMultiplier: factor }),
+        // The scenario's own ×1.8 demand scale now supplies the queue this axis
+        // needs, so the extra ×1.8 that used to be applied here is gone.
+        scenario: (base) => ({ ...base, patienceMultiplier: factor }),
       })),
       expect: [
         { metric: "cumAbandonmentRatePct", direction: "down" },
@@ -269,9 +273,14 @@ export function sanityAxes(): SweepAxis[] {
     {
       name: "gridPowerKw",
       notes: "throughput ↑ until bay-limited, then flat",
-      points: [100, 200, 350, 500].map((kw) => ({
+      // Re-ranged 2026-08-17 for the 150/350 kW hardware. Measured: throughput
+      // rises hard to ~650 kW, plateaus by ~800, and is flat to the last
+      // decimal above it — 1,100 kW and 1,300 kW return byte-identical runs.
+      // The old 100–500 range now sits entirely on the rising limb, which would
+      // have hidden the plateau this axis exists to show.
+      points: [350, 500, 650, 900].map((kw) => ({
         label: `${kw} kW`,
-        scenario: (base) => ({ ...scaleWaves(base, 1.6), initialGridPowerKw: kw }),
+        scenario: (base) => ({ ...base, initialGridPowerKw: kw }),
       })),
       expect: [{ metric: "throughputPerHour", direction: "up-then-flat" }],
     },
@@ -280,10 +289,7 @@ export function sanityAxes(): SweepAxis[] {
       notes: "kWh/session ↓, sessions/hr ↑ at peaks, wait ↓, trust ↘ mild",
       points: [undefined, 0.7, 0.6, 0.5].map((soc) => ({
         label: soc === undefined ? "off" : `${Math.round(soc * 100)}%`,
-        scenario: (base) => ({
-          ...scaleWaves(base, 1.6),
-          initialPartialChargeTargetSoc: soc,
-        }),
+        scenario: (base) => ({ ...base, initialPartialChargeTargetSoc: soc }),
       })),
       expect: [
         { metric: "kwhPerSession", direction: "down" },
@@ -296,11 +302,10 @@ export function sanityAxes(): SweepAxis[] {
       notes: "equal_share → queue_relief: wait ↓, sessions ↑ at peaks, kWh ~unchanged",
       points: (["fast_first", "equal_share", "queue_relief"] as const).map((p) => ({
         label: p,
-        scenario: (base) => ({
-          ...scaleWaves(base, 1.6),
-          initialGridPowerKw: 150,
-          initialPowerPolicy: p,
-        }),
+        // 350 kW against 1,300 kW of nameplate: hard contention, so the choice
+        // of who waits actually shows up. (Was 150 kW, set against the old
+        // 500 kW nameplate — the same degree of squeeze, re-expressed.)
+        scenario: (base) => ({ ...base, initialGridPowerKw: 350, initialPowerPolicy: p }),
       })),
       expect: [
         { metric: "sessionsCompleted", direction: "up" },

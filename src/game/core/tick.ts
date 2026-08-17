@@ -100,9 +100,16 @@ export function tick(state: SimulationState, options: TickOptions = {}): TickRes
   detectAlerts(ctx);
   emitSnapshot(ctx);
   if (options.invariants !== "off") checkInvariants(ctx, options.invariants ?? "throw");
+
+  const runningBeforeOutcome = draft.running;
   checkScenarioOutcome(ctx);
 
-  if (draft.clock.secondsElapsed >= draft.scenario.durationSeconds && draft.running) {
+  if (runningBeforeOutcome && !draft.running) {
+    // A fail rule fired. The run is over, but the people on site are still on
+    // site — close them out so the funnel balances, and keep the fail reason
+    // `checkScenarioOutcome` just set rather than re-deriving it from goals.
+    sweepUpOpenVehicles(ctx);
+  } else if (draft.clock.secondsElapsed >= draft.scenario.durationSeconds && draft.running) {
     closeOutRun(ctx);
   }
 
@@ -128,7 +135,19 @@ function emitSnapshot(ctx: TickContext): void {
  * excluded from the abandonment numerator — running out of day is not a service
  * failure. After this, every vehicle is in exactly one funnel bucket.
  */
-export function closeOutRun(ctx: TickContext): void {
+/**
+ * The sweep itself, without the verdict. Split out so that a run ending on a
+ * **fail rule** — bankruptcy, or trust under the floor for long enough — closes
+ * out its vehicles the same way a run ending on the clock does, while keeping
+ * its own `resultReason`.
+ *
+ * Before this split, `checkScenarioOutcome` set `running = false` and returned,
+ * and `closeOutRun` fired only at `secondsElapsed >= durationSeconds`. So every
+ * early termination left whoever was queueing at that moment stuck in
+ * `queueing` forever, and invariant 7 failed on both counts: non-terminal
+ * vehicle states, and funnel buckets that did not sum to arrivals.
+ */
+export function sweepUpOpenVehicles(ctx: TickContext): void {
   const { state } = ctx;
 
   for (const sessionId of [...state.activeSessionIds]) {
@@ -154,6 +173,12 @@ export function closeOutRun(ctx: TickContext): void {
 
   settleAvailablePower(state);
   recomputeDerivedKPIs(state);
+}
+
+export function closeOutRun(ctx: TickContext): void {
+  const { state } = ctx;
+
+  sweepUpOpenVehicles(ctx);
 
   const outcome = evaluateGoals(state);
   state.running = false;

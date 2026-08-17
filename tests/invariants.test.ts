@@ -145,7 +145,10 @@ describe("invariant 2 — the grid cap is never exceeded, even under a hostile p
   });
 
   it("a tighter grid cap binds without breaking anything", () => {
-    const squeezed: ScenarioConfig = { ...roadsideHub, initialGridPowerKw: 120 };
+    // 300 kW against 1,300 kW of nameplate. Re-scaled with the 2026-08-17
+    // hardware re-rating; 120 kW is now less than one bay's ceiling, which
+    // tests the degenerate case rather than a tight one.
+    const squeezed: ScenarioConfig = { ...roadsideHub, initialGridPowerKw: 300 };
     const result = runScenario({
       scenario: squeezed,
       seed: "s1",

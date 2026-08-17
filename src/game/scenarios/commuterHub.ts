@@ -118,6 +118,11 @@ export const commuterHub: ScenarioConfig = {
   // Six rapid bays, no ultra. Commuters cap around 90–120 kW and dwell for a
   // top-up, so ultra-rapid hardware would buy almost nothing — which makes the
   // upgrade a genuinely different question here than on the corridor.
+  //
+  // The 2026-08-17 re-rating sharpens this rather than blunting it: a 150 kW
+  // rapid bay already exceeds what a commuter car will take, so the tier is now
+  // vehicle-limited here by construction and 350 kW hardware would be pure
+  // waste. That is the honest version of the point this scenario exists to make.
   bays: [
     { id: "bay-1", label: "Bay 1", type: "rapid_dc" },
     { id: "bay-2", label: "Bay 2", type: "rapid_dc" },
@@ -126,9 +131,12 @@ export const commuterHub: ScenarioConfig = {
     { id: "bay-5", label: "Bay 5", type: "rapid_dc" },
     { id: "bay-6", label: "Bay 6", type: "rapid_dc" },
   ],
-  // Six rapids at 50 kW is 300 kW of appetite against 250 — the cap binds, but
-  // only during the two spikes, and only for 90 minutes at a time.
-  initialGridPowerKw: 250,
+  // Re-sized with the hardware (2026-08-17). Nameplate is now 6 × 150 = 900 kW,
+  // but commuter cars cap at 60–120 kW, so realistic full-occupancy draw is
+  // ~540 kW. 450 kW keeps the original intent exactly — the cap binds during
+  // the two spikes and only for 90 minutes at a time — measured against actual
+  // acceptance rather than against nameplate.
+  initialGridPowerKw: 450,
   maxQueueLength: 14,
 
   initialCash: 50_000,
@@ -160,11 +168,21 @@ export const commuterHub: ScenarioConfig = {
   // premium-pricing strategy achieves here (106), so on a site full of
   // price-sensitive commuters, charging more costs you the volume goal. That
   // tension is the whole reason this archetype exists.
+  /**
+   * **Re-fitted 2026-08-17** alongside the hardware re-rating, which lifted this
+   * site's throughput enough to slacken every threshold at once (D13 floor fell
+   * 85% → 55%). Re-set from the measured 20-seed baseline spread:
+   * margin £324–£1,369 · trust 53.1–64.7 · wait 207–323 s · sessions 136–167.
+   *
+   * Margin stays the sharp constraint here, as it was before — this is a
+   * competitive urban site whose customers are the price-sensitive archetype,
+   * and the money is the thing that is genuinely hard to make.
+   */
   goals: {
-    minOperatingMargin: 950,
-    maxAvgWaitSeconds: 300,
-    minTrust: 55,
-    minSessionsCompleted: 110,
+    minOperatingMargin: 1_200,
+    maxAvgWaitSeconds: 310,
+    minTrust: 60,
+    minSessionsCompleted: 145,
   },
   failRules: {
     bankruptcyCashBelow: 0,

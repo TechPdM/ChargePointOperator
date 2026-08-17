@@ -106,9 +106,12 @@ export const destinationSite: ScenarioConfig = {
     { id: "bay-7", label: "Post 7", type: "slow_ac" },
     { id: "bay-8", label: "Post 8", type: "rapid_dc" },
   ],
-  // 7×22 + 50 = 204 kW of appetite against 300. The cap NEVER binds, so power
-  // policy is inert here by construction — the honest inverse of the corridor.
-  initialGridPowerKw: 300,
+  // 7×22 + 150 = 304 kW of nameplate against 350 (was 204 against 300, before
+  // the 2026-08-17 rapid re-rating). The cap still NEVER binds, so power policy
+  // stays inert here by construction — the honest inverse of the corridor — and
+  // the single DC post is vehicle-limited rather than bay-limited, as it should
+  // be. Raised 300 → 350 only to preserve that property through the re-rating.
+  initialGridPowerKw: 350,
   maxQueueLength: 10,
 
   initialCash: 50_000,
@@ -140,13 +143,28 @@ export const destinationSite: ScenarioConfig = {
   // Set from this site's own measured baseline distribution (20 seeds).
   // Thin margins and low costs mean the absolute bar is far lower than the
   // corridor's — £400 here is the same kind of stretch as £2,200 there.
+  /**
+   * **Re-fitted 2026-08-17.** Only one bay here is DC, so the re-rating moved
+   * this site least — but it still slackened the three non-margin goals to
+   * 100% met and dropped the D13 floor 80% → 70%. Re-set from the measured
+   * 20-seed baseline spread: margin −£28–£589 · trust 56.9–68.0 ·
+   * wait 571–1,139 s · sessions 84–107.
+   */
   goals: {
-    minOperatingMargin: 400,
-    // Nobody is in a hurry — a 22-minute wait is genuinely fine here, which
-    // is why the wait goal is nearly three times the corridor's.
-    maxAvgWaitSeconds: 1_320,
-    minTrust: 55,
-    minSessionsCompleted: 75,
+    // £520, not a rounder £500, and 95 sessions rather than 90: at £500/90 the
+    // same five seeds (s1, s4, s10, s11, s14) passed all four goals and the
+    // floor sat at exactly 75%. Wait does not separate them — every seed that
+    // fails on wait already fails on margin — so the two thresholds that do
+    // were moved by the smallest amount that breaks s1 and s4.
+    minOperatingMargin: 520,
+    // Nobody is in a hurry — a 13-minute wait is genuinely fine here, which
+    // is why the wait goal is nearly twice the corridor's. Set at 800 rather
+    // than 900 because wait runs *anti*-correlated with margin on this site
+    // (a busy day is a profitable one), so it is the threshold that catches
+    // the seeds margin does not — at 900 the floor sat at 75%.
+    maxAvgWaitSeconds: 800,
+    minTrust: 58,
+    minSessionsCompleted: 95,
   },
   failRules: {
     bankruptcyCashBelow: 0,

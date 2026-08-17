@@ -23,12 +23,12 @@ All `*Seconds` fields are sim-seconds at real-world magnitude (a 10-minute wait 
 | Constant | Value |
 | :-- | :-- |
 | Bays | 6 — bays 1–4 `rapid_dc`, bays 5–6 `ultrarapid_dc` |
-| `rapid_dc` / `ultrarapid_dc` maxPowerKw | 50 / 150 (`slow_ac` unused in MVP scenarios — D5) |
-| Grid cap `gridPowerKw` | **350 kW** — full simultaneous demand is 500 kW; the cap is designed to bind at peaks (scenario spec §3) |
+| `rapid_dc` / `ultrarapid_dc` maxPowerKw | **150 / 350** *(re-rated 2026-08-17)*. Was 50 / 150, which was 2019–2021 spec: current UK classification puts rapid at 100–150 kW (50 kW is the legacy tier) and ultra-rapid at 150 kW upwards, with corridor operators (IONITY, GRIDSERVE/Extra) running 350–400 kW. The old rapid tier throttled *every* car on site — the archetype table in §3 already allowed 60–250 kW. (`slow_ac` unchanged at 22 kW and still unused in MVP scenarios — D5) |
+| Grid cap `gridPowerKw` | **650 kW** *(re-sized 2026-08-17)*. Nameplate is now 4×150 + 2×350 = 1,300 kW, so this is 50% of nameplate — a site connected for typical peak rather than absolute peak, which is the ordinary UK position. Industry reference points: ~1.5 MVA for a 10–12 × 150 kW hub (~83%), and a dedicated 14 MVA substation for the 32-bay Moto Tamworth super hub. **Measured**: throughput rises to ~650 kW, plateaus by ~800, and is bit-identical above it — so ≥900 kW makes `power_choke` unreachable and this is the top of the useful band |
 | `maxQueueLength` | **12** *(new — D20)*. Two deep per bay. Makes the `site_full` leave reason reachable; previously it was a type value nothing could produce |
 | `reliabilityBase` — rapid / ultra | 0.985 / 0.975 per **session** (§5 fault model) |
 | `repairSecondsMean` — rapid / ultra | 2,700 (45 sim-min) / 3,600 (60 sim-min) |
-| Upgrade cost rapid→ultra | **£40,000** (realistic — D10). Lives in `scenario.upgradeCosts` (D20), **not** on the action. Starting capital funds at most one; judged operationally, not by in-run payback |
+| Upgrade cost rapid→ultra | **£75,000** *(re-priced 2026-08-17; was £40,000)*. This is now a 150 → 350 kW swap, not 50 → 150. IONITY's ~€700m for 5,000+ ultra-rapid chargers puts an all-in greenfield unit near €140k; an in-place swap on a bay that already has groundwork and connection is cheaper, not £40k cheap. Realism commitment is D10. Lives in `scenario.upgradeCosts` (D20), **not** on the action. Starting capital still funds at most one; judged operationally, not by in-run payback |
 
 *(`reservePowerKw` deleted — D23. Nothing defined what reserving power did, and with a flat energy price and a full rebalance every tick it bought nothing.)*
 
@@ -173,6 +173,8 @@ The p10–p90 spread on margin is £1,200 wide. **Any goal set inside that band 
 v2.1's ranges did not follow from v2.1's own inputs: 105–150 sessions at 28 kWh each cannot produce £1,900 of margin under any combination of the stated costs (the arithmetic tops out near £1,500). The ranges above are re-derived; the derivation is here so the next person can check it rather than inherit it.
 
 **Demand mix** (weighted across the §3 wave table, 239 arrivals/day): 107 commuter · 93 en-route · 39 panic → **mean 28.0 kWh/session, 6,703 kWh/day of demand**.
+
+> **STALE as of the 2026-08-17 re-rating.** Everything from here to the end of this section was derived against 50/150 kW bays, a 350 kW cap and the unscaled wave table. All three moved (see §2 and the ×1.8 `DEMAND_SCALE` in `roadsideHub.ts`), so the arithmetic below no longer describes the scenario — the measured baseline is now 428 arrivals, 316 sessions, 9,413 kWh and £3,535 margin. It is left in place unrewritten because it is the *derivation*, not the measurement, and re-deriving it is a deliberate exercise rather than a find-and-replace. The measured table above it is the live figure.
 
 **Capacity.** The 350 kW cap delivers 8,400 kWh/day, so on a whole-day basis there is comfortably enough energy — the constraint is purely *temporal*. Three windows run a deficit:
 

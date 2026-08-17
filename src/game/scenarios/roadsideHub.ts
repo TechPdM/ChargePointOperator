@@ -8,8 +8,31 @@ import type { DemandWave, ScenarioConfig } from "../core/types.ts";
 
 const H = 3_600;
 
+/**
+ * **NEW (Mark, 2026-08-17), a consequence of the hardware re-rating.**
+ *
+ * The wave rates below were calibrated against 50 kW rapid bays. Re-rating the
+ * hardware to 150/350 kW roughly halves service time, and a 6-bay site that
+ * turns cars around twice as fast stops being under any pressure at all: the
+ * D13 difficulty floor fell from 80% to 25%, avg wait from 5.5 to 1.9 sim-min,
+ * abandonment from 1.8% to 0.1%, and trust ran up to 76.
+ *
+ * Raising demand alongside the hardware is the physically honest fix rather than
+ * a fudge — the fleet grew with the chargers, and corridor traffic in 2026 is
+ * not 2019 traffic. ×1.8 is the measured point that restores the floor to
+ * exactly 80% (16/20 seeds), scanned over ×1.0–×2.4 at 20 seeds each:
+ *
+ *   ×1.0 25% · ×1.2 20% · ×1.4 10% · ×1.6 40% · ×1.8 80% · ×2.0 100%
+ *
+ * ×2.0 and above is a site in permanent collapse — trust_crash on 9/20 seeds
+ * and rising — so the usable window is narrow and this is the top of it.
+ *
+ * One constant, so the whole change is revertible in one place.
+ */
+const DEMAND_SCALE = 1.8;
+
 /** §3 — the single source of truth for demand. */
-const demandWaves: DemandWave[] = [
+const baseDemandWaves: DemandWave[] = [
   {
     id: "night",
     startSecond: 0,
@@ -102,6 +125,11 @@ const demandWaves: DemandWave[] = [
   },
 ];
 
+const demandWaves: DemandWave[] = baseDemandWaves.map((w) => ({
+  ...w,
+  arrivalRatePerMinute: w.arrivalRatePerMinute * DEMAND_SCALE,
+}));
+
 export const roadsideHub: ScenarioConfig = {
   id: "roadside-hub-01",
   name: "Junction 42 Services",
@@ -119,7 +147,20 @@ export const roadsideHub: ScenarioConfig = {
     { id: "bay-5", label: "Bay 5", type: "ultrarapid_dc" },
     { id: "bay-6", label: "Bay 6", type: "ultrarapid_dc" },
   ],
-  initialGridPowerKw: 350,
+  /**
+   * **Re-sized with the hardware (Mark, 2026-08-17).** Nameplate is now
+   * 4 × 150 + 2 × 350 = 1,300 kW. Real sites are always connected well below
+   * nameplate and enforce the gap with load management — the industry reference
+   * point is ~1.5 MVA for a 10–12 × 150 kW hub (~83%), while a 32-bay super hub
+   * like Moto Tamworth needed a dedicated 14 MVA substation.
+   *
+   * 650 kW is 50% of nameplate: a site sized for typical peak rather than
+   * absolute peak, which is the common UK position and the reason the grid
+   * connection queue is a policy problem. It is also where the mechanic lives —
+   * measured, throughput plateaus at ~800 kW and is flat to the last decimal
+   * above it, so anything ≥ 900 kW makes `power_choke` unreachable.
+   */
+  initialGridPowerKw: 650,
   maxQueueLength: 12,
 
   initialCash: 50_000,
@@ -132,22 +173,39 @@ export const roadsideHub: ScenarioConfig = {
 
   energyCostPerKwh: 0.28,
   opexPerSimDay: 150,
-  upgradeCosts: [{ from: "rapid_dc", to: "ultrarapid_dc", capexCost: 40_000 }],
+  // Re-priced with the hardware: this is now a 150 kW → 350 kW swap, not
+  // 50 → 150. IONITY's ~€700m for 5,000+ ultra-rapid chargers puts an all-in
+  // greenfield unit near €140k; an in-place swap on a bay that already has its
+  // groundwork and connection is cheaper, but not £40k cheap.
+  upgradeCosts: [{ from: "rapid_dc", to: "ultrarapid_dc", capexCost: 75_000 }],
 
   // §4 — the designed problem-reveal beat. Timing is seed-independent, so the
   // target must be a fixed bay id, not "whichever is busier" (D20).
   scriptedFaults: [{ atSecond: 12.5 * H, bayId: "bay-5", category: "power_module_fault" }],
 
+  /**
+   * **Re-fitted (Mark, 2026-08-17) to the post-re-rating distribution.** The
+   * old thresholds were set against 50 kW hardware and all four went slack at
+   * once: margin was met on 20/20 seeds, and 110 sessions against a measured
+   * 298–336 was not a goal at all.
+   *
+   * Re-set the way the originals were — from the measured baseline spread over
+   * 20 seeds, picking round numbers rather than fitting to the decimal. Trust
+   * is now the sharp constraint (the corridor is busy and reputation is what
+   * pays for it); the other three are achievable but no longer free.
+   *
+   * Baseline spread at ×1.8: margin £2,545–£4,397 · trust 40.4–61.2 ·
+   * wait 4.7–7.5 sim-min · sessions 298–336.
+   *
+   * `minTrust` deliberately stays at its original 55 — the re-rating moved
+   * every other number but not what a good reputation is worth, and at 55 it
+   * carries the difficulty floor on its own (met on 4/20).
+   */
   goals: {
-    // Set by Mark, 2026-08-16, from the post-D30/D31 measured distribution
-    // (OPEN-7). The lowest round number that closes D13's difficulty floor:
-    // the six days the passive baseline used to win outright sit at £2,154,
-    // £2,190, £2,220, £2,312, £2,506 and £2,772, so anything below £2,200
-    // catches none of them. At £2,200 the baseline fails on 80% of seeds.
-    minOperatingMargin: 2_200,
-    maxAvgWaitSeconds: 480,
+    minOperatingMargin: 2_800,
+    maxAvgWaitSeconds: 420,
     minTrust: 55,
-    minSessionsCompleted: 110,
+    minSessionsCompleted: 300,
   },
   failRules: {
     bankruptcyCashBelow: 0,

@@ -23,6 +23,9 @@ import { priceMultiplier } from "../src/game/systems/arrivals.ts";
 import { abandonProbability } from "../src/game/systems/queue.ts";
 import { faultProbabilityPerTick } from "../src/game/systems/faults.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
+
+/** Read from the scenario, not hardcoded — it moves when the hardware is re-rated. */
+const UPGRADE_COST = roadsideHub.upgradeCosts[0]?.capexCost ?? 0;
 import type { SimulationState, VehicleAgent, VehicleArchetype } from "../src/game/core/types.ts";
 
 function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
@@ -238,8 +241,8 @@ describe("D19 — interruption and deferred bay transitions", () => {
     });
     s = advance(s, 1);
 
-    expect(s.site.economics.capexSpentToday).toBe(40_000);
-    expect(cashBefore - s.site.economics.cash).toBeGreaterThan(39_900);
+    expect(s.site.economics.capexSpentToday).toBe(UPGRADE_COST);
+    expect(cashBefore - s.site.economics.cash).toBeGreaterThan(UPGRADE_COST - 100);
     expect(s.chargers[busy.id]?.pendingUpgradeType).toBe("ultrarapid_dc");
     expect(s.chargers[busy.id]?.spec.type).toBe("rapid_dc");
 
@@ -247,7 +250,7 @@ describe("D19 — interruption and deferred bay transitions", () => {
     expect(s.chargers[busy.id]?.spec.type).toBe("ultrarapid_dc");
     expect(s.chargers[busy.id]?.pendingUpgradeType).toBeUndefined();
     // Capex is a one-off, not a recurring charge.
-    expect(s.site.economics.capexSpentToday).toBe(40_000);
+    expect(s.site.economics.capexSpentToday).toBe(UPGRADE_COST);
   });
 });
 

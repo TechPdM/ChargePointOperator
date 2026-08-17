@@ -99,7 +99,7 @@ describe("power_choke", () => {
   it("needs the queue term as well as the power term", () => {
     // The cap is MEANT to bind at peaks; a power-only rule would fire every
     // peak by design and make criterion 3 meaningless (D24).
-    const s = play({ ...roadsideHub, initialGridPowerKw: 60 }, "s2", [], true);
+    const s = play({ ...roadsideHub, initialGridPowerKw: 150 }, "s2", [], true);
     const everSaturated = s.site.metrics.failureStatesObserved.includes("power_choke");
     expect(typeof everSaturated).toBe("boolean");
     expect(FAILURE_THRESHOLDS.powerChokeQueueLength).toBeGreaterThan(0);
@@ -130,7 +130,7 @@ describe("trust_crash", () => {
 });
 
 describe("margin_trap — only evaluable against the paired baseline", () => {
-  it("flags £40k of capex that bought no goal improvement", () => {
+  it("flags an ultra-rapid upgrade that bought no goal improvement", () => {
     const seed = "pt-2";
     const baseline = summariseRun(
       runScenario({
@@ -156,7 +156,7 @@ describe("margin_trap — only evaluable against the paired baseline", () => {
       }),
     );
 
-    expect(played.capexSpent).toBe(40_000);
+    expect(played.capexSpent).toBe(roadsideHub.upgradeCosts[0]?.capexCost);
     const comparison = compareRuns(played, baseline);
     expect(comparison.marginTrap).toBe(played.goalsMetCount <= baseline.goalsMetCount);
     if (comparison.marginTrap) {
