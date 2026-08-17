@@ -71,7 +71,11 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
         detail="Share of working bay-time with a car plugged in."
       />
 
-      {/* These two are adjacent by rule, not by layout convenience. */}
+      {/* Welded into one cell, not merely placed next to each other. Card order
+          alone does not survive a change of column count — at three columns
+          these two landed diagonally opposite, which is exactly the reading the
+          rule exists to prevent. */}
+      <div className="kpi-duo">
       <Kpi
         label="Average wait"
         value={minutes(m.avgWaitSeconds)}
@@ -88,6 +92,7 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
         detail="Share of committed drivers who left the queue. Read this next to average wait: a falling wait with a rising figure here means the queue emptied itself."
         pairedWith="↤ read together"
       />
+      </div>
 
       <Kpi
         label="Queue"

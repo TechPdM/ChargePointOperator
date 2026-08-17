@@ -52,9 +52,10 @@ export function App(): ReactElement {
           the numbers readable, which is the whole point of the post-run
           screen. */}
       <fieldset className="board" disabled={!state.running}>
-        <div className="board-split">
+        <div className="board-thirds">
           <KpiCardGrid state={state} />
           <PowerPolicyPanel sim={sim} />
+          <PricingControlPanel sim={sim} />
         </div>
 
         <BayAvailabilityPanel sim={sim} />
@@ -72,7 +73,6 @@ export function App(): ReactElement {
 
       <fieldset className="floor" disabled={!state.running}>
         <div className="rail rail-left">
-          <PricingControlPanel sim={sim} />
           <ChargingPolicyPanel sim={sim} />
           <MaintenancePanel sim={sim} />
         </div>

@@ -125,6 +125,38 @@ body {
   gap: var(--gap);
 }
 
+/*
+ * Three across: how it is going, where the power goes, what it costs.
+ * The 420px floor is what the narrowest of the three needs — the KPI cards
+ * below about 140px start clipping their labels — so the row drops to two and
+ * then one rather than squeezing.
+ */
+.board-thirds {
+  display: grid;
+  /* 60/20/20: the metrics carry the most, and the two controls beside them are
+     a bar chart and a slider — both fine narrow. */
+  grid-template-columns: 3fr 1fr 1fr;
+  gap: var(--gap);
+  align-items: stretch;
+}
+
+@media (max-width: 1250px) {
+  .board-thirds {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .board-thirds {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* At a fifth of the width the four policies stack; there is no room for a row. */
+.board-thirds .policy-list {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 /* Both halves share a height so the board reads as one block rather than two
    panels of different lengths. The KPI cards take up the slack. */
 .board-split {
@@ -474,8 +506,10 @@ button:focus-visible,
 
 .kpi-strip {
   display: grid;
-  /* Nine cards at half width: three columns, three clean rows, no orphan cell. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Flows to whatever the container gives it — five across at 60% of a desktop,
+     fewer as it narrows. The avg-wait/abandonment pairing is protected
+     structurally by .kpi-duo below, not by hoping about column counts. */
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -487,6 +521,15 @@ button:focus-visible,
   .kpi-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* The duo spans two tracks, so the row rarely divides evenly and leaves bare
+   cells at the end showing the hairline colour. This fills the remainder to the
+   last grid line in panel colour, whatever that remainder turns out to be. */
+.kpi-strip::after {
+  content: "";
+  grid-column: auto / -1;
+  background: var(--panel);
 }
 
 .kpi {
@@ -521,9 +564,8 @@ button:focus-visible,
   min-width: 0;
 }
 
-.kpi-label > :first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.kpi-label {
+  flex-wrap: wrap;
 }
 
 .kpi-pair {
@@ -582,9 +624,35 @@ button:focus-visible,
   transform: translateY(0);
 }
 
-.kpi:nth-child(3n) .kpi-detail {
+.kpi:nth-last-child(-n + 2) .kpi-detail,
+.kpi-duo:last-child .kpi:last-child .kpi-detail {
   left: auto;
   right: 0;
+}
+
+/*
+ * The avg-wait and abandonment cards, welded together.
+ *
+ * The KPI dictionary makes their adjacency binding — average wait can improve
+ * purely because everyone impatient gave up, so the second number must never be
+ * readable without the first. Leaving that to card order is how it silently
+ * broke: at three columns they landed at the end of one row and the start of
+ * the next, diagonally opposite. As one cell spanning two tracks they cannot
+ * separate, whatever the column count does.
+ */
+.kpi-duo {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--rule);
+}
+
+@media (max-width: 560px) {
+  .kpi-duo {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ------------------------------------------------------------ power bus */
