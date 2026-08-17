@@ -25,7 +25,15 @@ export function PowerPolicyPanel({ sim }: { sim: Simulation }): ReactElement {
   const state = sim.state.sim;
   const bays = bayList(state);
   const cap = state.site.gridPowerKw;
-  const allocated = cap - state.site.availablePowerKw;
+  // Summed from the bays, NOT from `site.availablePowerKw`. The two are
+  // different instants: `availablePowerKw` is frozen at the rebalance step and
+  // deliberately left there (see scoring.ts `settleAvailablePower`), while a
+  // bay's allocation is zeroed later in the same tick when its session
+  // completes or the bay faults. Reading the headline from one and the bar from
+  // the other put up to 250 kW of a 350 kW bus in the label with nothing drawn
+  // underneath it. The bar and its label describe one instant.
+  const allocated = bays.reduce((sum, bay) => sum + bay.allocatedPowerKw, 0);
+  const spare = Math.max(0, cap - allocated);
   const saturated = allocated >= cap * 0.95;
 
   return (
@@ -52,12 +60,12 @@ export function PowerPolicyPanel({ sim }: { sim: Simulation }): ReactElement {
             </div>
           );
         })}
-        <div className="bus-spare" style={{ width: `${(state.site.availablePowerKw / cap) * 100}%` }} />
+        <div className="bus-spare" style={{ width: `${(spare / cap) * 100}%` }} />
       </div>
       <div className="bus-scale">
         <span>0</span>
         <span className={saturated ? "hint-bad" : undefined}>
-          {saturated ? "supply fully committed" : `${Math.round(state.site.availablePowerKw)} kW spare`}
+          {saturated ? "supply fully committed" : `${Math.round(spare)} kW spare`}
         </span>
         <span>{cap} kW</span>
       </div>

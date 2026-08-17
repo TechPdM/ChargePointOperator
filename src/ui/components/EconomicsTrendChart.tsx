@@ -26,17 +26,22 @@ export function EconomicsTrendChart({
 }): ReactElement {
   const duration = state.scenario.durationSeconds;
 
-  const revenue: [number, number][] = snapshots.map((s) => [
+  const revenue: [number, number | null][] = snapshots.map((s) => [
     s.atSecond,
     s["revenue_cum_amount"] ?? 0,
   ]);
-  const margin: [number, number][] = snapshots.map((s) => [
+  // Not clamped at zero. The day opens in the red — rent and the maintenance
+  // standing charge accrue from 00:00 against no takings — and a bad price
+  // choice keeps it there. Flattening that onto the axis drew a loss as
+  // break-even, and dragged the costs band with it.
+  const margin: [number, number | null][] = snapshots.map((s) => [
     s.atSecond,
-    Math.max(0, s["cum_margin_amount"] ?? 0),
+    s["cum_margin_amount"] ?? 0,
   ]);
 
   const goal = state.scenario.goals.minOperatingMargin;
-  const top = Math.max(goal * 1.4, ...revenue.map(([, v]) => v * 1.15));
+  const top = Math.max(goal * 1.4, ...revenue.map(([, v]) => (v ?? 0) * 1.15));
+  const bottom = Math.min(0, ...margin.map(([, v]) => (v ?? 0) * 1.15));
 
   return (
     <Panel title="Takings and margin" hint="cumulative, today">
@@ -48,6 +53,7 @@ export function EconomicsTrendChart({
         ]}
         xMax={duration}
         yMax={top}
+        yMin={bottom}
         band
         threshold={{ value: goal, label: "goal" }}
         formatValue={(v) => money(v)}

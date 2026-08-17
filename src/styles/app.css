@@ -789,6 +789,16 @@ button:focus-visible,
   color: var(--ok);
 }
 
+/* The half of the price effect the elasticity hint above cannot show: drivers
+   who reach the forecourt and refuse. Warn-coloured because losing a whole
+   archetype is a bigger decision than the percentage next to the price. */
+.price-refusal {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--warn);
+}
+
 input[type="range"] {
   width: 100%;
   accent-color: var(--tier-ultra);
@@ -1272,6 +1282,12 @@ input[type="number"] {
 
 .plot .grid-v {
   stroke: color-mix(in srgb, var(--rule) 60%, transparent);
+}
+
+/* Break-even, on a plot whose axis runs below it. Stronger than the other
+   rules because it is the only one that carries a meaning. */
+.plot .grid-zero {
+  stroke: color-mix(in srgb, var(--rule) 180%, transparent);
 }
 
 .plot .series {

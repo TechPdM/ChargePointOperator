@@ -22,17 +22,20 @@ export function WaitTimeTrendChart({
 }): ReactElement {
   const duration = state.scenario.durationSeconds;
 
-  const wait: [number, number][] = snapshots.map((s) => [
+  // A snapshot whose window held no started session has no measured wait — the
+  // stored 0 is a default, not a reading, and plotting it draws a dive to the
+  // floor exactly when the site is at its most jammed. The line breaks instead.
+  const wait: [number, number | null][] = snapshots.map((s) => [
     s.atSecond,
-    (s["avg_wait_seconds"] ?? 0) / 60,
+    (s["avg_wait_started_sessions"] ?? 0) > 0 ? (s["avg_wait_seconds"] ?? 0) / 60 : null,
   ]);
-  const abandonment: [number, number][] = snapshots.map((s) => [
+  const abandonment: [number, number | null][] = snapshots.map((s) => [
     s.atSecond,
     s["abandonment_rate_pct"] ?? 0,
   ]);
 
-  const waitMax = Math.max(12, ...wait.map(([, v]) => v * 1.2));
-  const abandonMax = Math.max(20, ...abandonment.map(([, v]) => v * 1.2));
+  const waitMax = Math.max(12, ...wait.map(([, v]) => (v ?? 0) * 1.2));
+  const abandonMax = Math.max(20, ...abandonment.map(([, v]) => (v ?? 0) * 1.2));
 
   return (
     <Panel title="Waiting and walking away" hint="across the day">

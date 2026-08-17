@@ -1,6 +1,11 @@
 import type { ReactElement } from "react";
 import { cumulativeMargin } from "../../game/systems/economics.ts";
 import {
+  rollAvgWaitSeconds,
+  rollUptimeFraction,
+  rollWindow,
+} from "../../game/core/selectors.ts";
+import {
   demandFractionElapsed,
   money,
   minutes,
@@ -24,6 +29,16 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
   const goals = state.scenario.goals;
   const margin = cumulativeMargin(state);
   const cumWait = m.cumStartedSessions > 0 ? m.cumWaitSecondsSum / m.cumStartedSessions : 0;
+
+  // Read through the same ROLL helpers the sim and the logs use, so the three
+  // cannot drift — but take the `null` these return for an empty window rather
+  // than the stored fallback. A card that shows a green "0.0 min" wait or a
+  // green "100%" uptime because there was nothing to measure is worse than one
+  // that admits it: those are exactly the moments a jammed or shut site
+  // produces, so the fallback flatters precisely when it must not.
+  const roll = rollWindow(state);
+  const waitSeconds = rollAvgWaitSeconds(roll);
+  const uptimeFraction = rollUptimeFraction(roll);
 
   // Cumulative goals are scored at midnight, so judging them against the full
   // target at 03:00 would paint the strip red all morning and teach players to
@@ -58,10 +73,14 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
       />
       <Kpi
         label="Uptime"
-        value={pct(m.uptimePct, 1)}
-        unit="%"
-        tone={toneFor(m.uptimePct, 95, 90)}
-        detail="Share of open bay-time actually able to charge. Bays you closed yourself don't count against it."
+        value={uptimeFraction === null ? "—" : pct(uptimeFraction * 100, 1)}
+        unit={uptimeFraction === null ? "nothing measured" : "%"}
+        tone={uptimeFraction === null ? "idle" : toneFor(uptimeFraction * 100, 95, 90)}
+        detail={
+          uptimeFraction === null
+            ? "No open bay-time in the last 15 minutes — either the day hasn't started or you have closed everything. Nothing to report either way."
+            : "Share of open bay-time actually able to charge. Bays you closed yourself don't count against it."
+        }
       />
       <Kpi
         label="Utilisation"
@@ -78,10 +97,14 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
       <div className="kpi-duo">
       <Kpi
         label="Average wait"
-        value={minutes(m.avgWaitSeconds)}
-        unit="min"
-        tone={toneFor(m.avgWaitSeconds, 300, goals.maxAvgWaitSeconds)}
-        detail={`How long drivers queued before plugging in. Goal ${minutes(goals.maxAvgWaitSeconds)} min across the day — currently ${minutes(cumWait)} min.`}
+        value={waitSeconds === null ? "—" : minutes(waitSeconds)}
+        unit={waitSeconds === null ? "nobody plugged in" : "min"}
+        tone={waitSeconds === null ? "idle" : toneFor(waitSeconds, 300, goals.maxAvgWaitSeconds)}
+        detail={
+          waitSeconds === null
+            ? `Nobody has started charging in the last 15 minutes, so there is no wait to average. That is not a good sign when there is a queue. Across the day so far: ${minutes(cumWait)} min against a goal of ${minutes(goals.maxAvgWaitSeconds)}.`
+            : `How long drivers queued before plugging in. Goal ${minutes(goals.maxAvgWaitSeconds)} min across the day — currently ${minutes(cumWait)} min.`
+        }
         goal={`${minutes(cumWait)} of ${minutes(goals.maxAvgWaitSeconds)} min`}
       />
       <Kpi

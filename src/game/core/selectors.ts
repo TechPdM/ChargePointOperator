@@ -231,8 +231,18 @@ export function rollWindow(
   return acc;
 }
 
-export function rollUptimeFraction(w: RollWindow): number {
-  if (w.openBaySeconds <= 0) return 1;
+/**
+ * `null` means the window holds no evidence — no bay was open in it — not that
+ * uptime was perfect. Returning 1 for that case made a site with every bay
+ * closed report 100% uptime in green.
+ *
+ * Callers that need a number must coalesce **explicitly**, so the choice of
+ * what no-evidence means is made where it is understood: the detectors read it
+ * as 100% (no open bay cannot be an unreliable one), the dashboard renders it
+ * as "—".
+ */
+export function rollUptimeFraction(w: RollWindow): number | null {
+  if (w.openBaySeconds <= 0) return null;
   return Math.max(0, 1 - (w.faultSeconds + w.repairSeconds) / w.openBaySeconds);
 }
 
@@ -248,8 +258,17 @@ export function rollAbandonmentFraction(w: RollWindow): number {
   return w.queueAbandons / denom;
 }
 
-export function rollAvgWaitSeconds(w: RollWindow): number {
-  if (w.sessionsStarted <= 0) return 0;
+/**
+ * `null` when no session started inside the window — nobody's wait was measured,
+ * which is not the same as nobody waiting.
+ *
+ * The old `0` was the worst possible lie this dashboard could tell: a site so
+ * jammed that nothing started for 15 minutes showed a green "0.0 min" average
+ * wait. Measured on a flooded run, that happened on 9% of all ticks that had a
+ * queue, with up to nine cars in it.
+ */
+export function rollAvgWaitSeconds(w: RollWindow): number | null {
+  if (w.sessionsStarted <= 0) return null;
   return w.startedWaitSecondsSum / w.sessionsStarted;
 }
 

@@ -1,10 +1,40 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
-import { PRICE_MAX, PRICE_MIN } from "../../game/core/calibration.ts";
+import { ARCHETYPES, PRICE_MAX, PRICE_MIN } from "../../game/core/calibration.ts";
 import { priceMultiplier } from "../../game/systems/arrivals.ts";
 import { getActiveWave } from "../../game/core/selectors.ts";
+import { ARCHETYPE_PLURAL } from "../format.ts";
 import { Panel } from "./Panel.tsx";
 import type { Simulation } from "../hooks/useSimulation.ts";
+import type { DemandWave, VehicleArchetype } from "../../game/core/types.ts";
+
+const MIX_KEY: Record<VehicleArchetype, keyof DemandWave> = {
+  commuter: "commuterMix",
+  enroute: "enrouteMix",
+  panic_low_soc: "panicMix",
+};
+
+/**
+ * Who refuses this price outright, and how much of the wave they are.
+ *
+ * The elasticity multiplier alone was badly understating price: it only thins
+ * the arrival rate, while the far larger effect is drivers reaching the
+ * forecourt and refusing on `maxAcceptablePricePerKwh`. Measured over 5 seeds,
+ * £1.20 shows as "−62% arrivals" while sessions actually started fall 83%. Both
+ * halves are now on screen; neither is multiplied into a single false-precision
+ * figure, because the soft price term in `siteScore` sheds custom on top of
+ * these and is not captured by either.
+ */
+function hardRejectors(price: number, wave: DemandWave): { names: string[]; share: number } {
+  const names: string[] = [];
+  let share = 0;
+  for (const key of Object.keys(ARCHETYPES) as VehicleArchetype[]) {
+    if (price <= ARCHETYPES[key].maxAcceptablePricePerKwh) continue;
+    names.push(ARCHETYPE_PLURAL[key]);
+    share += (wave[MIX_KEY[key]] as number) ?? 0;
+  }
+  return { names, share };
+}
 
 /**
  * Price. Writes `set_price` only — the dynamic-pricing toggle the wireframe
@@ -20,6 +50,7 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
   const demand = wave
     ? priceMultiplier(draft, state.scenario.referencePricePerKwh, wave.priceElasticity)
     : 1;
+  const refused = wave ? hardRejectors(draft, wave) : { names: [], share: 0 };
   const changed = draft !== policy.pricePerKwh || fee !== policy.connectionFee;
 
   const apply = (): void => {
@@ -41,10 +72,17 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
         </span>
         <span className={`demand-hint ${demand < 0.95 ? "is-down" : demand > 1.05 ? "is-up" : ""}`}>
           {demand === 1
-            ? "demand unchanged"
-            : `${demand > 1 ? "+" : ""}${Math.round((demand - 1) * 100)}% demand`}
+            ? "arrivals unchanged"
+            : `${demand > 1 ? "+" : ""}${Math.round((demand - 1) * 100)}% arrivals`}
         </span>
       </div>
+
+      {refused.names.length > 0 ? (
+        <p className="price-refusal">
+          {joinNames(refused.names)} won't stop at all at this price —{" "}
+          {Math.round(refused.share * 100)}% of who's arriving now.
+        </p>
+      ) : null}
 
       <input
         type="range"
@@ -76,4 +114,9 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
       </button>
     </Panel>
   );
+}
+
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }

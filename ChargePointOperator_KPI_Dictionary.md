@@ -72,8 +72,10 @@ Count of sessions with `completed == true`. Goal basis.
 ### Session success rate — `CUM` — *(O2)*
 
 ```
-sessionSuccessRate = sessionsCompletedWithoutFault / sessionsStarted
+sessionSuccessRate = sessionsCompletedWithoutFault / (completed + interruptedByFault)
 ```
+
+The denominator is sessions that have **concluded**, not sessions started. A car still plugged in has neither completed nor faulted, and putting it in the denominator makes the rate read as a failure rate for in-flight work — measured at 85% mid-morning on a day with zero faults. Every session concludes one way or the other under the end-of-run sweep (D18), so this is identical to `sessionsStarted` at midnight; the scored and logged end-of-day figure is unaffected.
 
 A fault-interrupted session counts as started-and-failed even if the driver got most of their charge. Partial charge to the *policy* target (core site policy — D14) counts as success — meeting a lowered target is not a failure. Sessions finalized by the end-of-run sweep (D18) also count as completed, with partial delivery noted in the post-run summary.
 

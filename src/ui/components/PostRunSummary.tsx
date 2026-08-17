@@ -40,6 +40,8 @@ export function PostRunSummary({
     minTrust: m.trust,
     minSessionsCompleted: m.sessionsCompleted,
   };
+  const shareOfArrivals = (value: number): string =>
+    m.funnel.arrived > 0 ? `${Math.round((value / m.funnel.arrived) * 100)}% of arrivals` : "";
 
   return (
     <section className={`panel post-run ${outcome.allMet ? "is-win" : "is-loss"}`}>
@@ -116,38 +118,33 @@ export function PostRunSummary({
         <div className="post-run-col">
           <h3>What the day did to you</h3>
           <ul className="goal-list">
-            <li>
-              {/* The empty marker keeps this column on the same four-track grid
-                  as the other two, so all three read across at the same stops.
-                  Without it the label falls into the 14px marker track and
-                  wraps one character wide. */}
-              <span className="goal-mark" aria-hidden="true" />
-              <span className="goal-label">Turned away at the entrance</span>
-              <span className="mono goal-actual">{m.funnel.rejectedSite}</span>
-              <span className="goal-target">
-                {m.funnel.arrived > 0
-                  ? `${Math.round((m.funnel.rejectedSite / m.funnel.arrived) * 100)}% of arrivals`
-                  : ""}
-              </span>
-            </li>
-            <li>
-              <span className="goal-mark" aria-hidden="true" />
-              <span className="goal-label">Gave up waiting</span>
-              <span className="mono goal-actual">{m.funnel.abandonedQueue}</span>
-              <span className="goal-target">{m.sessionsAbandoned > 0 ? "queue too long" : ""}</span>
-            </li>
-            <li>
-              <span className="goal-mark" aria-hidden="true" />
-              <span className="goal-label">Cut short by a fault</span>
-              <span className="mono goal-actual">{m.funnel.interruptedByFault}</span>
-              <span className="goal-target">{m.funnel.interruptedByFault > 0 ? "−2 trust each" : ""}</span>
-            </li>
-            <li>
-              <span className="goal-mark" aria-hidden="true" />
-              <span className="goal-label">Energy sold</span>
-              <span className="mono goal-actual">{m.kwhDelivered.toFixed(0)} kWh</span>
-              <span className="goal-target" />
-            </li>
+            {/* Same names as the diagnosis panel's funnel, deliberately. These
+                are the same four buckets a player watched all day; renaming
+                them at the final whistle makes the report read as a different
+                measurement of a different thing. "Turned away at the entrance"
+                was especially wrong — it named the drive-past count after the
+                site-full one sitting right below it. */}
+            <Line
+              label="Drove past without stopping"
+              value={m.funnel.rejectedSite}
+              share={shareOfArrivals(m.funnel.rejectedSite)}
+            />
+            <Line
+              label="Turned away, no space"
+              value={m.funnel.siteFull}
+              share={shareOfArrivals(m.funnel.siteFull)}
+            />
+            <Line
+              label="Gave up waiting"
+              value={m.funnel.abandonedQueue}
+              share={shareOfArrivals(m.funnel.abandonedQueue)}
+            />
+            <Line
+              label="Cut short by a fault"
+              value={m.funnel.interruptedByFault}
+              share={m.funnel.interruptedByFault > 0 ? "−2 trust each" : ""}
+            />
+            <Line label="Energy sold" value={`${m.kwhDelivered.toFixed(0)} kWh`} share="" />
           </ul>
           {m.failureStatesObserved.length > 0 ? (
             <p className="note">
@@ -160,6 +157,32 @@ export function PostRunSummary({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * One row of the third column.
+ *
+ * The empty marker keeps this column on the same four-track grid as the other
+ * two, so all three read across at the same stops. Without it the label falls
+ * into the 14px marker track and wraps one character wide.
+ */
+function Line({
+  label,
+  value,
+  share,
+}: {
+  label: string;
+  value: number | string;
+  share: string;
+}): ReactElement {
+  return (
+    <li>
+      <span className="goal-mark" aria-hidden="true" />
+      <span className="goal-label">{label}</span>
+      <span className="mono goal-actual">{value}</span>
+      <span className="goal-target">{share}</span>
+    </li>
   );
 }
 

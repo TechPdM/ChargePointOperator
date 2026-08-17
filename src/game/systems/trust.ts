@@ -15,8 +15,14 @@ export function updateTrust(ctx: TickContext): void {
   const { state } = ctx;
 
   // Standing bonus for sustained high uptime, prorated to the tick.
+  //
+  // The `?? 1` preserves today's behaviour exactly: a window with no open bay
+  // reads 100% and earns the bonus. That is arguably wrong — a site with every
+  // bay closed is not a reliable one — but changing it changes sim behaviour and
+  // every downstream hash, so it is left as a separate decision rather than
+  // smuggled in with a display fix.
   const roll = rollWindow(state);
-  if (roll.samples > 0 && rollUptimeFraction(roll) * 100 > TRUST.uptimeBonusThresholdPct) {
+  if (roll.samples > 0 && (rollUptimeFraction(roll) ?? 1) * 100 > TRUST.uptimeBonusThresholdPct) {
     ctx.trustDeltaRaw += TRUST.uptimeBonusPerSimHour * (ctx.delta / 3_600);
   }
 

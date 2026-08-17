@@ -39,6 +39,13 @@ export const ARCHETYPE_LABEL: Record<VehicleArchetype, string> = {
   panic_low_soc: "Low battery",
 };
 
+/** For copy that talks about a group of drivers rather than one in a table row. */
+export const ARCHETYPE_PLURAL: Record<VehicleArchetype, string> = {
+  commuter: "Commuters",
+  enroute: "En-route drivers",
+  panic_low_soc: "Low-battery drivers",
+};
+
 export const ARCHETYPE_SHORT: Record<VehicleArchetype, string> = {
   commuter: "COM",
   enroute: "ENR",

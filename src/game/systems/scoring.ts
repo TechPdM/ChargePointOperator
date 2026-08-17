@@ -78,10 +78,17 @@ export function recomputeDerivedKPIs(state: SimulationState): void {
   const roll = rollWindow(state);
 
   m.queueLength = state.queue.length;
-  m.uptimePct = round(rollUptimeFraction(roll) * 100, 2);
+  // Both stored fields stay numeric — the log payload is `Record<string, number>`
+  // and a KPI that sometimes vanishes is worse than one with a stated default.
+  // The no-evidence cases are carried alongside instead: `uptime_pct` falls back
+  // to 100 (no open bay cannot be an unreliable one) and `avg_wait_seconds` to 0,
+  // with `avg_wait_started_sessions` in the snapshot saying how many waits that
+  // average was actually built from. Readers that must not treat an empty window
+  // as a good one — the dashboard, the trend chart — check that count.
+  m.uptimePct = round((rollUptimeFraction(roll) ?? 1) * 100, 2);
   m.utilizationPct = round(rollUtilizationFraction(roll) * 100, 2);
   m.abandonmentRatePct = round(rollAbandonmentFraction(roll) * 100, 2);
-  m.avgWaitSeconds = round(rollAvgWaitSeconds(roll), 1);
+  m.avgWaitSeconds = round(rollAvgWaitSeconds(roll) ?? 0, 1);
 
   const windowHours = Math.max(1e-9, roll.samples * state.clock.deltaSeconds) / 3_600;
   m.powerUtilizationPct = round(
@@ -91,10 +98,17 @@ export function recomputeDerivedKPIs(state: SimulationState): void {
   m.throughputVehiclesPerHour = round(roll.sessionsCompleted / windowHours, 2);
 
   const f = m.funnel;
-  // completedWithoutFault / sessionsStarted. Interrupted sessions never land in
-  // `completed`, so `completed` IS the without-fault count.
-  m.sessionSuccessRatePct =
-    f.sessionsStarted > 0 ? round((f.completed / f.sessionsStarted) * 100, 2) : 100;
+  // completedWithoutFault / sessions that have CONCLUDED. Interrupted sessions
+  // never land in `completed`, so `completed` IS the without-fault count.
+  //
+  // The denominator is deliberately not `sessionsStarted`: a car still plugged
+  // in has neither completed nor faulted, and counting it as a failure made the
+  // card read 85% mid-morning on a day with zero faults. Every session
+  // concludes one way or the other by close-out, so this is identical to
+  // `sessionsStarted` at midnight — the scored and logged end-of-day figure is
+  // unchanged, only the mid-run reading is fixed.
+  const concluded = f.completed + f.interruptedByFault;
+  m.sessionSuccessRatePct = concluded > 0 ? round((f.completed / concluded) * 100, 2) : 100;
   // accepted = passed admission and wasn't turned away by site_full.
   const accepted = f.arrived - f.rejectedSite - f.siteFull;
   const acceptedDenominator = accepted - f.closedAtRunEnd;
@@ -194,6 +208,8 @@ export function snapshotData(state: SimulationState): Record<string, number> {
     utilization_pct: m.utilizationPct,
     power_utilization_pct: m.powerUtilizationPct,
     avg_wait_seconds: m.avgWaitSeconds,
+    /** How many measured waits `avg_wait_seconds` averages. 0 ⇒ it is a default, not a reading. */
+    avg_wait_started_sessions: roll.sessionsStarted,
     cum_avg_wait_seconds: round(outcome.cumAvgWaitSeconds, 1),
     queue_length: m.queueLength,
     abandonment_rate_pct: m.abandonmentRatePct,

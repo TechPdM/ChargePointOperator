@@ -48,26 +48,36 @@ export function ChargingPolicyPanel({ sim }: { sim: Simulation }): ReactElement 
                 {option === null
                   ? "drivers fill up as they like"
                   : affected === 0
-                    ? "no one on site right now"
-                    : `${affected} driver${affected === 1 ? "" : "s"} cut short`}
+                    ? "no one waiting right now"
+                    : `${affected} waiting driver${affected === 1 ? "" : "s"} cut short`}
               </span>
             </button>
           );
         })}
       </div>
       <p className="note">
-        Charging slows sharply above 80%, so capping the limit frees bays much faster than it
-        loses you energy — at a busy site. Off-peak it does almost nothing, and drivers mind.
+        A change applies to sessions that start from here on — nobody already plugged in is cut
+        short. Charging slows sharply above 80%, so capping the limit frees bays much faster than
+        it loses you energy — at a busy site. Off-peak it does almost nothing, and drivers mind.
       </p>
     </Panel>
   );
 }
 
-/** Drivers on site — charging or waiting — who want more than this limit allows. */
+/**
+ * Drivers this limit would actually bite on: the ones still waiting.
+ *
+ * Deliberately excludes cars already charging. A session's `requestedKwh` is
+ * frozen at `startSession`, so changing the policy never re-caps one in flight —
+ * counting them overstated the effect by roughly double (5 charging against 4
+ * genuinely-affected queueing drivers, at peak). Overstating the one control
+ * this panel exists to tell the truth about is the same legibility bug it was
+ * written to avoid.
+ */
 function driversAffected(state: SimulationState, limit: number): number {
   let count = 0;
   for (const vehicle of Object.values(state.vehicles)) {
-    if (vehicle.state !== "charging" && vehicle.state !== "queueing") continue;
+    if (vehicle.state !== "queueing") continue;
     if (vehicle.demand.targetSoc > limit) count += 1;
   }
   return count;

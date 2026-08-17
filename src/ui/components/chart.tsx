@@ -24,7 +24,12 @@ export const SERIES = {
 export interface Series {
   name: string;
   colour: string;
-  points: [number, number][];
+  /**
+   * A `null` value is a gap, not a zero: the window held no measurement. The
+   * line breaks there rather than diving to the floor, because a plotted zero
+   * is a claim and this one would be false.
+   */
+  points: [number, number | null][];
 }
 
 export interface PlotProps {
@@ -32,6 +37,8 @@ export interface PlotProps {
   /** Domain of the x axis in sim-seconds — fixed, so the plot never rescales. */
   xMax: number;
   yMax: number;
+  /** Floor of the y axis. Below 0 for a measure that can go negative (margin). */
+  yMin?: number;
   height?: number;
   /** A goal or threshold, drawn as a dashed rule and labelled. */
   threshold?: { value: number; label: string };
@@ -48,6 +55,7 @@ export function Plot({
   series,
   xMax,
   yMax,
+  yMin = 0,
   height = 96,
   threshold,
   band,
@@ -61,11 +69,12 @@ export function Plot({
   // stroke widths with it, which is why the axis labels came out smeared.
   const width = useElementWidth(ref, 420);
 
-  const top = yMax <= 0 ? 1 : yMax;
+  const floor = Math.min(yMin, 0);
+  const top = yMax <= floor ? floor + 1 : yMax;
   const x = (seconds: number): number =>
     PAD.left + (seconds / xMax) * (width - PAD.left - PAD.right);
   const y = (value: number): number =>
-    PAD.top + (1 - clamp01(value / top)) * (height - PAD.top - PAD.bottom);
+    PAD.top + (1 - clamp01((value - floor) / (top - floor))) * (height - PAD.top - PAD.bottom);
 
   const onMove = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
@@ -97,10 +106,15 @@ export function Plot({
             className="grid"
             x1={PAD.left}
             x2={width - PAD.right}
-            y1={y(top * f)}
-            y2={y(top * f)}
+            y1={y(floor + (top - floor) * f)}
+            y2={y(floor + (top - floor) * f)}
           />
         ))}
+        {/* Where the axis runs below zero, the zero line is the one that means
+            something — it is the difference between making and losing money. */}
+        {floor < 0 ? (
+          <line className="grid grid-zero" x1={PAD.left} x2={width - PAD.right} y1={y(0)} y2={y(0)} />
+        ) : null}
         {HOURS.map((h) => (
           <line
             key={h}
@@ -151,8 +165,8 @@ export function Plot({
         <text className="axis-label" x={PAD.left - 6} y={y(top)} textAnchor="end">
           {formatValue(top)}
         </text>
-        <text className="axis-label" x={PAD.left - 6} y={y(0)} textAnchor="end">
-          0
+        <text className="axis-label" x={PAD.left - 6} y={y(floor)} textAnchor="end">
+          {floor === 0 ? "0" : formatValue(floor)}
         </text>
         {HOURS.map((h) => (
           <text
@@ -169,17 +183,9 @@ export function Plot({
 
       <figcaption className="plot-readout">
         {hover === null ? (
-          series.map((s) => (
-            <span key={s.name} className="legend-item">
-              <span className="legend-swatch" style={{ background: s.colour }} aria-hidden="true" />
-              {s.name}
-              <b>{formatValue(lastValue(s))}</b>
-            </span>
-          ))
-        ) : (
-          <>
-            <span className="legend-time">{clockAt(hover)}</span>
-            {series.map((s, i) => (
+          series.map((s) => {
+            const v = lastValue(s);
+            return (
               <span key={s.name} className="legend-item">
                 <span
                   className="legend-swatch"
@@ -187,9 +193,27 @@ export function Plot({
                   aria-hidden="true"
                 />
                 {s.name}
-                <b>{formatValue(readouts[i] ?? 0)}</b>
+                <b>{v === null ? "—" : formatValue(v)}</b>
               </span>
-            ))}
+            );
+          })
+        ) : (
+          <>
+            <span className="legend-time">{clockAt(hover)}</span>
+            {series.map((s, i) => {
+              const v = readouts[i];
+              return (
+                <span key={s.name} className="legend-item">
+                  <span
+                    className="legend-swatch"
+                    style={{ background: s.colour }}
+                    aria-hidden="true"
+                  />
+                  {s.name}
+                  <b>{v === null || v === undefined ? "—" : formatValue(v)}</b>
+                </span>
+              );
+            })}
           </>
         )}
       </figcaption>
@@ -197,45 +221,70 @@ export function Plot({
   );
 }
 
+/** A gap (null) lifts the pen: the next real point starts a fresh subpath. */
 function linePath(
   series: Series,
   x: (v: number) => number,
   y: (v: number) => number,
 ): string {
-  if (series.points.length === 0) return "";
-  return series.points
-    .map(([px, py], i) => `${i === 0 ? "M" : "L"}${x(px).toFixed(2)},${y(py).toFixed(2)}`)
-    .join(" ");
+  let out = "";
+  let penDown = false;
+  for (const [px, py] of series.points) {
+    if (py === null) {
+      penDown = false;
+      continue;
+    }
+    out += `${penDown ? "L" : "M"}${x(px).toFixed(2)},${y(py).toFixed(2)} `;
+    penDown = true;
+  }
+  return out.trim();
 }
 
+/**
+ * The filled band between two series. Gaps are dropped rather than broken into
+ * separate polygons — the band is a reading aid for the gap between two lines,
+ * and both series it is used on (revenue, margin) are always measured.
+ */
 function bandPath(
   upper: Series,
   lower: Series,
   x: (v: number) => number,
   y: (v: number) => number,
 ): string {
-  if (upper.points.length === 0) return "";
-  const up = upper.points
+  const up = defined(upper);
+  const down = defined(lower);
+  if (up.length === 0 || down.length === 0) return "";
+  const top = up
     .map(([px, py], i) => `${i === 0 ? "M" : "L"}${x(px).toFixed(2)},${y(py).toFixed(2)}`)
     .join(" ");
-  const down = [...lower.points]
+  const bottom = [...down]
     .reverse()
     .map(([px, py]) => `L${x(px).toFixed(2)},${y(py).toFixed(2)}`)
     .join(" ");
-  return `${up} ${down} Z`;
+  return `${top} ${bottom} Z`;
 }
 
+function defined(series: Series): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [px, py] of series.points) if (py !== null) out.push([px, py]);
+  return out;
+}
+
+/** Nearest MEASURED point — the crosshair never reads a value out of a gap. */
 function valueAt(series: Series, atX: number): number | null {
-  if (series.points.length === 0) return null;
-  let best = series.points[0];
-  for (const point of series.points) {
-    if (Math.abs(point[0] - atX) < Math.abs((best?.[0] ?? 0) - atX)) best = point;
+  const points = defined(series);
+  const first = points[0];
+  if (!first) return null;
+  let best = first;
+  for (const point of points) {
+    if (Math.abs(point[0] - atX) < Math.abs(best[0] - atX)) best = point;
   }
-  return best?.[1] ?? null;
+  return best[1];
 }
 
-function lastValue(series: Series): number {
-  return series.points[series.points.length - 1]?.[1] ?? 0;
+function lastValue(series: Series): number | null {
+  const points = defined(series);
+  return points[points.length - 1]?.[1] ?? null;
 }
 
 function clockAt(seconds: number): string {

@@ -34,6 +34,10 @@ export function DiagnosisPanel({
   const active = m.failureStatesActive;
   const survivorship = detectSurvivorship(snapshots);
 
+  // Every bucket a vehicle can end in, plus the ones still on site. Without the
+  // closing-time row the shares silently stopped summing to 100% at midnight —
+  // the drivers still queueing when the day ended left the funnel entirely,
+  // having been counted as neither served nor lost.
   const funnelRows = [
     { label: "Served", value: f.completed, tone: "ok" },
     { label: "Still here", value: inFlight(state), tone: "info" },
@@ -41,6 +45,7 @@ export function DiagnosisPanel({
     { label: "Turned away, no space", value: f.siteFull, tone: "warn" },
     { label: "Gave up waiting", value: f.abandonedQueue, tone: "bad" },
     { label: "Cut short by a fault", value: f.interruptedByFault, tone: "bad" },
+    { label: "Still waiting when the day ended", value: f.closedAtRunEnd, tone: "idle" },
   ];
 
   return (
@@ -115,6 +120,11 @@ function inFlight(state: SimulationState): number {
 /**
  * The survivorship trap, made detectable: wait improving while abandonment
  * worsens across the last three snapshots (15 sim-minutes).
+ *
+ * Both endpoints must carry a MEASURED wait. A window in which nobody started
+ * charging stores a wait of 0, and comparing against that read a site so jammed
+ * that nothing moved as a wait that had fallen — inventing the improvement half
+ * of the very trap this is here to catch.
  */
 function detectSurvivorship(snapshots: Snapshot[]): boolean {
   if (snapshots.length < 3) return false;
@@ -122,6 +132,8 @@ function detectSurvivorship(snapshots: Snapshot[]): boolean {
   const first = recent[0];
   const last = recent[recent.length - 1];
   if (!first || !last) return false;
+  if ((first["avg_wait_started_sessions"] ?? 0) <= 0) return false;
+  if ((last["avg_wait_started_sessions"] ?? 0) <= 0) return false;
   const waitFell = (last["avg_wait_seconds"] ?? 0) < (first["avg_wait_seconds"] ?? 0) - 30;
   const abandonRose =
     (last["abandonment_rate_pct"] ?? 0) > (first["abandonment_rate_pct"] ?? 0) + 3;

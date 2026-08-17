@@ -38,7 +38,9 @@ export function detectFailureStates(ctx: TickContext): void {
   const { state } = ctx;
   const roll = rollWindow(state);
   const pressure = queuePressure(state);
-  const uptimePct = rollUptimeFraction(roll) * 100;
+  // No open bay in the window reads as 100%: a bay that isn't open cannot be an
+  // unreliable one, and the bays-down arm below is what catches a dead site.
+  const uptimePct = (rollUptimeFraction(roll) ?? 1) * 100;
   const allocatedPct =
     state.site.gridPowerKw > 0
       ? ((state.site.gridPowerKw - state.site.availablePowerKw) / state.site.gridPowerKw) * 100
@@ -169,7 +171,8 @@ export function detectAlerts(ctx: TickContext): void {
   const { state } = ctx;
   const roll = rollWindow(state);
   const pressure = queuePressure(state);
-  const uptimePct = rollUptimeFraction(roll) * 100;
+  // Same reading as the detector above: an empty window does not raise low_uptime.
+  const uptimePct = (rollUptimeFraction(roll) ?? 1) * 100;
   const allocatedPct =
     state.site.gridPowerKw > 0
       ? ((state.site.gridPowerKw - state.site.availablePowerKw) / state.site.gridPowerKw) * 100
