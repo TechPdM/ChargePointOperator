@@ -6,6 +6,7 @@ coverage/
 # so they are reproducible rather than precious.
 runs/*.ndjson
 runs/*.json
+runs/*.txt
 !runs/.gitkeep
 
 .DS_Store
