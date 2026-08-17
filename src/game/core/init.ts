@@ -38,7 +38,6 @@ function initialMetrics(scenario: ScenarioConfig): SiteMetrics {
     queueLength: 0,
     abandonmentRatePct: 0,
     sessionsCompleted: 0,
-    sessionsAbandoned: 0,
     kwhDelivered: 0,
     throughputVehiclesPerHour: 0,
     sessionSuccessRatePct: 100,

@@ -418,7 +418,9 @@ export interface SiteMetrics {
   queueLength: number;
   abandonmentRatePct: number;
   sessionsCompleted: number;
-  sessionsAbandoned: number;
+  // REMOVED: sessionsAbandoned. It was a second copy of funnel.abandonedQueue,
+  // incremented on the adjacent line, and its only reader was a post-run caption
+  // that said nothing. §6.5: no field without a reader.
   kwhDelivered: number;
   throughputVehiclesPerHour: number;
 

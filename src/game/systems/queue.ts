@@ -82,7 +82,6 @@ export function processQueueAbandonment(ctx: TickContext): void {
 
     if (p > 0 && ctx.rng.bool(p)) {
       state.site.metrics.funnel.abandonedQueue += 1;
-      state.site.metrics.sessionsAbandoned += 1;
       ctx.sample.queueAbandons += 1;
       ctx.trustDeltaRaw += TRUST.abandon;
 

@@ -164,7 +164,6 @@ export interface SiteMetrics {
   queueLength: number;
   abandonmentRatePct: number;
   sessionsCompleted: number;
-  sessionsAbandoned: number;
   kwhDelivered: number;
   throughputVehiclesPerHour: number;
 
