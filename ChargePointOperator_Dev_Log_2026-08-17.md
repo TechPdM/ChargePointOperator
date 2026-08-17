@@ -399,3 +399,55 @@ D13 unaffected, as expected: goals key on margin, and D12 keeps capex out of mar
    wants a D-entry, not a dev-log line.
 2. **The browser pane still cannot drive the sim** (dev log §5, unchanged). The clock sat at 00:00
    through a Start-the-day click and a 4× speed click; peak-draw figures above are headless.
+
+---
+
+## 11. The reducer now refuses what it cannot pay for
+
+Closes §10's first carried-forward item. Mark asked for the reducer to refuse rather than leaving
+the greyed button as the only guard.
+
+**The rule has one home.** `canAffordUpgrade` and `upgradePathFor` moved to `selectors.ts`; the
+panel imports them instead of keeping its own copies, and the reducer refuses on the same test. The
+path lookup was already duplicated between the two — the affordability test existed *only* in the
+panel, which is precisely how §10 happened.
+
+**Refused, not clamped and not part-paid.** You cannot half-buy a charger, so there is nothing
+sensible to do with an unaffordable request except decline it. The decline emits
+`charger.upgraded` at `warn` with `applied: false` and `refused: "insufficient_cash"`, following the
+no-upgrade-path case already in the file — a click that silently does nothing is a legibility bug,
+which is the thing this build is gated on.
+
+**The reducer is authoritative, not the panel,** and that is not belt-and-braces. Actions apply the
+tick *after* they are issued (C8), so cash can fall between click and reduce. A button that was
+enabled when pressed is not a promise the money is still there.
+
+Measured at the boundary, which is inclusive (`cash >= capexCost`):
+
+| Cash | Event | applied | capex | bay-1 |
+|---|---|---|---|---|
+| £74,999 | `warn` — "Cannot afford Bay 1 upgrade — £75,000 needed" | false | £0 | 150 kW |
+| £75,000 | `info` — "Bay 1 upgrade to ultrarapid_dc" | true | £75,000 | 350 kW |
+
+**Two tests added** — one either side of the boundary, since §10's lesson was that the affordable
+path was the only one anybody tested. The refusal test also advances 200 ticks to assert a refusal
+is not a deferral: the bay is still 150 kW afterwards, with no `pendingUpgradeType` latched.
+
+One test assertion had to be loosened while writing it, and the reason is worth recording: asserting
+`cash === cashBefore` after a refusal fails, because the tick still trades — revenue lands and
+energy is bought regardless. The assertion that means something is that no £75,000 hole appears.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | **118 passed** (116 + 2 new) |
+| D13 floor, 20 seeds | 80 / 85 / 85% — unchanged |
+| Boundary, headless | table above |
+| Dashboard, fresh tab | no console errors; 4/4 buttons enabled at £100,000 |
+
+A note on that last row: the first console read showed two `upgradeFor is not defined` errors, which
+were **stale HMR artifacts** from the window between removing the local function and adding the
+import — `read_console_messages` retains its buffer across reloads and even across `navigate`. A
+genuinely fresh tab shows nothing. Worth knowing before chasing a phantom.

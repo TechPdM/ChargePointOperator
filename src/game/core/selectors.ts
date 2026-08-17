@@ -10,11 +10,51 @@ import { FALLBACK_SESSION_SECONDS, ROLL_WINDOW_SECONDS, taper } from "./calibrat
 import { bayList } from "./context.ts";
 import type {
   ChargerBay,
+  ChargerType,
   DemandWave,
   DerivedSiteState,
   SimulationState,
+  UpgradeCost,
   VehicleAgent,
 } from "./types.ts";
+
+// --- upgrades ---------------------------------------------------------------
+
+/**
+ * The upgrade path out of a bay's current type, if the scenario sells one.
+ *
+ * Matched on `from` alone: a site can offer more than one path (the destination
+ * site sells slow_ac→rapid_dc and rapid_dc→ultrarapid), and every bay has at
+ * most one step available from where it currently is.
+ */
+export function upgradePathFor(state: SimulationState, bay: ChargerBay): UpgradeCost | undefined {
+  return state.scenario.upgradeCosts.find((c) => c.from === bay.spec.type);
+}
+
+/** The specific path a player asked for, which may not be the one on offer. */
+export function upgradePathBetween(
+  state: SimulationState,
+  from: ChargerType,
+  to: ChargerType,
+): UpgradeCost | undefined {
+  return state.scenario.upgradeCosts.find((c) => c.from === from && c.to === to);
+}
+
+/**
+ * **The affordability rule, and the only copy of it.**
+ *
+ * It used to live solely in `BayAvailabilityPanel`, which meant the reducer
+ * would happily take a site to −£25,000 and the only thing stopping a player
+ * was a greyed-out button. Every capex test in the suite passed on a purchase
+ * the UI would have refused. Both sides now read this.
+ *
+ * Cash, not margin: capex touches cash only (D12), and the question is whether
+ * the money is in the bank on the tick the action reduces — not when it was
+ * queued.
+ */
+export function canAffordUpgrade(state: SimulationState, cost: UpgradeCost): boolean {
+  return state.site.economics.cash >= cost.capexCost;
+}
 
 // --- bay predicates ---------------------------------------------------------
 

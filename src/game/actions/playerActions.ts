@@ -8,6 +8,7 @@
 
 import { CHARGER_SPECS, MAINTENANCE, PRICE_MAX, PRICE_MIN } from "../core/calibration.ts";
 import { dataOf, emit, mustBay, round, type TickContext } from "../core/context.ts";
+import { canAffordUpgrade, upgradePathBetween } from "../core/selectors.ts";
 import type {
   ChargerType,
   Id,
@@ -208,15 +209,44 @@ function applyOne(ctx: TickContext, action: PlayerAction): void {
     case "upgrade_charger": {
       const bay = state.chargers[action.chargerBayId];
       if (!bay) break;
-      const cost = state.scenario.upgradeCosts.find(
-        (c) => c.from === bay.spec.type && c.to === action.newType,
-      );
+      const cost = upgradePathBetween(state, bay.spec.type, action.newType);
       if (!cost) {
         emit(ctx, "warn", "charger.upgraded", `No upgrade path ${bay.spec.type}→${action.newType}`, {
           entity_type: "charger",
           entity_id: bay.id,
-          data: dataOf({ action_id: action.id, applied: false }),
+          data: dataOf({ action_id: action.id, applied: false, refused: "no_path" }),
         });
+        break;
+      }
+      /**
+       * Refused, not clamped and not part-paid. You cannot half-buy a charger,
+       * so there is nothing sensible to do with an unaffordable request except
+       * decline it — and the decline has to be visible, or a player whose
+       * click did nothing has no way to find out why.
+       *
+       * The reducer is authoritative here rather than the panel: actions apply
+       * the tick *after* they are issued (C8), so cash can fall between click
+       * and reduce. A button that was enabled when pressed is not a promise
+       * the money is still there.
+       */
+      if (!canAffordUpgrade(state, cost)) {
+        emit(
+          ctx,
+          "warn",
+          "charger.upgraded",
+          `Cannot afford ${bay.label} upgrade — £${cost.capexCost.toLocaleString()} needed`,
+          {
+            entity_type: "charger",
+            entity_id: bay.id,
+            data: dataOf({
+              action_id: action.id,
+              applied: false,
+              refused: "insufficient_cash",
+              capex_amount: cost.capexCost,
+              cash_amount: round(state.site.economics.cash, 2),
+            }),
+          },
+        );
         break;
       }
       // Capex hits cash on THIS tick; the spec swap lands when the bay idles (D19).

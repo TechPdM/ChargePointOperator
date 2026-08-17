@@ -252,6 +252,61 @@ describe("D19 — interruption and deferred bay transitions", () => {
     // Capex is a one-off, not a recurring charge.
     expect(s.site.economics.capexSpentToday).toBe(UPGRADE_COST);
   });
+
+  /**
+   * The reducer refuses what it cannot pay for.
+   *
+   * This is the gap that let a £75,000 upgrade be unbuyable out of £50,000 with
+   * the whole suite green: affordability lived only in `BayAvailabilityPanel`,
+   * so every capex test here passed on a purchase the UI would have declined.
+   */
+  it("refuses an unaffordable upgrade outright — no debit, no swap, no latch", () => {
+    let s = stateWithBusyBay();
+    const busy = Object.values(s.chargers).find(
+      (b) => b.state === "charging" && b.spec.type === "rapid_dc",
+    );
+    if (!busy) throw new Error("expected a busy rapid bay");
+
+    // One pound short is still short: the boundary is `cash >= capexCost`.
+    s.site.economics.cash = UPGRADE_COST - 1;
+    const cashBefore = s.site.economics.cash;
+
+    s = queueAction(s, {
+      type: "upgrade_charger",
+      chargerBayId: busy.id,
+      newType: "ultrarapid_dc",
+    });
+    s = advance(s, 1);
+
+    expect(s.site.economics.capexSpentToday).toBe(0);
+    // Not exact equality: the tick still trades, so cash drifts by a few pounds
+    // of revenue and energy cost either way. What must not appear is the hole.
+    expect(s.site.economics.cash).toBeGreaterThan(cashBefore - 1_000);
+    expect(s.chargers[busy.id]?.pendingUpgradeType).toBeUndefined();
+
+    // Still a rapid bay 200 ticks later — a refusal is not a deferral.
+    s = advance(s, 200);
+    expect(s.chargers[busy.id]?.spec.type).toBe("rapid_dc");
+  });
+
+  it("buys at exactly the asking price — the boundary is inclusive", () => {
+    let s = stateWithBusyBay();
+    const busy = Object.values(s.chargers).find(
+      (b) => b.state === "charging" && b.spec.type === "rapid_dc",
+    );
+    if (!busy) throw new Error("expected a busy rapid bay");
+
+    s.site.economics.cash = UPGRADE_COST;
+    s = queueAction(s, {
+      type: "upgrade_charger",
+      chargerBayId: busy.id,
+      newType: "ultrarapid_dc",
+    });
+    s = advance(s, 1);
+
+    expect(s.site.economics.capexSpentToday).toBe(UPGRADE_COST);
+    expect(s.chargers[busy.id]?.pendingUpgradeType).toBe("ultrarapid_dc");
+  });
 });
 
 describe("repair rules — Architecture §4.4", () => {
