@@ -118,17 +118,29 @@ body {
   gap: var(--gap);
 }
 
-.board-split {
+.board-split,
+.split-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap);
-  /* Both halves share a height so the board reads as one block rather than two
-     panels of different lengths. The KPI cards take up the slack. */
+}
+
+/* Both halves share a height so the board reads as one block rather than two
+   panels of different lengths. The KPI cards take up the slack. */
+.board-split {
   align-items: stretch;
 }
 
+/* Here the two panels keep their own heights instead. Alerts is usually the
+   single line "All clear", and stretching that to match a diagnosis mid-crisis
+   gives you a very tall green nothing. */
+.split-row {
+  align-items: start;
+}
+
 @media (max-width: 1100px) {
-  .board-split {
+  .board-split,
+  .split-row {
     grid-template-columns: 1fr;
   }
 }

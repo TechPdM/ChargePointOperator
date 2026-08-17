@@ -60,6 +60,14 @@ export function App(): ReactElement {
         <BayAvailabilityPanel sim={sim} />
       </fieldset>
 
+      {/* What is wrong, and what is shouting about it — read together, because
+          the diagnosis explains the alerts. Both are read-only, so they sit
+          outside the fieldset and stay live after the day is scored. */}
+      <div className="split-row">
+        <DiagnosisPanel state={state} snapshots={sim.state.snapshots} />
+        <AlertsFeed state={state} />
+      </div>
+
       <PostRunSummary state={state} comparison={sim.state.comparison} />
 
       <fieldset className="floor" disabled={!state.running}>
@@ -70,7 +78,6 @@ export function App(): ReactElement {
         </div>
 
         <div className="centre">
-          <DiagnosisPanel state={state} snapshots={sim.state.snapshots} />
           <div className="chart-pair">
             <WaitTimeTrendChart state={state} snapshots={sim.state.snapshots} />
             <EconomicsTrendChart state={state} snapshots={sim.state.snapshots} />
@@ -78,7 +85,6 @@ export function App(): ReactElement {
         </div>
 
         <div className="rail rail-right">
-          <AlertsFeed state={state} />
           <FaultsAndRepairsPanel sim={sim} />
           <ActiveQueueTable state={state} />
         </div>
