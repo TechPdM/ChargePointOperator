@@ -1,8 +1,8 @@
+import { memo } from "react";
 import type { ReactElement } from "react";
 import { Panel } from "./Panel.tsx";
 import { Plot, SERIES } from "./chart.tsx";
 import type { Snapshot } from "../hooks/useSimulation.ts";
-import type { SimulationState } from "../../game/core/types.ts";
 
 /**
  * Wait and abandonment, as two plots sharing an x-axis.
@@ -12,15 +12,24 @@ import type { SimulationState } from "../../game/core/types.ts";
  * charting. Stacking them keeps the binding pairing rule (a falling wait must
  * never be readable without the abandonment that may have caused it) while
  * each plot keeps one honest axis.
+ *
+ * Takes the two scenario constants it reads rather than the whole state, so it
+ * can be memoised on them (D41). `snapshots` only gains an entry every fifth
+ * tick, so four in five of this component's renders were redrawing an identical
+ * plot — and it could not be memoised while it took `state`, because `tick`
+ * structuredClones the world and `state.scenario` is therefore a fresh object
+ * every tick even though nothing in it ever changes.
  */
-export function WaitTimeTrendChart({
-  state,
+function WaitTimeTrendChartImpl({
+  durationSeconds,
+  maxAvgWaitSeconds,
   snapshots,
 }: {
-  state: SimulationState;
+  durationSeconds: number;
+  maxAvgWaitSeconds: number;
   snapshots: Snapshot[];
 }): ReactElement {
-  const duration = state.scenario.durationSeconds;
+  const duration = durationSeconds;
 
   // A snapshot whose window held no started session has no measured wait — the
   // stored 0 is a default, not a reading, and plotting it draws a dive to the
@@ -44,7 +53,7 @@ export function WaitTimeTrendChart({
         series={[{ name: "Average wait", colour: SERIES.primary, points: wait }]}
         xMax={duration}
         yMax={waitMax}
-        threshold={{ value: state.scenario.goals.maxAvgWaitSeconds / 60, label: "goal" }}
+        threshold={{ value: maxAvgWaitSeconds / 60, label: "goal" }}
         formatValue={(v) => `${v.toFixed(0)} min`}
       />
       <Plot
@@ -61,3 +70,5 @@ export function WaitTimeTrendChart({
     </Panel>
   );
 }
+
+export const WaitTimeTrendChart = memo(WaitTimeTrendChartImpl);

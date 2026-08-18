@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { ReactElement } from "react";
 import { simClock } from "../format.ts";
 import { Empty } from "./Panel.tsx";
@@ -11,7 +11,14 @@ import type { ActionRecord, LoggedEvent } from "../hooks/useSimulation.ts";
  * place also makes the question the playtest asks — *what did you change, and
  * did it work?* — answerable by looking in a single spot.
  */
-export function EventLogPanel({
+/**
+ * Memoised on its two arrays, which the store already keeps identity-stable
+ * (D41): the reducer returns the previous `events` when a tick emitted nothing
+ * but a snapshot, and `actions` only changes when the player does something.
+ * No prop narrowing needed — this one was re-rendering purely because its
+ * parent did.
+ */
+function EventLogPanelImpl({
   events,
   actions,
 }: {
@@ -79,3 +86,5 @@ export function EventLogPanel({
     </section>
   );
 }
+
+export const EventLogPanel = memo(EventLogPanelImpl);

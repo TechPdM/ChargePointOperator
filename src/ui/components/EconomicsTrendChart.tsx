@@ -1,9 +1,9 @@
+import { memo } from "react";
 import type { ReactElement } from "react";
 import { money } from "../format.ts";
 import { Panel } from "./Panel.tsx";
 import { Plot, SERIES } from "./chart.tsx";
 import type { Snapshot } from "../hooks/useSimulation.ts";
-import type { SimulationState } from "../../game/core/types.ts";
 
 /**
  * Takings and what's left of them.
@@ -16,15 +16,20 @@ import type { SimulationState } from "../../game/core/types.ts";
  * Capital spending is deliberately absent: an upgrade hits cash, not margin
  * (D12), and putting it here would make every upgrade look like a disaster in
  * the window it lands.
+ *
+ * Takes the two constants it reads rather than the whole state, so it can be
+ * memoised — same shape and same reason as the wait chart (D41).
  */
-export function EconomicsTrendChart({
-  state,
+function EconomicsTrendChartImpl({
+  durationSeconds,
+  minOperatingMargin,
   snapshots,
 }: {
-  state: SimulationState;
+  durationSeconds: number;
+  minOperatingMargin: number;
   snapshots: Snapshot[];
 }): ReactElement {
-  const duration = state.scenario.durationSeconds;
+  const duration = durationSeconds;
 
   const revenue: [number, number | null][] = snapshots.map((s) => [
     s.atSecond,
@@ -39,7 +44,7 @@ export function EconomicsTrendChart({
     s["cum_margin_amount"] ?? 0,
   ]);
 
-  const goal = state.scenario.goals.minOperatingMargin;
+  const goal = minOperatingMargin;
   const top = Math.max(goal * 1.4, ...revenue.map(([, v]) => (v ?? 0) * 1.15));
   const bottom = Math.min(0, ...margin.map(([, v]) => (v ?? 0) * 1.15));
 
@@ -66,3 +71,5 @@ export function EconomicsTrendChart({
     </Panel>
   );
 }
+
+export const EconomicsTrendChart = memo(EconomicsTrendChartImpl);

@@ -91,8 +91,18 @@ export function App(): ReactElement {
       />
 
       <div className="chart-pair">
-        <WaitTimeTrendChart state={state} snapshots={sim.state.snapshots} />
-        <EconomicsTrendChart state={state} snapshots={sim.state.snapshots} />
+        {/* Given the two constants they read, not the whole state: `state` is
+            a new object every tick, which would defeat the memo (D41). */}
+        <WaitTimeTrendChart
+          durationSeconds={state.scenario.durationSeconds}
+          maxAvgWaitSeconds={state.scenario.goals.maxAvgWaitSeconds}
+          snapshots={sim.state.snapshots}
+        />
+        <EconomicsTrendChart
+          durationSeconds={state.scenario.durationSeconds}
+          minOperatingMargin={state.scenario.goals.minOperatingMargin}
+          snapshots={sim.state.snapshots}
+        />
       </div>
 
       <EventLogPanel events={sim.state.events} actions={sim.state.actions} />
