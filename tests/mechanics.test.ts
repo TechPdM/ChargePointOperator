@@ -172,17 +172,26 @@ describe("D19 — interruption and deferred bay transitions", () => {
     bay.spec = { ...bay.spec, reliabilityBase: 0 };
     session.expectedSessionTicks = 1;
     session.requestedKwh = 1e6; // don't let it complete before it can fault
-    s = advance(s, 1);
+    // Stepped by hand rather than through `advance`, to keep this tick's
+    // events: a concluded session is dropped from `state.sessions`, so the log
+    // is where its finalized numbers survive.
+    const stepped = tick(s);
+    s = stepped.state;
 
     const after = s.chargers[busy.id];
     expect(after?.state).toBe("faulted");
     expect(after?.activeSessionId).toBeUndefined();
     expect(after?.allocatedPowerKw).toBe(0);
 
-    const finished = s.sessions[session.id];
-    expect(finished?.interruptedByFault).toBe(true);
-    expect(finished?.completed).toBe(false);
-    expect(finished?.deliveredKwh).toBeGreaterThan(0);
+    // Finalized as an interruption rather than a completion, and with its
+    // energy already recorded — all of which happened before the bay faulted,
+    // which is the D19 ordering this test exists for.
+    const forSession = stepped.events.filter((e) => e.entity_id === session.id);
+    const interrupted = forSession.find((e) => e.event_name === "session.interrupted");
+    expect(interrupted).toBeDefined();
+    expect(forSession.some((e) => e.event_name === "session.completed")).toBe(false);
+    expect(Number(interrupted?.data?.["delivered_kwh"])).toBeGreaterThan(0);
+    expect(s.sessions[session.id]).toBeUndefined();
 
     const v = s.vehicles[session.vehicleId];
     expect(v?.leaveReason).toBe("service_interrupted");
