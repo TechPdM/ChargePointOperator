@@ -15,6 +15,11 @@ import { queueAction } from "../src/game/actions/playerActions.ts";
 import { runScenario } from "../src/game/core/run.ts";
 import { baselinePolicy } from "../src/game/experiment/baselinePolicy.ts";
 import { compareRuns, summariseRun } from "../src/game/experiment/compareRuns.ts";
+import {
+  judgeDominance,
+  MIN_SEEDS_FOR_DOMINANCE,
+  type StrategyScore,
+} from "../src/game/experiment/strategies.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
 import { FAILURE_THRESHOLDS } from "../src/game/core/calibration.ts";
 import type { PlayerActionDraft, ScenarioConfig, SimulationState } from "../src/game/core/types.ts";
@@ -226,5 +231,95 @@ describe("all five failure states are reachable (gate criterion 3)", () => {
     // margin_trap is asserted in its own block above — it cannot be detected
     // inside a single run by definition.
     expect(observed.size).toBeGreaterThanOrEqual(4);
+  });
+});
+
+/**
+ * Gate criterion 2 — judged on separation, not on who came first (D38).
+ *
+ * Unit-level on purpose. The real sweep is 840 runs and belongs in `strategies`;
+ * what needs pinning here is the judging, because the old argmax version gave
+ * three different answers off the same code at 8, 10 and 40 seeds and nothing in
+ * the suite noticed.
+ */
+describe("criterion 2 is judged on separation, not ranking (D38)", () => {
+  const score = (strategy: string, scenarioId: string, goalsMetPerSeed: number[]): StrategyScore => ({
+    strategy,
+    scenarioId,
+    goalsMetPerSeed,
+    meanGoalsMet: goalsMetPerSeed.reduce((a, b) => a + b, 0) / goalsMetPerSeed.length,
+    winRate: 0,
+    meanMargin: 0,
+    meanSessions: 0,
+    meanTrust: 0,
+    meanWaitSeconds: 0,
+  });
+  const alternating = (a: number, b: number): number[] =>
+    Array.from({ length: 20 }, (_, i) => (i % 2 === 0 ? a : b));
+
+  it("fails when one strategy is credible on every archetype", () => {
+    // `always` tops one site and is statistically level on the other two.
+    const scores = [
+      score("always", "a", alternating(4, 3)),
+      score("other", "a", alternating(1, 0)),
+      score("always", "b", alternating(3, 2)),
+      score("rival", "b", alternating(3, 2)),
+      score("always", "c", alternating(2, 3)),
+      score("third", "c", alternating(2, 3)),
+    ];
+    const v = judgeDominance(scores);
+    expect(v.pass).toBe(false);
+    expect(v.dominantStrategy).toBe("always");
+  });
+
+  it("passes when each site rules the other sites' answers out", () => {
+    const scores = [
+      score("reliability", "a", alternating(4, 3)),
+      score("pricing", "a", alternating(1, 0)),
+      score("pricing", "b", alternating(4, 3)),
+      score("reliability", "b", alternating(1, 0)),
+      score("reliability", "c", alternating(4, 3)),
+      score("pricing", "c", alternating(1, 0)),
+    ];
+    const v = judgeDominance(scores);
+    expect(v.pass).toBe(true);
+    expect(v.dominantStrategy).toBeNull();
+  });
+
+  it("reports an exact tie rather than resolving it by declaration order", () => {
+    const tied = alternating(3, 2);
+    const v = judgeDominance([
+      score("first", "a", [...tied]),
+      score("second", "a", [...tied]),
+      score("far-behind", "a", alternating(0, 0)),
+    ]);
+    const winner = v.winners.find((w) => w.scenarioId === "a");
+    expect(winner?.tiedWith).toEqual(["first", "second"]);
+  });
+
+  it("flags a thin sample as underpowered rather than letting it read as a verdict", () => {
+    const thin = judgeDominance([
+      score("a", "x", [3, 2]),
+      score("b", "x", [3, 2]),
+    ]);
+    expect(thin.seeds).toBe(2);
+    expect(thin.underpowered).toBe(true);
+
+    const ample = judgeDominance([
+      score("a", "x", Array.from({ length: MIN_SEEDS_FOR_DOMINANCE }, (_, i) => i % 2)),
+      score("b", "x", Array.from({ length: MIN_SEEDS_FOR_DOMINANCE }, (_, i) => i % 2)),
+    ]);
+    expect(ample.underpowered).toBe(false);
+  });
+
+  it("rules out a small but perfectly consistent loss", () => {
+    // Loses by exactly one goal on every seed: tiny gap, zero variance, and the
+    // strongest evidence available that it is genuinely worse.
+    const v = judgeDominance([
+      score("best", "a", Array.from({ length: 20 }, () => 3)),
+      score("always-one-behind", "a", Array.from({ length: 20 }, () => 2)),
+    ]);
+    const field = v.contenders.find((c) => c.scenarioId === "a");
+    expect(field?.strategies.map((s) => s.strategy)).toEqual(["best"]);
   });
 });

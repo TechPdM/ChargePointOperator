@@ -28,8 +28,10 @@ import { formatTraceLine, traceTick } from "./validation/trace.ts";
 import { runSweep, sanityAxes, type SweepResult } from "./experiment/sweep.ts";
 import {
   judgeDominance,
+  MIN_SEEDS_FOR_DOMINANCE,
   scoreStrategy,
   STRATEGIES,
+  type DominanceVerdict,
   type StrategyScore,
 } from "./experiment/strategies.ts";
 import {
@@ -419,13 +421,20 @@ function commandStrategies(args: Args): void {
   }
 
   const verdict = judgeDominance(scores);
-  console.log("  WINNER BY SITE");
+  console.log("  WINNER BY SITE — and who is not measurably behind it (D38)");
   for (const w of verdict.winners) {
-    console.log(`    ${w.scenarioId.padEnd(22)} ${w.strategy} (${w.meanGoalsMet.toFixed(2)} goals)`);
+    const tie = w.tiedWith.length > 1 ? `  [TIED with ${w.tiedWith.slice(1).join(", ")}]` : "";
+    console.log(`    ${w.scenarioId.padEnd(22)} ${w.strategy} (${w.meanGoalsMet.toFixed(2)} goals)${tie}`);
+    const field = verdict.contenders.find((c) => c.scenarioId === w.scenarioId);
+    for (const c of field?.strategies ?? []) {
+      const gap = c.behindBy === 0 ? "best" : `-${c.behindBy.toFixed(2)} goals, t=${c.t.toFixed(2)}`;
+      console.log(`      contender: ${c.strategy.padEnd(22)} ${gap}`);
+    }
   }
   console.log(
-    `\n  Distinct winning strategies: ${verdict.distinctWinners.join(", ")}` +
-      `\n  Gate criterion 2: ${verdict.pass ? "PASS — no single strategy wins everywhere" : `FAIL — "${verdict.dominantStrategy}" wins every archetype`}`,
+    `\n  Distinct argmax winners: ${verdict.distinctWinners.join(", ")}` +
+      ` (reporting only — the verdict is separation, not ranking)` +
+      `\n  Gate criterion 2: ${verdictLine(verdict)}`,
   );
 
   if (args.json) {
@@ -446,10 +455,15 @@ function commandGate(args: Args): void {
   console.log("  ── Criterion 2: no dominant strategy ".padEnd(70, "─"));
   const dominance = gatherDominance(args.seeds);
   for (const w of dominance.verdict.winners) {
-    console.log(`     ${w.scenarioId.padEnd(22)} won by ${w.strategy} (${w.meanGoalsMet.toFixed(2)} goals)`);
+    const field = dominance.verdict.contenders.find((c) => c.scenarioId === w.scenarioId);
+    const others = (field?.strategies ?? []).filter((c) => c.strategy !== w.strategy);
+    const tie = w.tiedWith.length > 1 ? ` [TIED]` : "";
+    console.log(
+      `     ${w.scenarioId.padEnd(22)} won by ${w.strategy} (${w.meanGoalsMet.toFixed(2)} goals)${tie}` +
+        (others.length ? `, within noise of ${others.map((c) => c.strategy).join(", ")}` : ", clear of the field"),
+    );
   }
-  console.log(`     distinct winners: ${dominance.verdict.distinctWinners.join(", ")}`);
-  console.log(`     ${dominance.verdict.pass ? "PASS" : "FAIL"} — needs ≥2 distinct, none winning everywhere\n`);
+  console.log(`     ${verdictLine(dominance.verdict)}\n`);
 
   console.log("  ── Criterion 3: failure modes reachable ".padEnd(70, "─"));
   const probes = playtestProbes();
@@ -484,6 +498,29 @@ function commandGate(args: Args): void {
 }
 
 const PLAYTEST_TESTERS = 3;
+
+/**
+ * The one place criterion 2's verdict is put into words (D38).
+ *
+ * An underpowered run must not print FAIL. Wide error bars make every strategy
+ * a contender, so too few seeds drifts toward failure on absence of evidence —
+ * which is the safe direction for a gate, but it is a different statement from
+ * "this strategy wins everywhere" and gets different words.
+ */
+function verdictLine(v: DominanceVerdict): string {
+  const short = `${v.seeds} seeds is under the ${MIN_SEEDS_FOR_DOMINANCE} this test needs`;
+  if (v.pass && !v.underpowered) {
+    return `PASS — no strategy is a contender on every archetype (${v.seeds} seeds)`;
+  }
+  if (v.pass) return `PASS (provisional) — nothing is credible everywhere, but ${short}`;
+  if (v.underpowered) {
+    return (
+      `INCONCLUSIVE — "${v.dominantStrategy}" could not be ruled out anywhere, and ${short}. ` +
+      `Absence of evidence, not evidence of dominance — re-run before reading anything into it.`
+    );
+  }
+  return `FAIL — "${v.dominantStrategy}" is credible on every archetype (${v.seeds} seeds)`;
+}
 
 function fmtDelta(v: number, unit = ""): string {
   const sign = v > 0 ? "+" : "";
