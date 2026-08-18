@@ -120,7 +120,7 @@ export function createInitialState(scenario: ScenarioConfig, seed: string): Simu
     sessions: {},
     activeSessionIds: [],
     completedSessionIds: [],
-    departedVehicleIds: [],
+    departedVehicles: [],
     pendingActions: [],
     eventLog: [],
     tickSamples: [],

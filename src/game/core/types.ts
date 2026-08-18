@@ -23,6 +23,31 @@ export type VehicleState =
   | "left";
 
 /** One vocabulary for departures, shared by sim and logs (C6, D18, D19). */
+/**
+ * What is kept of a vehicle once it has gone (D39).
+ *
+ * A departed `VehicleAgent` was read by nothing but the invariants, and `tick`
+ * deep-clones the whole state every tick, so 420 of them by midnight were being
+ * copied 1,440 times to be looked at twice. This is the flat subset anything
+ * actually reads, plus the fields a later analysis would miss most: the wait the
+ * driver *acted on*, and what they asked for versus what they left with.
+ */
+export interface DepartedVehicle {
+  id: Id;
+  archetype: VehicleArchetype;
+  /** The terminal state the agent held, so the funnel split stays reconstructible. */
+  outcome: "complete" | "left";
+  leaveReason: QueueLeaveReason;
+  arrivalSecond: SimSeconds;
+  queuedAtSecond?: SimSeconds;
+  chargingStartedAtSecond?: SimSeconds;
+  leftAtSecond: SimSeconds;
+  /** Perceived, not true — the figure admission actually judged on (D31). */
+  expectedWaitSeconds?: number;
+  requestedKwh: number;
+  finalSoc: number;
+}
+
 export type QueueLeaveReason =
   | "completed"
   | "reject_site"
@@ -476,7 +501,11 @@ export interface SimulationState {
   sessions: Record<Id, ChargingSession>;
   activeSessionIds: Id[];
   completedSessionIds: Id[];
-  departedVehicleIds: Id[];
+  /**
+   * Vehicles that have left, as flat records rather than live agents (D39).
+   * `vehicles` holds only who is still on site.
+   */
+  departedVehicles: DepartedVehicle[];
   pendingActions: PlayerAction[];
   /** In-memory ring for the UI panel; excluded from the state hash (D26). */
   eventLog: SimEventRingEntry[];

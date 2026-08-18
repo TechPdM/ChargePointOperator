@@ -78,10 +78,18 @@ export function checkInvariants(ctx: TickContext, mode: InvariantMode = "throw")
     }
   }
 
-  // 5. SOC stays in range.
+  // 5. SOC stays in range — on site, and at the moment of leaving.
+  //    The departed half is not ceremony: SOC is written by the charging model
+  //    right up to the tick a session ends, so the last value a vehicle ever
+  //    held is exactly the one this check used to catch and would now miss (D39).
   for (const vehicle of Object.values(state.vehicles)) {
     if (vehicle.currentSoc < -1e-9 || vehicle.currentSoc > 1 + 1e-9) {
       fail(5, `vehicle ${vehicle.id} SOC ${vehicle.currentSoc} outside 0–1`);
+    }
+  }
+  for (const departed of state.departedVehicles) {
+    if (departed.finalSoc < -1e-9 || departed.finalSoc > 1 + 1e-9) {
+      fail(5, `departed ${departed.id} left with SOC ${departed.finalSoc} outside 0–1`);
     }
   }
 
@@ -114,13 +122,32 @@ export function checkInvariants(ctx: TickContext, mode: InvariantMode = "throw")
   if (bucketed > f.arrived) {
     fail(7, `funnel buckets (${bucketed}) exceed arrivals (${f.arrived})`);
   }
+  // Since D39 a terminal vehicle is moved out of `vehicles` into
+  // `departedVehicles`, so the old form of this check — "a terminal vehicle has
+  // a leave reason" — would pass by finding nothing to look at. Stated as the
+  // two halves of that move instead, both of which can actually fail: nobody
+  // terminal is left behind in `vehicles`, and nobody in `departedVehicles`
+  // arrived there without a reason and a terminal outcome.
   for (const vehicle of Object.values(state.vehicles)) {
-    const terminal = vehicle.state === "left" || vehicle.state === "complete";
-    if (terminal && vehicle.leaveReason === undefined) {
-      fail(7, `vehicle ${vehicle.id} is terminal with no leave reason`);
+    if (vehicle.state === "left" || vehicle.state === "complete") {
+      fail(7, `vehicle ${vehicle.id} is ${vehicle.state} but still in \`vehicles\``);
     }
-    if (!terminal && vehicle.leaveReason !== undefined) {
+    if (vehicle.leaveReason !== undefined) {
       fail(7, `vehicle ${vehicle.id} has a leave reason but is ${vehicle.state}`);
+    }
+  }
+  for (const departed of state.departedVehicles) {
+    if (departed.outcome !== "left" && departed.outcome !== "complete") {
+      fail(7, `departed ${departed.id} has non-terminal outcome ${departed.outcome}`);
+    }
+  }
+  // One record per departure, and no vehicle both on site and departed.
+  if (new Set(state.departedVehicles.map((d) => d.id)).size !== state.departedVehicles.length) {
+    fail(7, `departedVehicles holds duplicate ids`);
+  }
+  for (const departed of state.departedVehicles) {
+    if (state.vehicles[departed.id]) {
+      fail(7, `vehicle ${departed.id} is both on site and departed`);
     }
   }
 
@@ -141,12 +168,27 @@ export function checkFinalInvariants(state: SimulationState): InvariantViolation
     violations.push({ invariant, message, tick: state.clock.tick, atSecond: state.clock.secondsElapsed });
   };
 
+  // After close-out every arrival has departed, so `vehicles` must be empty and
+  // `departedVehicles` must hold exactly one record per arrival. Stated as a
+  // count rather than as "every vehicle is terminal" (D39): the latter is now
+  // trivially true of an empty collection, and an empty collection is precisely
+  // what a bug in the sweep would also produce.
   for (const vehicle of Object.values(state.vehicles)) {
-    if (vehicle.state !== "left" && vehicle.state !== "complete") {
-      push(7, `vehicle ${vehicle.id} ended in non-terminal state ${vehicle.state}`);
-    }
+    push(7, `vehicle ${vehicle.id} is still on site after close-out, as ${vehicle.state}`);
   }
   const f = state.site.metrics.funnel;
+  if (state.departedVehicles.length !== f.arrived) {
+    push(
+      7,
+      `departedVehicles (${state.departedVehicles.length}) does not match arrivals (${f.arrived})`,
+    );
+  }
+  // The count alone cannot see a double-recorded departure masking a missing
+  // one, which is the shape a sweep that visits someone twice would leave.
+  const ids = new Set(state.departedVehicles.map((d) => d.id));
+  if (ids.size !== state.departedVehicles.length) {
+    push(7, `departedVehicles holds ${state.departedVehicles.length - ids.size} duplicate id(s)`);
+  }
   const bucketed =
     f.rejectedSite +
     f.siteFull +

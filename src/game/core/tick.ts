@@ -163,8 +163,10 @@ export function sweepUpOpenVehicles(ctx: TickContext): void {
   }
   state.queue = [];
 
-  // Anything still mid-decision at 24:00 (arrived this very tick) also closes out.
-  for (const vehicle of Object.values(state.vehicles)) {
+  // Anything still mid-decision at 24:00 (arrived this very tick) also closes
+  // out. Copied first: `departVehicle` deletes from `vehicles` as of D39, and
+  // this loop is iterating it.
+  for (const vehicle of [...Object.values(state.vehicles)]) {
     if (vehicle.state === "arriving" || vehicle.state === "evaluating_site") {
       state.site.metrics.funnel.closedAtRunEnd += 1;
       departVehicle(ctx, vehicle, "scenario_end");

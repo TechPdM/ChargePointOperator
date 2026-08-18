@@ -193,9 +193,13 @@ describe("D19 — interruption and deferred bay transitions", () => {
     expect(Number(interrupted?.data?.["delivered_kwh"])).toBeGreaterThan(0);
     expect(s.sessions[session.id]).toBeUndefined();
 
-    const v = s.vehicles[session.vehicleId];
+    // The driver left, and left for this reason. Read from `departedVehicles`
+    // since D39 moves them off `vehicles` on departure — and assert they are no
+    // longer on site, which is the half a lookup alone would not have caught.
+    const v = s.departedVehicles.find((d) => d.id === session.vehicleId);
     expect(v?.leaveReason).toBe("service_interrupted");
-    expect(v?.state).toBe("left");
+    expect(v?.outcome).toBe("left");
+    expect(s.vehicles[session.vehicleId]).toBeUndefined();
     expect(s.site.metrics.funnel.interruptedByFault).toBeGreaterThan(0);
   });
 
@@ -479,9 +483,14 @@ describe("perceived wait (OPEN-5 / A4, D31)", () => {
     // drove on, so the queue capped itself and abandonment did no work at all.
     let s = createInitialState(roadsideHub, "s2");
     s = advance(s, 900);
-    const judged = Object.values(s.vehicles)
-      .map((v) => v.expectedWaitSeconds)
-      .filter((w): w is number => w !== undefined && w > 0);
+    // Everyone who has judged a wait today, on site or gone. Most of a day's
+    // arrivals have left by tick 900, and since D39 they live in
+    // `departedVehicles` — which carries `expectedWaitSeconds` for exactly this
+    // reason: the wait a driver acted on is the record, not the agent.
+    const judged = [
+      ...Object.values(s.vehicles).map((v) => v.expectedWaitSeconds),
+      ...s.departedVehicles.map((d) => d.expectedWaitSeconds),
+    ].filter((w): w is number => w !== undefined && w > 0);
     expect(judged.length).toBeGreaterThan(5);
     // Perceived waits spread around the truth rather than all matching it.
     expect(new Set(judged.map((w) => Math.round(w))).size).toBeGreaterThan(3);

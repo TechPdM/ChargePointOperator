@@ -13,8 +13,10 @@ import { tick } from "../src/game/core/tick.ts";
 import { queueAction } from "../src/game/actions/playerActions.ts";
 import { baselinePolicy } from "../src/game/experiment/baselinePolicy.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
+import { checkFinalInvariants } from "../src/game/validation/invariants.ts";
 import { ACTION_EVENT_MAP, MVP_EVENT_CUT, type LogEventName } from "../src/game/logging/schema.ts";
 import type {
+  DepartedVehicle,
   PlayerActionDraft,
   PlayerActionType,
   ScenarioConfig,
@@ -53,12 +55,18 @@ describe("invariant 7 — the funnel is an accounting identity", () => {
     expect(bucketed).toBe(f.arrived);
     expect(f.arrived).toBeGreaterThan(50);
 
-    const vehicles = Object.values(finalState.vehicles);
-    expect(vehicles.length).toBe(f.arrived);
-    for (const v of vehicles) {
-      expect(["left", "complete"]).toContain(v.state);
-      expect(v.leaveReason).toBeDefined();
+    // Since D39 the departed are flat records and `vehicles` holds only who is
+    // still on site, so the identity is now between arrivals and records. Both
+    // halves are asserted: nobody stranded on site, and one record per arrival
+    // with a terminal outcome and a reason.
+    expect(Object.keys(finalState.vehicles)).toEqual([]);
+    expect(finalState.departedVehicles.length).toBe(f.arrived);
+    for (const d of finalState.departedVehicles) {
+      expect(["left", "complete"]).toContain(d.outcome);
+      expect(d.leaveReason).toBeDefined();
     }
+    // Ids are unique, so the count above cannot be reached by double-recording.
+    expect(new Set(finalState.departedVehicles.map((d) => d.id)).size).toBe(f.arrived);
   });
 });
 
@@ -157,5 +165,81 @@ describe("invariant 2 — the grid cap is never exceeded, even under a hostile p
     });
     expect(result.finalViolations).toEqual([]);
     expect(result.finalState.site.metrics.sessionsCompleted).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * D39 moved departed vehicles out of `vehicles`, which is exactly the kind of
+ * change that turns an invariant vacuous: "every vehicle is terminal" is
+ * trivially true of an empty collection, and an empty collection is also what a
+ * broken sweep produces. These tests prove the rewritten checks still fail on
+ * the things they exist to catch, rather than passing by finding nothing.
+ */
+describe("invariant 7 still bites after the D39 prune", () => {
+  const departed = (id: string): DepartedVehicle => ({
+    id,
+    archetype: "commuter",
+    outcome: "complete",
+    leaveReason: "completed",
+    arrivalSecond: 0,
+    leftAtSecond: 60,
+    requestedKwh: 10,
+    finalSoc: 0.8,
+  });
+
+  /** A closed-out run reduced to the fields invariant 7 reads. */
+  const closedOut = (arrived: number, records: DepartedVehicle[]) => {
+    const s = createInitialState(roadsideHub, "s1");
+    s.vehicles = {};
+    s.departedVehicles = records;
+    s.site.metrics.funnel = {
+      ...s.site.metrics.funnel,
+      arrived,
+      completed: arrived,
+      rejectedSite: 0,
+      siteFull: 0,
+      abandonedQueue: 0,
+      interruptedByFault: 0,
+      closedAtRunEnd: 0,
+    };
+    return s;
+  };
+
+  it("passes on a consistent close-out", () => {
+    expect(checkFinalInvariants(closedOut(2, [departed("v-1"), departed("v-2")]))).toEqual([]);
+  });
+
+  it("catches a vehicle stranded on site", () => {
+    const s = closedOut(1, [departed("v-1")]);
+    s.vehicles["v-2"] = {
+      id: "v-2",
+      archetype: "commuter",
+      state: "queueing",
+      batteryCapacityKwh: 60,
+      maxChargeRateKw: 100,
+      currentSoc: 0.4,
+      arrivalSecond: 0,
+      urgencyScore: 0.5,
+      priceSensitivity: 0.5,
+      waitSensitivity: 0.5,
+      demand: { targetSoc: 0.8, requestedKwh: 24, maxAcceptablePricePerKwh: 1, patienceSeconds: 600 },
+    };
+    const v = checkFinalInvariants(s);
+    expect(v.map((x) => x.invariant)).toContain(7);
+    expect(v.some((x) => /still on site/.test(x.message))).toBe(true);
+  });
+
+  it("catches a departure that was never recorded", () => {
+    // Two arrived, one record — the shape a sweep that skipped someone leaves.
+    const v = checkFinalInvariants(closedOut(2, [departed("v-1")]));
+    expect(v.some((x) => x.invariant === 7 && /does not match arrivals/.test(x.message))).toBe(true);
+  });
+
+  it("catches the same departure recorded twice", () => {
+    // Two records, two arrivals — the count reconciles, so this is only findable
+    // by the ids. It is the shape a sweep that visits someone twice leaves, with
+    // a real departure going missing underneath it.
+    const v = checkFinalInvariants(closedOut(2, [departed("v-1"), departed("v-1")]));
+    expect(v.some((x) => x.invariant === 7 && /duplicate id/.test(x.message))).toBe(true);
   });
 });
