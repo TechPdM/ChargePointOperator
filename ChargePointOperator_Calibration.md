@@ -1,6 +1,6 @@
 # ChargePointOperator — Calibration Sheet & Assumptions Register
 
-**Version:** 3.2 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped**)*
+**Version:** 3.3 · **Date:** 2026-08-18 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites**)*
 **Companions:** `ChargePointOperator_Plan.md` (C9, O7), `ChargePointOperator_Architecture.md` (§6, §9.3), `ChargePointOperator_Decision_Log.md` (D8–D26)
 **Status of every number: FIRST GUESS** — chosen for plausible ratios and gradients so Phase 1 has something to assert against and Phase 3 something to tune. When a value proves wrong, change it here first, then in code. Currency £ (realistic magnitudes — D10).
 
@@ -140,31 +140,39 @@ That ordering is the design intent made checkable: commuters shed first — righ
 
 Wave table lives in `ChargePointOperator_Scenario_RoadsideHub.md` §3 (single source — includes the D8 overnight hours).
 
-## 7. Output ranges — baseline policy · **MEASURED, Phase 1** (closes OPEN-3)
+## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3)
 
 Baseline (D22) = £0.79 flat, **`standard`** maintenance, `equal_share` power, all bays open, partial-charge **off**, no upgrades, and **`schedule_repair` issued on the tick a fault is detected**.
 
-**These are no longer guesses.** Measured over 20 seeds (`s1`–`s20`) with the Phase 1 headless core on 2026-08-16 — `npm run baseline`. Full write-up: `ChargePointOperator_Phase1_Findings.md` §2. Re-measure whenever anything in §1–§5 changes; it takes 23 seconds, so there is no excuse for stale numbers here.
+**These are no longer guesses.** Measured over 20 seeds (`s1`–`s20`) on **2026-08-18**, after the D35–D37 re-rating — `npm run baseline`. `ChargePointOperator_Phase1_Findings.md` §2 is the write-up of the *original* Phase 1 measurement and describes the pre-re-rating sim; what the re-rating moved and why is D35–D37 in the decision log. Re-measure whenever anything in §1–§5 changes; it takes **about 110 seconds** for the 20 seeds, so there is still no excuse for stale numbers here — though the loop is no longer the 23 seconds this line used to claim. D36's demand is nearly all of the difference; `batch`'s full `info` log collection accounts for only about 20 s of it (the same 20 runs with `collectLog: false` take ~89 s). **This table was stale for a day after the re-rating** — the archived batch in `runs/` still held the pre-re-rating figures, which is how a doc and its own evidence drift apart.
 
-| KPI | **Measured** mean [p10 · p90] | v2.2 guess | If a change moves it, suspect (in order) |
+The middle column is the **previous measurement** (v3.2, pre-re-rating), not the v2.2 paper guess it used to hold. That guess was answered once, in v3.0, and §7a keeps the verdict; what matters now is what D35–D37 moved, and by how much.
+
+| KPI | **Measured** mean [p10 · p90] | v3.2 (pre-re-rating) | If a change moves it, suspect (in order) |
 | :-- | :-- | :-- | :-- |
-| Arrivals/day | **235** [215 · 256] | 239 (derived) | wave rates, elasticity |
-| Utilization | **64.5%** [60.1 · 69.2] | 40–60% ⚠ | siteScore; the band was written before D21 gave archetypes real admission behaviour |
-| Avg wait | **5.5 sim-min** [4.5 · 6.5] | 3–10 ✅ | peaks vs cap-bound capacity |
-| Abandonment rate | **1.8%** [0.6 · 3.3] | 8–25% ❌ | **the expectation is wrong, not the sim — see below** |
-| Uptime | **97.15%** [96.09 · 98.76] | 94–98 ✅ | fault model, repair means, baseline repair latency |
-| Sessions completed | **178** [165 · 192] | 150–190 ✅ | downstream of everything above |
-| Session success rate | **97.6%** | ≥ 90 ✅ | fault model |
-| Cumulative operating margin | **£1,815** [£1,399 · £2,331] | £1,300–£1,800 ⚠ | price/energy gap, maintenance, opex |
-| End cash (no upgrade) | **£51,815** — reconciles exactly | reconciliation check | invariant 6 if this doesn't reconcile |
-| End trust | **56.4** [49.6 · 62.2] | 45–70 ✅ | **fixed by D30** — was 96.3 and pinned at the ceiling |
-| Faults/day | **4.35** [2.0 · 6.0] | 4.4 assumed ✅ | fault model is well-formed |
+| Arrivals/day | **428** [407 · 454] | 235 | `DEMAND_SCALE` (D36) first, then wave rates and elasticity |
+| Utilization | **62.9%** [61.4 · 64.5] | 64.5% | siteScore; bays that are faster per car offset more cars |
+| Avg wait | **6.2 sim-min** [5.4 · 7.3] | 5.5 sim-min | peaks vs cap-bound capacity |
+| Abandonment rate | **1.4%** [0.6 · 2.6] | 1.8% | **the gate sheds it, not the queue — see below** |
+| Uptime | **95.70%** [93.56 · 97.40] | 97.15% | fault model; falls because more sessions mean more fault exposure |
+| Sessions completed | **316** [304 · 328] | 178 | downstream of everything above |
+| Session success rate | **97.8%** | 97.6% | fault model |
+| Cumulative operating margin | **£3,535** [£2,690 · £4,355] | £1,815 | price/energy gap, maintenance, opex |
+| End cash (no upgrade) | **£103,535** — reconciles exactly | £51,815 | invariant 6 if this doesn't reconcile; `initialCash` is £100,000 since D37 |
+| End trust | **48.9** [42.2 · 56.8] | 56.4 | D30's deltas under D36's demand — the busier site spends more goodwill than it earns |
+| Faults/day | **7.0** [3.9 · 10.1] | 4.35 | fault model is well-formed; scales with sessions, not with wall-clock |
 
-**On abandonment (D31).** The 8–25% expectation predates D21, which gave each archetype its own wait sensitivity. With drivers who can see a queue and leave, a competently-run six-bay site does not generate mass abandonment — the demand goes **at the gate** instead (55 rejections/day, 23% of arrivals), and the funnel accounts for it there. Adding perceived-wait noise (D31) was the right fix for *reachability* and it did not move this number much, because the admission gate is doing the shedding by design. **Treat 8–25% as a superseded guess.** The figure to watch is the funnel split, not this rate on its own.
+**On abandonment (D31).** The 8–25% expectation predates D21, which gave each archetype its own wait sensitivity. With drivers who can see a queue and leave, a competently-run six-bay site does not generate mass abandonment — the demand goes **at the gate** instead (101 rejections/day, 24% of arrivals), and the funnel accounts for it there. **The re-rating is the evidence for this, not a complication of it:** D36 nearly doubled arrivals, and the drive-past *share* moved 23% → 24% while the abandonment rate went 1.8% → 1.4%. The gate scales with demand; the queue does not have to. Adding perceived-wait noise (D31) was the right fix for *reachability* and it did not move this number much, because the admission gate is doing the shedding by design. **Treat 8–25% as a superseded guess.** The figure to watch is the funnel split, not this rate on its own.
 
-The p10–p90 spread on margin is £1,200 wide. **Any goal set inside that band is a coin flip** — which is what the difficulty-floor result below reflects.
+The p10–p90 spread on margin is £1,665 wide. **Any goal set inside that band is a coin flip** — which is what the difficulty-floor result below reflects.
 
-**Difficulty floor check (D13): measured 80% with `minOperatingMargin` at £2,200 — PASSES.** *(70% at £2,000; 60% at £1,750; 30% before D30/D31.)* The margin goal is the one biting (met on 4/20) and `minTrust` supports it (12/20), though the two are correlated. `maxAvgWaitSeconds` and `minSessionsCompleted` remain decorative at 20/20 — see the scenario spec §5 for what that costs and the alternative that was measured. Recommended re-set from the measured distribution, per the scenario spec's own instruction to raise the margin goal first rather than touch the economy constants: `minOperatingMargin` is **£2,200** (Mark's call, OPEN-7 — closed). Set from this table's own p80 rather than from paper, which is the habit OPEN-3 established and the third time it has paid.
+**Difficulty floor check (D13): measured 80% — PASSES, with no headroom.** The baseline fails ≥1 goal on **16 of 20 seeds** against D13's ≥80%. Goals are D36's: `minOperatingMargin` £2,800, `maxAvgWaitSeconds` 420 s, `minTrust` 55, `minSessionsCompleted` 300.
+
+**`minTrust` is now the goal that bites, and the margin goal is not.** Met across the batch: trust **4/20**, margin **16/20**, wait **15/20**, sessions **19/20**. That is the reverse of the pre-re-rating position, where margin bit at 4/20 and trust supported at 12/20 — and it is the outcome D36 reasoned its way to when it re-fitted every goal from the measured spread *except* `minTrust`, on the grounds that the re-rating changed the hardware but not what a good reputation is worth. The floor now rests on that single unchanged number.
+
+Two consequences worth stating plainly. **Roadside sits exactly on the bar** where commuter and destination are at 85%, so one seed flipping puts it under — re-measure before trusting it after any change, which is D36's own warning and not a new one. And **the correlation the old text relied on has inverted**: trust and margin no longer fail together, because the busier site earns money while spending goodwill. A goal set from this table's p80 for margin (£4,087) would bite; £2,800 does not, and is carried by trust instead.
+
+The habit still holds — set goals from this table's own distribution rather than from paper, which is what OPEN-3 established and D36 re-applied.
 
 ### 7a. Where the pre-measurement estimates came from — **read before tuning anything**
 
