@@ -7,6 +7,16 @@
  *
  * At 288× compression a 24-hour day is 300 real seconds: 1,440 ticks of 60
  * sim-seconds each, i.e. 4.8 ticks per real second at 1× speed.
+ *
+ * **No `visibilitychange` or blur handler, deliberately (D40).** Losing focus
+ * leaves the tab visible, so rAF keeps firing and the day carries on — that is
+ * the intended behaviour and nothing here should interfere with it. Hiding the
+ * tab stops rAF at the browser's discretion, which already pauses the day
+ * without being asked to; the debt clamp below is what stops it replaying the
+ * missed time on return. Making that implicit pause visible was considered and
+ * declined. Whether a hidden tab should keep *trading* is a separate question
+ * D40 leaves open, and answering it means moving off rAF rather than adding a
+ * handler here.
  */
 
 import { useEffect, useRef } from "react";
