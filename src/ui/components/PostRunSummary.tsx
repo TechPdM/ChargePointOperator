@@ -25,9 +25,12 @@ const GOAL_COPY: Record<keyof ScenarioGoals, { label: string; format: (v: number
 export function PostRunSummary({
   state,
   comparison,
+  scoring,
 }: {
   state: SimulationState;
   comparison?: Comparison;
+  /** The baseline is still running. The column is coming, not missing. */
+  scoring?: boolean;
 }): ReactElement | null {
   if (state.running) return null;
 
@@ -110,6 +113,8 @@ export function PostRunSummary({
                 </div>
               ) : null}
             </>
+          ) : scoring ? (
+            <p className="empty">Playing the same day passively to compare…</p>
           ) : (
             <p className="empty">Comparison unavailable — the run was reset before it finished.</p>
           )}

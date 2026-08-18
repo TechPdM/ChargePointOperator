@@ -84,7 +84,11 @@ export function App(): ReactElement {
         <MaintenancePanel sim={sim} />
       </fieldset>
 
-      <PostRunSummary state={state} comparison={sim.state.comparison} />
+      <PostRunSummary
+        state={state}
+        comparison={sim.state.comparison}
+        scoring={sim.state.scoring}
+      />
 
       <div className="chart-pair">
         <WaitTimeTrendChart state={state} snapshots={sim.state.snapshots} />
