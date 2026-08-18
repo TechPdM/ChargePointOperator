@@ -1,6 +1,6 @@
 # ChargePointOperator — Gate Scorecard
 
-**Version:** 1.0 (partial) · **Date:** 2026-08-16
+**Version:** 1.1 (partial) · **Date:** 2026-08-18 *(v1.1: criterion 2's prose corrected for D38 — its 8-seed table is below the evidence floor D38 established, and its "three distinct winners" claim was never robust. The numbers are **not** re-issued here; that wants a ≥40-seed run and is deferred to the tester pass.)*
 **Criteria:** `ChargePointOperator_Plan.md` §6.2 · **Thresholds:** `ChargePointOperator_Playtest_Protocol.md` §5
 **Status:** **3 of 5 criteria scored. The verdict is not yet available** — criteria 1 and 5 require the external tester sessions, and nothing in this repository can substitute for them.
 
@@ -22,26 +22,36 @@ Filling those rows from self-play or from a model's judgement would produce a nu
 | # | Criterion | Threshold | Evidence | Verdict |
 | :-- | :-- | :-- | :-- | :-- |
 | 1 | **Legibility** | ≥2 of 3 external testers score ≥5/6 ✓ across runs 1–2, within ~30 s each | §3 question scores | **PENDING — needs testers** |
-| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 7 policies | **PASS** (machine half) · tester probe pending |
+| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 7 policies — the §"Criterion 2" table is an 8-seed run **awaiting re-issue at ≥40 (D38)** | **PASS** (machine half, measured at 40 seeds) · tester probe pending |
 | 3 | **Failure modes reachable** | ≥4 of 5 failure states observed arising naturally | 36 runs, `RunManifest.failure_states_observed` | **PASS — 5 of 5** |
 | 4 | **Decisions matter** | Median played run differs meaningfully from baseline on ≥2 goal KPIs; the three operator questions answerable from logs | `compareRuns` on playtest seeds; Phase 3 findings §3 | **PASS** |
 | 5 | **One-more-run** | ≥2 of 3 external testers voluntarily take run 3 | Run-3 uptake | **PENDING — needs testers** |
 
 ---
 
-## Criterion 2 — no dominant strategy · **PASS (machine half)**
+## Criterion 2 — no dominant strategy · **PASS (machine half)** · *table awaiting re-issue*
 
-Seven standing policies × three archetypes × 8 seeds, scored by mean goals met:
+> **The table below is superseded and is not a verdict.** It is the original
+> 8-seed run, and D38 puts 8 seeds under this test's evidence floor — re-judged
+> today, that same sample reads `INCONCLUSIVE`, because at 8 seeds
+> `premium+preventive` cannot be ruled out on any of the three archetypes. The
+> criterion does still pass: measured at 40 seeds while D38 was being settled,
+> no strategy is a contender everywhere. What is missing here is a re-issued
+> table at ≥40 seeds, deferred to the tester pass rather than done piecemeal.
 
-| Site | Winner | Goals |
+Seven standing policies × three archetypes × **8 seeds**, scored by mean goals met:
+
+| Site | Winner (8 seeds — superseded) | Goals |
 | :-- | :-- | --: |
 | Junction 42 (corridor) | `preventive` | 3.38 |
 | Eastgate (commuter) | `premium+preventive` | 2.75 |
 | Kesteven (destination) | `premium` | 3.13 |
 
-**Three distinct winners, one per site.** Buy reliability where things break, charge more where demand is captive, and neither answer transfers.
+**What survives at 40 seeds:** buy reliability where things break, charge more where demand is captive, and neither answer transfers. `preventive` tops Junction 42 but sits **0.55 goals** behind on Kesteven and is ruled out there; `premium` tops Kesteven but is **1.15 goals** behind on Junction 42, sixth of seven. That separation is well outside noise, and it holds whichever way the two unresolved ties fall.
 
-This only became true after D33 resolved OPEN-2. Before it, two "distinct" winners both contained `preventive` and the criterion passed on a technicality — worth recording because it is the difference between a criterion being satisfied and being *meant*.
+**What does not survive is "three distinct winners, one per site"** — the claim this section used to make. It was an artefact of a thin sample: the same code answered three winners at 8 seeds, two sharing a component at 10, and two genuinely distinct at 40, with a 0.100-goal gap and a paired *t* of 0.75 deciding the last of those. Counting who came first was the wrong measurement, which is what D38 changed; the finding above is the durable form of the same point.
+
+The technicality this section once recorded escaping is worth re-reading rather than deleting. After D33 resolved OPEN-2 there were three distinct winners; before it, two "distinct" winners both contained `preventive` and the criterion passed on a letter rather than its meaning. At 8 seeds it is back in exactly that position — which is both the case for judging separation instead of ranking, and the case for not reading a verdict off a sample this size.
 
 **Still outstanding:** the protocol also requires that testers **propose ≥2 different credible strategies** when asked. That half is a tester probe (protocol §2, after run 2).
 
