@@ -192,9 +192,4 @@ export const commuterHub: ScenarioConfig = {
     minTrust: 60,
     minSessionsCompleted: 145,
   },
-  failRules: {
-    bankruptcyCashBelow: 0,
-    trustBelow: 30,
-    trustBelowForSeconds: 7_200,
-  },
 };

@@ -27,7 +27,6 @@ import {
 import { spawnArrivals } from "../systems/arrivals.ts";
 import { evaluateDemandAcceptance } from "../systems/admission.ts";
 import {
-  checkScenarioOutcome,
   evaluateGoals,
   recomputeDerivedKPIs,
   settleAvailablePower,
@@ -101,15 +100,10 @@ export function tick(state: SimulationState, options: TickOptions = {}): TickRes
   emitSnapshot(ctx);
   if (options.invariants !== "off") checkInvariants(ctx, options.invariants ?? "throw");
 
-  const runningBeforeOutcome = draft.running;
-  checkScenarioOutcome(ctx);
-
-  if (runningBeforeOutcome && !draft.running) {
-    // A fail rule fired. The run is over, but the people on site are still on
-    // site — close them out so the funnel balances, and keep the fail reason
-    // `checkScenarioOutcome` just set rather than re-deriving it from goals.
-    sweepUpOpenVehicles(ctx);
-  } else if (draft.clock.secondsElapsed >= draft.scenario.durationSeconds && draft.running) {
+  // The clock is the only thing that ends a day (D41). There are no hard fails:
+  // an unpayable balance and a collapsed reputation are both outcomes you trade
+  // through to close-out and are scored on, not trapdoors that stop the run.
+  if (draft.clock.secondsElapsed >= draft.scenario.durationSeconds && draft.running) {
     closeOutRun(ctx);
   }
 

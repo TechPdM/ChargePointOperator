@@ -52,7 +52,8 @@ describe("detection is detection, not failure", () => {
   it("a detected failure state never ends the run", () => {
     const s = play(roadsideHub, "s1", [], false);
     expect(s.site.metrics.failureStatesObserved.length).toBeGreaterThan(0);
-    // The only hard fails are bankruptcy and sustained trust < 30.
+    // Since D41 there are no hard fails at all, so the only reasons a run can
+    // carry are the two the clock produces.
     expect(s.resultReason === "goals_met" || s.resultReason === "goals_missed").toBe(true);
     expect(s.clock.tick).toBe(1_440);
   });
@@ -122,7 +123,7 @@ describe("power_choke", () => {
 });
 
 describe("trust_crash", () => {
-  it("fires below 40 while falling, and is distinct from the hard fail at 30", () => {
+  it("fires below 40 while falling, and does not stop the day (D41)", () => {
     const s = play(
       { ...roadsideHub, initialTrust: 42 },
       "s1",
@@ -130,7 +131,12 @@ describe("trust_crash", () => {
       false,
     );
     expect(s.site.metrics.failureStatesObserved).toContain("trust_crash");
-    expect(FAILURE_THRESHOLDS.trustCrashBelow).toBeGreaterThan(roadsideHub.failRules.trustBelow);
+    // The assertion this replaces checked trust_crash sat above the hard fail at
+    // 30. There is no hard fail now, so the sharper question is whether a site
+    // this badly run still trades to close-out — which is what D41 rules.
+    expect(s.clock.tick).toBe(1_440);
+    expect(s.running).toBe(false);
+    expect(s.resultReason).toBe("goals_missed");
   });
 });
 
@@ -321,5 +327,45 @@ describe("criterion 2 is judged on separation, not ranking (D38)", () => {
     ]);
     const field = v.contenders.find((c) => c.scenarioId === "a");
     expect(field?.strategies.map((s) => s.strategy)).toEqual(["best"]);
+  });
+});
+
+/**
+ * D41 — the clock is the only thing that ends a day.
+ *
+ * Both hard fails are gone: an unpayable balance and a collapsed reputation are
+ * outcomes you trade through and are scored on, not trapdoors. Before this, a
+ * site left unrepaired reached trust under 30, sat there for two sim-hours, and
+ * was shut down around 20:00 — four hours of the day removed, and the end-of-day
+ * report never said so.
+ */
+describe("nothing ends a day but the clock (D41)", () => {
+  it("a site nobody repairs trades all the way to close-out", () => {
+    // No policy at all: faults are never called out, so trust falls and stays
+    // down. This is the shape that used to trip trust_collapse.
+    const ruined = ["s2", "s3", "s6", "s8"].map((seed) =>
+      runScenario({ scenario: roadsideHub, seed, collectLog: false }),
+    );
+    for (const r of ruined) {
+      expect(r.ticks).toBe(1_440);
+      expect(r.finalState.clock.secondsElapsed).toBe(roadsideHub.durationSeconds);
+      expect(["goals_met", "goals_missed"]).toContain(r.finalState.resultReason);
+    }
+    // And the seeds were chosen because they do get that bad — otherwise this
+    // would pass without exercising anything.
+    expect(ruined.some((r) => r.finalState.site.metrics.trust < 30)).toBe(true);
+  });
+
+  it("still closes the funnel when the day it closes was a disaster", () => {
+    // The old early-exit path had its own close-out sweep. Removing it must not
+    // leave anyone stranded on site at 24:00 — invariant 7, on the worst seeds.
+    for (const seed of ["s2", "s8"]) {
+      const r = runScenario({ scenario: roadsideHub, seed, collectLog: false });
+      expect(r.finalViolations).toEqual([]);
+      const f = r.finalState.site.metrics.funnel;
+      expect(
+        f.rejectedSite + f.siteFull + f.abandonedQueue + f.interruptedByFault + f.completed + f.closedAtRunEnd,
+      ).toBe(f.arrived);
+    }
   });
 });

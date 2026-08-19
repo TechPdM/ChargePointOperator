@@ -1,6 +1,7 @@
 # ChargePointOperator — Scenario Spec: Roadside Hub
 
-**Version:** 2.3 · **Date:** 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14 · v2.1: bankruptcy phrasing, margin-trap observability · v2.2: readiness-review fixes — scripted-fault target pinned, §2 completed against D20, §5a upgrade-value analysis, re-derived load math · **v2.3: `minOperatingMargin` set to £2,200 from the measured distribution — D13 difficulty floor now PASSES (Mark, OPEN-7 closed)**)*
+**Version:** 2.4 · **Date:** 2026-08-19 *(v2.4: fail rules removed by D41 — the day now always runs to 24:00)*
+**Superseded header:** 2.3 · 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14 · v2.1: bankruptcy phrasing, margin-trap observability · v2.2: readiness-review fixes — scripted-fault target pinned, §2 completed against D20, §5a upgrade-value analysis, re-derived load math · **v2.3: `minOperatingMargin` set to £2,200 from the measured distribution — D13 difficulty floor now PASSES (Mark, OPEN-7 closed)**)*
 **Companions:** Calibration sheet v2.2 (constants), KPI dictionary (goal + failure-state definitions), Architecture §5.7 (`ScenarioConfig`), Decision log (D8–D26)
 **This is the MVP scenario (Plan D5)** — `scenarios/roadsideHub.ts` in prose form. Commuter-hub and destination-site variants follow in Phase 3 (O6).
 
@@ -83,7 +84,7 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 | `minTrust` | ≥ 55 |
 | `minSessionsCompleted` | ≥ 110 |
 
-**Fail (immediately, any)** — now `scenario.failRules` (D20), not prose: `bankruptcyCashBelow: 0` (a formal backstop only — with a £50k float it cannot actually trigger inside this scenario under any input) · `trustBelow: 30` sustained for `trustBelowForSeconds: 7200` (2 sim-hours). **Margin-trap observability note (v2.1):** since bankruptcy is unreachable, the *margin trap* failure state (Plan §6.2 gate criterion 3) manifests here as £40k of capex producing no goal improvement — visible in the played-vs-baseline comparison and the post-run summary, not as a game-over screen. D24 makes that detectable rather than merely narratable.
+**Fail (immediately, any)** — **none. Removed by D41 (2026-08-19).** The day ends at 24:00 and nowhere else; there is no game-over. The two rules that used to live here were `bankruptcyCashBelow: 0` and `trustBelow: 30` sustained for 2 sim-hours. The first never fired — D37 refuses unaffordable upgrades, so nothing can spend past zero. The second fired on reputation, around 20:00, on a site the player had been losing since 18:00. Both are now outcomes scored at close-out rather than reasons to stop. **Margin-trap observability note (v2.1, still true and now the general case):** the *margin trap* failure state manifests as capex producing no goal improvement — visible in the played-vs-baseline comparison and the post-run summary, never as a game-over screen. D24 makes that detectable rather than merely narratable, and since D41 that is how every failure presents.
 
 **Design intent:** the goals still pull against each other — price up helps margin but bleeds sessions/trust; partial-charge helps wait/sessions but trims kWh (and mildly trust); preventive maintenance helps trust/uptime but *should* eat margin (**it currently doesn't — Calibration §4a, OPEN-2**). The £40k upgrade is deliberately *not* goal-scored: it's a bet that better hardware makes the other four goals reachable, judged operationally (A8).
 

@@ -173,9 +173,4 @@ export const destinationSite: ScenarioConfig = {
     minTrust: 58,
     minSessionsCompleted: 95,
   },
-  failRules: {
-    bankruptcyCashBelow: 0,
-    trustBelow: 30,
-    trustBelowForSeconds: 7_200,
-  },
 };

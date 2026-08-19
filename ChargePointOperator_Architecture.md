@@ -171,7 +171,7 @@ tick()
   -> updateTrustAndKPIs()
   -> detectFailureStates()         // NEW (D24) — detection only, does not end the run
   -> checkInvariants()             // NEW step (O7) — throws in dev, logs in prod
-  -> checkScenarioOutcome()        // hard fails +, on the final tick, the D18 close-out sweep
+  -> (D41: no outcome check)       // nothing ends a day but the clock; the D18 close-out sweep runs on the final tick
 ```
 
 **Ordering rules that are load-bearing, not incidental:**
@@ -263,7 +263,7 @@ while simState.running:
     updateKPIs(simState)                                    // energy cost + fixed opex
     detectFailureStates(simState)                           // NEW (D24): detection only
     checkInvariants(simState)                               // NEW (O7)
-    checkOutcome(simState)                                  // hard fails per scenario.failRules
+    // D41: no outcome check — the clock is the only thing that ends a day
     advanceSimTime(simState.clock, deltaSeconds)            // AMENDED (C11): sim-seconds only
                                                             // deltaSeconds is ALWAYS
                                                             // scenario.tickSeconds (D26)
@@ -638,12 +638,13 @@ export interface ScenarioGoals {            // AMENDED (D10): minCash → minOpe
   minSessionsCompleted: number;
 }
 
-// NEW (D20): hard fail rules were prose in the scenario spec and unrepresentable here.
-export interface FailRules {
-  bankruptcyCashBelow: number;              // £0 — formal backstop (unreachable at £50k)
-  trustBelow: number;                       // 30
-  trustBelowForSeconds: SimSeconds;         // 7,200 (2 sim-hours) sustained
-}
+// REMOVED (D41). D20 lifted the hard fail rules out of prose into this type;
+// D41 removed the rules themselves. Bankruptcy never fired — D37 refuses
+// unaffordable upgrades, so nothing can spend past zero — and trust collapse
+// shut the site around 20:00 on a day the player had already lost. Both are now
+// scored at close-out instead. Kept here as a note because the shape of the
+// state is otherwise hard to date.
+// export interface FailRules { ... }
 
 export interface BayRosterEntry {           // NEW (D20)
   id: Id;
@@ -690,7 +691,7 @@ export interface ScenarioConfig {
 
   scriptedFaults: ScriptedFault[];          // NEW (D20): the 12:30 beat was unrepresentable
   goals: ScenarioGoals;
-  failRules: FailRules;                     // NEW (D20)
+  // failRules removed (D41) — was NEW (D20)
 }
 ```
 

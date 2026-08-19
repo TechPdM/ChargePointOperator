@@ -224,9 +224,4 @@ export const roadsideHub: ScenarioConfig = {
     minTrust: 55,
     minSessionsCompleted: 300,
   },
-  failRules: {
-    bankruptcyCashBelow: 0,
-    trustBelow: 30,
-    trustBelowForSeconds: 7_200,
-  },
 };

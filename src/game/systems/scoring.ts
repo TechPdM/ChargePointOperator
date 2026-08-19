@@ -159,36 +159,6 @@ export function evaluateGoals(state: SimulationState): GoalOutcome {
   };
 }
 
-/** Hard fails only (D24 keeps failure states detection-only). */
-export function checkScenarioOutcome(ctx: TickContext): void {
-  const { state } = ctx;
-  const rules = state.scenario.failRules;
-  const m = state.site.metrics;
-
-  if (state.site.economics.cash < rules.bankruptcyCashBelow) {
-    state.running = false;
-    state.result = "fail";
-    state.resultReason = "bankruptcy";
-    return;
-  }
-
-  if (m.trust < rules.trustBelow) {
-    if (state.detectors.trustBelowFailSince === undefined) {
-      state.detectors.trustBelowFailSince = state.clock.secondsElapsed;
-    } else if (
-      state.clock.secondsElapsed - state.detectors.trustBelowFailSince >=
-      rules.trustBelowForSeconds
-    ) {
-      state.running = false;
-      state.result = "fail";
-      state.resultReason = "trust_collapse";
-      return;
-    }
-  } else {
-    state.detectors.trustBelowFailSince = undefined;
-  }
-}
-
 /** Payload for `metric.snapshot` — every KPI at ROLL and CUM scope (D9). */
 export function snapshotData(state: SimulationState): Record<string, number> {
   const m = state.site.metrics;

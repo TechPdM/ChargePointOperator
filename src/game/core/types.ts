@@ -65,7 +65,10 @@ export type FaultCategory =
   | "software_fault"
   | "unknown";
 
-/** Detection-only (D24). These never end a run; hard fails live in `failRules`. */
+/**
+ * Detection-only (D24), and since D41 that is the only kind there is: nothing
+ * ends a run early, so these name what went wrong without stopping the day.
+ */
 export type FailureState =
   | "queue_collapse"
   | "power_choke"
@@ -410,12 +413,6 @@ export interface ScenarioGoals {
   minSessionsCompleted: number;
 }
 
-export interface FailRules {
-  bankruptcyCashBelow: number;
-  trustBelow: number;
-  trustBelowForSeconds: SimSeconds;
-}
-
 export interface BayRosterEntry {
   id: Id;
   label: string;
@@ -471,7 +468,6 @@ export interface ScenarioConfig {
 
   scriptedFaults: ScriptedFault[];
   goals: ScenarioGoals;
-  failRules: FailRules;
 }
 
 /**
@@ -485,8 +481,6 @@ export interface DetectorState {
   failureLapseSince: Partial<Record<FailureState, SimSeconds>>;
   failureClearSince: Partial<Record<FailureState, SimSeconds>>;
   alertRaiseSince: Partial<Record<AlertName, SimSeconds>>;
-  /** Seconds trust has been continuously below failRules.trustBelow. */
-  trustBelowFailSince?: SimSeconds;
 }
 
 export interface SimulationState {
