@@ -312,3 +312,54 @@ scenarios were fitted to the current demand model (D36) and need re-fitting;
 Calibration §7 needs re-measuring for the third time in three days; criteria 2,
 3 and 4 are all scored off this model. Expect a full recalibration pass, not a
 tuning tweak.
+
+---
+
+## 10. Measured
+
+**Date:** 2026-08-19. Baseline policy, 20 seeds, £0.05 grid across £0.45–£1.20.
+
+### 10.1 Margin-optimal price per site — criterion 1, **marginal pass**
+
+| Site | List | **Optimum** | Margin there | Was |
+| :-- | --: | --: | --: | --: |
+| Junction 42 (corridor) | £0.79 | **£0.85** | £3,994 | £0.85 |
+| Kesteven (destination) | £0.55 | **£0.85** | £845 | £0.85 |
+| Eastgate (commuter) | £0.72 | **£0.75** | £1,050 | £0.85 |
+
+Spread **£0.10** against a £0.10 bar. It passes on the letter and should not be
+reported as more than that: **two of the three sites still share an optimum**,
+and only Eastgate separated. The spread was £0.00; it is now one grid step wide.
+
+**Why the corridor did not move, which the design got wrong.** §3.2 predicted
+Junction 42's optimum would rise as its drivers' ceilings rose to a median
+£0.94. It did not move at all. The ceiling is not what sets the corridor's
+optimum — wave elasticity is. Arrivals fall 32% by £1.15 through
+`priceMultiplier` regardless of what any driver would tolerate, and trust and
+wait move with them. Raising the ceiling only changes the answer where the
+ceiling binds, and on the corridor it does not bind until well past the
+profitable range.
+
+That is a real limitation of Approach A and it is the argument the discovery
+doc's §4 Approach B made in advance: two mechanisms price this model, and this
+change only touched the harder one. Recorded rather than tuned around.
+
+### 10.2 Premium pricing — criterion 2, **pass**
+
++15% on list against list, 20 seeds, paired:
+
+| Site | List → +15% | Δ margin | *t* | Worse on | Verdict |
+| :-- | :-- | --: | --: | --: | :-- |
+| Kesteven | £0.55 → £0.63 | **+£252** | 5.96 | 1/20 | premium is *right* here |
+| Junction 42 | £0.79 → £0.91 | −£119 | −0.80 | 11/20 | neutral — not separable |
+| Eastgate | £0.72 → £0.83 | **−£339** | −4.49 | 17/20 | **premium loses money** |
+
+Criterion 2 asked for at least one site where +15% loses money. Eastgate does,
+decisively.
+
+**The result worth more than criterion 1.** The question a player actually faces
+is not "what is the optimum" but "should I put the price up here", and that now
+has **three different answers on three sites** — yes at Kesteven, no at
+Eastgate, and it-does-not-matter at Junction 42. Before this change the answer
+was "yes" everywhere, on day one, by a wide margin. Criterion 1 measures the
+weaker of the two things this work was for.
