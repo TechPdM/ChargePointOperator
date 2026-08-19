@@ -293,12 +293,16 @@ that is not sufficient reason to add a goal, and it is a separate decision.
   machinery for the same first-order effect. The continuous range gets the
   variance; direction of approach survives as the documented reason the range
   has width.
-- **Approach B** (delete the ceiling, make `siteScore` site-aware). Still the
-  cleaner end state on paper — one mechanism rather than two. Not taken because
-  it is a larger behavioural change than the problem requires, and the hard veto
-  is what currently produces near-total refusal at £1.20. If the detour ranges
-  end up needing to stack with further factors to differentiate, that is the
-  signal to revisit B.
+- **Approach B — half of it was taken after all**, once §10.1 showed A alone
+  could not move the corridor's optimum. `siteScore` now reads the **site's**
+  reference price instead of the archetype's (D43). See §11.
+
+  The other half of B as the discovery doc described it — *deleting*
+  `maxAcceptablePricePerKwh` — was **not** taken, and deliberately. By the time
+  the choice arrived the hard ceiling had been measured doing real work: it is
+  what makes premium pricing lose money at Eastgate. Deleting it to satisfy a
+  description written before that measurement existed would have been throwing
+  away a result.
 - **A3 (state of charge) and A4 (time of day).** Partly redundant under this
   model — a low-SOC driver's tolerance is already carried by their archetype
   base, and the wave table already varies mix by hour.
@@ -363,3 +367,74 @@ has **three different answers on three sites** — yes at Kesteven, no at
 Eastgate, and it-does-not-matter at Junction 42. Before this change the answer
 was "yes" everywhere, on day one, by a wide margin. Criterion 1 measures the
 weaker of the two things this work was for.
+
+---
+
+## 11. Approach B, and why A alone was not enough
+
+§10.1 recorded the failure plainly: A moved Eastgate and left Junction 42 and
+Kesteven sharing an optimum. The cause was that A only touched the **hard**
+ceiling, and at the corridor the hard ceiling does not bind anywhere near the
+profitable range. The **soft** test — `siteScore` — is what sets the optimum,
+and it was reading `ARCHETYPES[archetype].referencePricePerKwh`.
+
+That is the site-blindness in one line. A commuter judged £0.85 identically at a
+motorway services and a garden centre, because the reference they measured it
+against travelled with them instead of belonging to the place.
+
+**The principle:** a reference price is what charging costs round here — a
+property of the market. How much a driver minds paying over it is
+`priceSensitivity` — a property of the driver. The code had the first backwards.
+
+Archetype character is unharmed, because it never lived in the reference:
+`panic_low_soc` carries `priceSensitivity` 0.1 against a commuter's 0.7, so a
+desperate driver still barely registers price wherever they are.
+
+### 11.1 Measured — criteria 1 and 2, **both pass**
+
+Same method as §10: baseline policy, 20 seeds, £0.05 grid.
+
+| Site | Reference | Optimum before any change | After A | **After A + B** |
+| :-- | --: | --: | --: | --: |
+| Junction 42 | £0.79 | £0.85 | £0.85 | **£0.90** |
+| Eastgate | £0.72 | £0.85 | £0.75 | **£0.75** |
+| Kesteven | £0.62 | £0.85 | £0.85 | **£0.70** |
+
+**Criterion 1: pass.** Spread **£0.20** against a £0.10 bar — four grid steps,
+and three distinct optima rather than the two A managed. A motorway services, an
+urban car park and a garden centre now want to charge three different prices.
+
+**Criterion 2: pass, and stronger than under A.** +15% on list, 20 seeds, paired:
+
+| Site | Δ margin | *t* | Worse on | Under A alone |
+| :-- | --: | --: | --: | :-- |
+| Junction 42 | **+£197** | 2.17 | 6/20 | −£119, not separable |
+| Kesteven | +£265 | 7.64 | 1/20 | +£252 |
+| Eastgate | **−£364** | −4.86 | 18/20 | −£339 |
+
+The corridor flipped from *neutral* to *premium pays*, which is the correct
+answer for a site 25 minutes from its nearest competitor and was not previously
+available at any price.
+
+### 11.2 The over-correction happened, as flagged
+
+The risk named before implementing was Kesteven: reference £0.62, and already
+the site that struggles for margin. Its optimum fell £0.85 → £0.70 and the
+margin at that optimum fell **£845 → £628**.
+
+That is the mechanism working, not misfiring — a garden centre should not
+sustain corridor prices — but it lands on a site whose margin goal is £520 with
+little room. **Goal re-fitting has to treat Kesteven as the binding case**, and
+if it cannot be made to work without slackening the goal below the point of
+being a goal, the honest conclusion is that Kesteven's reference price, not the
+mechanism, is what is wrong.
+
+### 11.3 Both mechanisms now differentiate by site
+
+The double-count named in the pre-implementation design is real and now live:
+Eastgate drivers face both a low detour-derived ceiling (£0.82) and a
+dear-for-round-here soft penalty. They point the same way and compound.
+
+It has not caused a problem — Eastgate's optimum is unchanged between A and A+B,
+so the second mechanism added nothing there — but it is the first thing to
+suspect if Eastgate later proves impossible to balance.
