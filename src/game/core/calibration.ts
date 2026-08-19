@@ -181,10 +181,13 @@ export const PRICE_MAX = 1.2;
  * top-ups as small as 10 kWh, and at the top of a corridor detour range that
  * produces premiums above £1/kWh — wider than the entire price range.
  *
- * FIRST GUESS, confirmed or moved by the measurement pass. Set it too low and
- * every driver on a long detour collapses onto the same ceiling and the cliff
- * this change exists to remove comes back; too high and a handful of small
- * top-ups will pay anything.
+ * **MEASURED and kept at 0.40** (2026-08-19, 5 seeds × 3 scenarios, n=3,893).
+ * It binds on 0.60% of corridor drivers (13 of 2,174) and on nobody at all at
+ * the other two sites, where the largest premium reached is £0.266 and £0.117.
+ * That is what this constant should be doing: catching the extreme tail — a
+ * 10 kWh top-up after a 30-minute detour — without collapsing anyone onto a
+ * shared ceiling. Set it much lower and the cliff this change exists to remove
+ * comes back; much higher and it is inert.
  */
 export const DETOUR_PREMIUM_MAX = 0.4;
 
