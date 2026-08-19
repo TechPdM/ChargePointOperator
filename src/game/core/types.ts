@@ -46,6 +46,9 @@ export interface DepartedVehicle {
   expectedWaitSeconds?: number;
   requestedKwh: number;
   finalSoc: number;
+  /** D42 — kept so a later analysis can ask who refused and why. */
+  detourMinutes: number;
+  maxAcceptablePricePerKwh: number;
 }
 
 export type QueueLeaveReason =
@@ -286,6 +289,8 @@ export interface VehicleAgent {
   maxChargeRateKw: number;
   currentSoc: number;
   arrivalSecond: SimSeconds;
+  /** Sim-minutes to this driver's own nearest alternative charger (D42). */
+  detourMinutes: number;
   urgencyScore: number;
   priceSensitivity: number;
   waitSensitivity: number;

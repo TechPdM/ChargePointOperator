@@ -78,6 +78,10 @@ export function spawnArrivals(ctx: TickContext): void {
         battery_capacity_kwh: round(vehicle.batteryCapacityKwh, 1),
         max_charge_rate_kw: round(vehicle.maxChargeRateKw, 1),
         requested_kwh: round(vehicle.demand.requestedKwh, 2),
+        // D42 — the legibility half: "nearest alternative 25 min, will pay up
+        // to £0.97" is a readable reason for a driver to have driven on.
+        detour_minutes: round(vehicle.detourMinutes, 1),
+        max_acceptable_price_per_kwh: round(vehicle.demand.maxAcceptablePricePerKwh, 3),
       }),
     });
   }
@@ -99,6 +103,12 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
   const batteryCapacityKwh = ctx.rng.range(p.batteryKwh[0], p.batteryKwh[1]);
   const maxChargeRateKw = ctx.rng.range(p.maxChargeRateKw[0], p.maxChargeRateKw[1]);
   const currentSoc = ctx.rng.range(p.arrivalSoc[0], p.arrivalSoc[1]);
+  // D42: this driver's own alternative. Drawn per vehicle rather than fixed per
+  // site, because direction of approach decides whether the next rapid is ahead
+  // of you or behind you — which is what makes the refusal a curve and not the
+  // shared cliff every site used to share.
+  const [detourMin, detourMax] = state.scenario.detourMinutes;
+  const detourMinutes = ctx.rng.range(detourMin, detourMax);
   // Site type shapes who turns up and how they behave once they do.
   const urgencyScore = Math.min(
     1,
@@ -107,6 +117,15 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
   const patienceSeconds = Math.round(
     p.patienceSeconds * (state.scenario.patienceMultiplier ?? 1),
   );
+
+  // Driver-intent demand. The site's partial-charge policy may reduce this at
+  // session start (D14); this figure is what they wanted.
+  const requestedKwh = Math.max(0, (p.targetSoc - currentSoc) * batteryCapacityKwh);
+  // D42: the base is what they would pay with a competitor right there; the
+  // detour is what buys the premium on top.
+  const maxAcceptablePricePerKwh =
+    p.maxAcceptablePriceBase +
+    detourPremiumPerKwh(detourMinutes, p.valueOfTimePerHour, requestedKwh);
 
   const id = `v-${state.nextVehicleSeq}`;
   state.nextVehicleSeq += 1;
@@ -119,15 +138,14 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
     maxChargeRateKw,
     currentSoc,
     arrivalSecond: state.clock.secondsElapsed,
+    detourMinutes,
     urgencyScore,
     priceSensitivity: p.priceSensitivity,
     waitSensitivity: p.waitSensitivity,
     demand: {
       targetSoc: p.targetSoc,
-      // Driver-intent demand. The site's partial-charge policy may reduce this
-      // at session start (D14); this figure is what they wanted.
-      requestedKwh: Math.max(0, (p.targetSoc - currentSoc) * batteryCapacityKwh),
-      maxAcceptablePricePerKwh: p.maxAcceptablePriceBase,
+      requestedKwh,
+      maxAcceptablePricePerKwh,
       patienceSeconds,
     },
   };

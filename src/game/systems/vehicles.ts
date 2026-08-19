@@ -38,6 +38,8 @@ export function departVehicle(
     expectedWaitSeconds: vehicle.expectedWaitSeconds,
     requestedKwh: vehicle.demand.requestedKwh,
     finalSoc: vehicle.currentSoc,
+    detourMinutes: vehicle.detourMinutes,
+    maxAcceptablePricePerKwh: vehicle.demand.maxAcceptablePricePerKwh,
   });
   delete ctx.state.vehicles[vehicle.id];
 

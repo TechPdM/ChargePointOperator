@@ -49,6 +49,7 @@ function saturatedSite(
       maxChargeRateKw: 250, // never the binding constraint here
       currentSoc: 0.2,
       arrivalSecond: 0,
+      detourMinutes: 15,
       urgencyScore: 0.6,
       priceSensitivity: 0.4,
       waitSensitivity: 0.5,

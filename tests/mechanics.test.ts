@@ -29,7 +29,7 @@ import { destinationSite } from "../src/game/scenarios/destinationSite.ts";
 
 /** Read from the scenario, not hardcoded — it moves when the hardware is re-rated. */
 const UPGRADE_COST = roadsideHub.upgradeCosts[0]?.capexCost ?? 0;
-import type { SimulationState, VehicleAgent, VehicleArchetype } from "../src/game/core/types.ts";
+import type { ScenarioConfig, SimulationState, VehicleAgent, VehicleArchetype } from "../src/game/core/types.ts";
 
 function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
   const p = ARCHETYPES[archetype];
@@ -41,6 +41,7 @@ function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
     maxChargeRateKw: 120,
     currentSoc: 0.3,
     arrivalSecond: 0,
+    detourMinutes: 15,
     urgencyScore: urgency,
     priceSensitivity: p.priceSensitivity,
     waitSensitivity: p.waitSensitivity,
@@ -590,5 +591,34 @@ describe("archetype bases and detour ranges (D42)", () => {
     expect(
       c.maxAcceptablePriceBase + detourPremiumPerKwh(mid, c.valueOfTimePerHour, 21),
     ).toBeCloseTo(0.95, 2);
+  });
+});
+
+describe("per-driver ceilings (D42)", () => {
+  function departed(scenario: ScenarioConfig, seed: string) {
+    return runScenario({ scenario, seed, policy: baselinePolicy, collectLog: false })
+      .finalState.departedVehicles;
+  }
+
+  it("gives drivers at one site different ceilings — the cliff is now a curve", () => {
+    const seen = new Set(
+      departed(roadsideHub, "s1").map((v) => v.maxAcceptablePricePerKwh.toFixed(3)),
+    );
+    expect(seen.size).toBeGreaterThan(20);
+  });
+
+  it("makes the corridor's drivers more tolerant than the commuter hub's", () => {
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const corridor = mean(departed(roadsideHub, "s1").map((v) => v.maxAcceptablePricePerKwh));
+    const urban = mean(departed(commuterHub, "s1").map((v) => v.maxAcceptablePricePerKwh));
+    expect(corridor).toBeGreaterThan(urban);
+  });
+
+  it("never puts a ceiling below the archetype base", () => {
+    for (const v of departed(roadsideHub, "s1")) {
+      expect(v.maxAcceptablePricePerKwh).toBeGreaterThanOrEqual(
+        ARCHETYPES[v.archetype].maxAcceptablePriceBase,
+      );
+    }
   });
 });
