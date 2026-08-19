@@ -89,11 +89,33 @@ describe("admission — Calibration §5 worked example (D21)", () => {
 
   it("prices commuters out entirely at £1.10 — the demand-shaping lever", () => {
     expect(siteScore(vehicle("commuter", 0.4), 1.1, 0, 60)).toBeLessThan(ACCEPT_THRESHOLD);
-    // …and their hard reject has already fired well below that.
-    // TASK 4 REWRITES THIS. The claim is now site-dependent — a commuter's
-    // ceiling depends on their detour — so asserting it against the archetype
-    // is no longer the same statement. Left compiling, not left correct.
+    // …and their hard reject has already fired well below that, on every site:
+    // the base alone is under £1.10, so no detour premium available anywhere
+    // saves a commuter at that price.
+    expect(ARCHETYPES.commuter.maxAcceptablePriceBase + DETOUR_PREMIUM_MAX)
+      .toBeGreaterThan(1.1);
     expect(ARCHETYPES.commuter.maxAcceptablePriceBase).toBeLessThan(1.1);
+  });
+
+  it("but WHERE it prices them out is now the site's business (D42)", () => {
+    // The claim above used to be the whole story, because the ceiling was one
+    // constant. It is now site-dependent, and that dependence is the point of
+    // D42 — so it gets its own test rather than being folded into an assertion
+    // about an archetype.
+    const refusedShare = (scenario: ScenarioConfig, price: number): number => {
+      const departed = runScenario({
+        scenario: { ...scenario, initialPricePerKwh: price },
+        seed: "s3",
+        policy: baselinePolicy,
+        collectLog: false,
+      }).finalState.departedVehicles.filter((v) => v.archetype === "commuter");
+      const refused = departed.filter((v) => price > v.maxAcceptablePricePerKwh);
+      return refused.length / Math.max(1, departed.length);
+    };
+    // At £0.88 the corridor's commuters mostly still pull in — a 25-minute
+    // detour is worth more to them than the extra pence — while the commuter
+    // hub's, who have a charger on the next street, mostly do not.
+    expect(refusedShare(commuterHub, 0.88)).toBeGreaterThan(refusedShare(roadsideHub, 0.88));
   });
 });
 
