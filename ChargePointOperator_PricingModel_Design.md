@@ -56,18 +56,50 @@ doc flagged does not arise.
 
 ---
 
-## 3. Constants to derive
+## 3. Constants
 
-Nothing below is decided. These are the numbers the work has to produce, and
-where each has to be justified from.
+**Settled 2026-08-19 (Mark).** Each subsection below records the decision taken
+and the reasoning, in place of the options that were open at first writing.
 
-### 3.1 `VALUE_OF_TIME_PER_HOUR` — one new constant
+### 3.1 Value of time — **sourced, and per-archetype**
 
-Checked against the **DfT WebTAG databook** values of time for non-work car
-travel. This must be read from the databook, not asserted from memory: §7 of the
-discovery doc exists because an earlier claim about minimum-service obligations
-was asserted without a source, and this constant is load-bearing in exactly the
-way that one was not.
+**Source:** DfT, *Provision of market research for value of travel time savings
+and reliability — Non-Technical Summary*, August 2015 (the Arup / ITS Leeds /
+Accent national VTT study that underpins TAG). Table 5.1, "VTTs for routine
+appraisals with illustrative distance bands", **2014 perceived prices, £/hr**:
+
+| Journey purpose | New VTT | Superseded WebTAG value |
+| :-- | --: | --: |
+| Commute, all modes | **£11.21** | £7.62 |
+| Other non-work, all modes | **£5.12** | £6.77 |
+
+**Perceived** prices, not market or factor prices, is the correct basis: this
+number stands in for what a driver believes their time is worth while deciding
+whether to drive on, which is precisely what a perceived-price VTT measures.
+
+**Decision — a per-archetype field, not one global constant.** TAG publishes two
+figures and the archetypes map cleanly onto both, so choosing one globally would
+put an arbitrary judgement on top of a sourced number. `valueOfTimePerHour` goes
+on `ArchetypeProfile` alongside `priceSensitivity` and `waitSensitivity`, which
+is the same shape as everything else there — one field rather than one constant,
+no extra machinery.
+
+| Archetype | TAG purpose | £/hr |
+| :-- | :-- | --: |
+| `commuter` | Commute | 11.21 |
+| `enroute` | Other non-work | 5.12 |
+| `panic_low_soc` | Other non-work | 5.12 |
+
+**Consequence, stated because it is counterintuitive.** Commuters get the
+*larger* detour premium: a higher value of time, spread over a smaller top-up.
+En-route drivers get the smaller one — lower VTT, and 35+ kWh to spread it over.
+Site differentiation therefore comes from detour minutes, not from who turns up.
+This is the real economics of a fixed detour cost amortised over a purchase, and
+it is left in rather than corrected for.
+
+**Not uprated from 2014 prices.** No uprating factor is applied, because none has
+been sourced. This understates premiums and so is the conservative direction;
+recorded in the assumptions register rather than silently accepted.
 
 ### 3.2 `maxAcceptablePricePerKwh` → `maxAcceptablePriceBase`
 
@@ -80,11 +112,49 @@ The archetype ordering stays: a panic arrival at 5% SOC pays more than a
 commuter regardless of what is nearby, because their alternative may not be
 reachable at all. That is what the base carries.
 
+**Decision — anchored on the archetype's own reference price, with a gap that is
+derived rather than flat.** The base sits a stated gap above
+`referencePricePerKwh` (0.75 / 0.85 / 1.00): refusal begins a little above where
+grumbling begins.
+
+**A flat gap does not work, and the arithmetic is worth showing.** A uniform
++£0.05 would give bases of 0.80 / 0.90 / 1.05 — which collapses the archetype
+spread that makes a panic arrival tolerant. Today the gaps over reference are
++0.20 / +0.25 / +0.50; a flat gap throws that character away and would make
+`PRICE_MAX` (£1.20) a price at which literally nobody charges.
+
+So the gap per archetype is derived by requiring that each archetype keeps its
+**current** total tolerance at a Junction-42-typical detour, and that everywhere
+less captive comes out cheaper:
+
+```
+base  =  today's ceiling  −  premium(19 min, archetype VTT, archetype mid kWh)
+```
+
+| Archetype | Today | Mid kWh | Premium @19 min | **Base** | Gap over reference |
+| :-- | --: | --: | --: | --: | --: |
+| `commuter` | 0.95 | 21.0 | 0.169 | **0.78** | +0.03 |
+| `enroute` | 1.10 | 35.8 | 0.045 | **1.05** | +0.20 |
+| `panic_low_soc` | 1.50 | 28.9 | 0.056 | **1.44** | +0.44 |
+
+The corridor therefore lands close to where it is today by construction, and the
+differentiation comes from the other two sites being *less* captive — which is
+the honest direction, since Junction 42 is the site whose current pricing power
+was never the anomaly.
+
+These are starting values. §5 confirms or moves them by measurement.
+
+Fitting the bases to the acceptance criteria was rejected outright: it is the
+failure mode §3.3 of the discovery doc and OPEN-7 set a discipline against, and
+it would make §6 unfalsifiable.
+
 ### 3.3 `detourMinutes` per scenario
 
-Justified in comments against real UK rapid-charger spacing, in the manner
-`initialGridPowerKw` is justified against real grid connections. Starting
-proposal, to be argued rather than accepted:
+**Decision — taken as proposed.** Justified in comments against real UK
+rapid-charger spacing, in the manner `initialGridPowerKw` is justified against
+real grid connections. Widening the corridor range pre-emptively was rejected as
+tuning toward a criterion rather than toward the geography; if the spread proves
+too narrow, that is a measurement result (§7) with a clear next action.
 
 | Site | Range | Reasoning |
 | :-- | :-- | :-- |
@@ -100,8 +170,11 @@ smallest realistic top-up in the current archetype ranges is ~10 kWh, so the
 corridor's 30-minute tail produces premiums in the £0.50+ range. That is a very
 tolerant driver and probably wider than wanted.
 
-**Recommendation:** keep the per-driver divisor, clamp the premium, and set the
-clamp by measurement rather than taste.
+**Decision — keep the driver's actual `requestedKwh` as the divisor**, clamp the
+premium, and set the clamp by measurement rather than taste. The alternative —
+dividing by a nominal ~25 kWh — would kill both the long-tail problem and the
+partial-charge coupling by construction, which is throwing away a real effect to
+avoid measuring it.
 
 **Named risk, to be checked during measurement:** this couples price tolerance to
 session size, which the partial-charge policy lever also moves. A player
@@ -118,7 +191,7 @@ Six source files and the calibration sheet. No new systems.
 | File | Change |
 | :-- | :-- |
 | `src/game/core/types.ts` | Add `detourMinutes: [number, number]` to `ScenarioConfig`. Add `detourMinutes` to `VehicleAgent` (it should be visible in the event log for legibility). |
-| `src/game/core/calibration.ts` | Rename `maxAcceptablePricePerKwh` → `maxAcceptablePriceBase` on `ArchetypeProfile`, re-derive all three. Add `VALUE_OF_TIME_PER_HOUR` and `DETOUR_PREMIUM_MAX` to §4. |
+| `src/game/core/calibration.ts` | On `ArchetypeProfile`: rename `maxAcceptablePricePerKwh` → `maxAcceptablePriceBase` and re-derive all three; add `valueOfTimePerHour`. Add `DETOUR_PREMIUM_MAX` to §4. |
 | `src/game/systems/arrivals.ts` | In `createVehicle`, draw `detourMinutes` and compute `demand.maxAcceptablePricePerKwh` from it. `requestedKwh` is already in scope at that point. Add both to the `vehicle.arrived` debug payload. |
 | `src/game/scenarios/*.ts` | One `detourMinutes` field each, with the justification comment. |
 | `ChargePointOperator_Calibration.md` | §3 archetype table, §4 new constants, §7 re-measured. |
@@ -134,8 +207,11 @@ changes.
 - **New:** a determinism test that two runs on one seed draw identical detours —
   the draw is a new RNG consumer and will shift every downstream stream, so
   every recorded fixture moves. Expect that, do not treat it as a regression.
-- **Existing:** `mechanics.test.ts` and `contrast.test.ts` both assert on price
-  behaviour and will need re-baselining.
+- **Existing:** `mechanics.test.ts` pins `ARCHETYPES.commuter`'s ceiling below
+  £1.10 — a claim that becomes site-dependent and needs rewriting against a
+  site rather than an archetype. `failureStates.test.ts` and `power.test.ts`
+  both assert on price behaviour. Every recorded figure moves regardless, since
+  a new RNG draw shifts the stream.
 
 ---
 
