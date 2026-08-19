@@ -438,3 +438,64 @@ dear-for-round-here soft penalty. They point the same way and compound.
 It has not caused a problem — Eastgate's optimum is unchanged between A and A+B,
 so the second mechanism added nothing there — but it is the first thing to
 suspect if Eastgate later proves impossible to balance.
+
+---
+
+## 12. Criterion 2 fails — reported, not worked around
+
+**Status: STOPPED at plan Task 8.** `minSessionsCompleted` has **not** been
+removed. The plan sequenced this check before the goal removal precisely so a
+failure here would be attributable, and it is.
+
+### 12.1 The result
+
+40 seeds, all six strategies, D38 separation test, **with the session goal still
+scored**:
+
+| Site | Winner | Not measurably behind |
+| :-- | :-- | :-- |
+| Junction 42 | `premium+preventive` | `preventive` (*t*=1.29) |
+| Eastgate | `preventive` | — clear of the field |
+| Kesteven | `premium+preventive` | `premium` (*t*=0.37) · `preventive` (*t*=1.92) |
+
+**`preventive` is credible on all three archetypes**, which under D38 makes it a
+dominant strategy. Criterion 2 fails.
+
+### 12.2 What this is not
+
+It is **not** caused by removing the session goal — that has not happened yet.
+That is the whole reason the check ran first.
+
+It is **not** the trap discovery §2.4 recorded. There, `premium+preventive` was
+the universal answer. It no longer is: Eastgate now rules it out on its own,
+because premium pricing loses £364/day there. **The pricing work did the job it
+was asked to do.** What it also did was remove premium's universal advantage —
+and with pricing no longer dominant, what is left standing everywhere is
+maintenance.
+
+### 12.3 What it is
+
+A **maintenance** dominance problem, with its own history in this project.
+Phase 3 measured preventive winning on all three archetypes; OPEN-2 traced part
+of it to the repair-cost ladder paying preventive twice and flattened the ladder
+(D33, `REPAIR_CALL_OUT_COST` flat at £200, preventive standing charge raised to
+£150/day). This is the same shape returning, or never fully resolved and
+previously masked by a pricing strategy that beat it everywhere.
+
+### 12.4 Caveat on the earlier reading
+
+At 20 seeds this test **passed**, with `preventive` not credible on the
+corridor. At 40 it fails. The command warns that 20 seeds is under the 40 the
+test needs, so the 40-seed result is the one to believe and the 20-seed pass
+should not be quoted.
+
+### 12.5 Not known, and cheap to find out
+
+**Was criterion 2 already failing at 40 seeds before this work?** Discovery §2.4
+recorded a failure at 20 seeds under a different dominant strategy, and no
+40-seed measurement of the pre-change model exists. Until one does, this work
+cannot be said to have made criterion 2 better or worse — only to have changed
+which strategy dominates.
+
+That measurement is one checkout and one 40-seed run against `38e96c0`, and it
+should be taken before anything is decided about maintenance.
