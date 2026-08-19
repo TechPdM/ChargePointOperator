@@ -8,6 +8,7 @@
 import { archetypeName } from "../core/labels.ts";
 import {
   ARCHETYPES,
+  DETOUR_PREMIUM_MAX,
   PRICE_MULTIPLIER_MAX,
   PRICE_MULTIPLIER_MIN,
 } from "../core/calibration.ts";
@@ -22,6 +23,31 @@ export function priceMultiplier(
 ): number {
   const raw = 1 - (waveElasticity * (price - referencePrice)) / referencePrice;
   return Math.min(PRICE_MULTIPLIER_MAX, Math.max(PRICE_MULTIPLIER_MIN, raw));
+}
+
+/**
+ * What a driver will pay above their base price, because the alternative costs
+ * them a detour (D42).
+ *
+ * The trade is the driver's own: my alternative is `detourMinutes` away, that
+ * time is worth `valueOfTimePerHour` to me, and I am spreading that cost over
+ * the `requestedKwh` I came here to buy. Above this premium, driving on is
+ * cheaper than paying.
+ *
+ * Value of time is per archetype and comes from the DfT VTT study (Table 5.1,
+ * 2014 perceived prices) — see the calibration sheet §3.
+ */
+export function detourPremiumPerKwh(
+  detourMinutes: number,
+  valueOfTimePerHour: number,
+  requestedKwh: number,
+): number {
+  if (detourMinutes <= 0) return 0;
+  // A driver who wants no energy has nothing to spread the cost over; the clamp
+  // is the only sane answer and it keeps the function total.
+  if (requestedKwh <= 0) return DETOUR_PREMIUM_MAX;
+  const raw = ((detourMinutes / 60) * valueOfTimePerHour) / requestedKwh;
+  return Math.min(DETOUR_PREMIUM_MAX, raw);
 }
 
 export function spawnArrivals(ctx: TickContext): void {

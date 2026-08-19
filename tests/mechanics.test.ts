@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACCEPT_THRESHOLD,
   ARCHETYPES,
+  DETOUR_PREMIUM_MAX,
   MAINTENANCE,
   taper,
   TRUST,
@@ -19,7 +20,7 @@ import { baselinePolicy } from "../src/game/experiment/baselinePolicy.ts";
 import { tick } from "../src/game/core/tick.ts";
 import { queueAction } from "../src/game/actions/playerActions.ts";
 import { siteScore } from "../src/game/systems/admission.ts";
-import { priceMultiplier } from "../src/game/systems/arrivals.ts";
+import { detourPremiumPerKwh, priceMultiplier } from "../src/game/systems/arrivals.ts";
 import { abandonProbability } from "../src/game/systems/queue.ts";
 import { faultProbabilityPerTick } from "../src/game/systems/faults.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
@@ -511,5 +512,38 @@ describe("perceived wait (OPEN-5 / A4, D31)", () => {
       (e) => e.data?.["expected_wait_seconds"] !== e.data?.["true_wait_seconds"],
     );
     expect(differing.length).toBeGreaterThan(0);
+  });
+});
+
+describe("detour premium (D42)", () => {
+  it("is zero when the alternative is right there", () => {
+    expect(detourPremiumPerKwh(0, 11.21, 21)).toBe(0);
+  });
+
+  it("is the detour's time cost spread over the energy bought", () => {
+    // 30 min at £11.21/hr = £5.605, over 21 kWh = £0.267/kWh.
+    expect(detourPremiumPerKwh(30, 11.21, 21)).toBeCloseTo(0.267, 3);
+  });
+
+  it("rises with detour", () => {
+    const near = detourPremiumPerKwh(5, 5.12, 30);
+    const far = detourPremiumPerKwh(20, 5.12, 30);
+    expect(far).toBeGreaterThan(near);
+  });
+
+  it("falls as the driver buys more energy", () => {
+    const topUp = detourPremiumPerKwh(20, 11.21, 10);
+    const fill = detourPremiumPerKwh(20, 11.21, 40);
+    expect(topUp).toBeGreaterThan(fill);
+  });
+
+  it("is clamped at the top — a 10 kWh top-up after a long detour", () => {
+    // (60/60) × 11.21 / 10 = £1.121/kWh unclamped, which is more than the whole
+    // price range. The clamp is what stops the tail running away.
+    expect(detourPremiumPerKwh(60, 11.21, 10)).toBe(DETOUR_PREMIUM_MAX);
+  });
+
+  it("never divides by zero when a driver wants nothing", () => {
+    expect(detourPremiumPerKwh(20, 11.21, 0)).toBe(DETOUR_PREMIUM_MAX);
   });
 });

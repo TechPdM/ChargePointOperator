@@ -138,6 +138,22 @@ export const PARTIAL_CHARGE_OPTIONS = [null, 0.7, 0.6, 0.5] as const;
 export const PRICE_MIN = 0.45;
 export const PRICE_MAX = 1.2;
 
+/**
+ * Ceiling on the detour premium (D42).
+ *
+ * The premium divides a fixed detour cost by the energy the driver actually
+ * wants, which is the honest economics — a 10 kWh top-up really does justify a
+ * bigger per-kWh premium than a 40 kWh fill. But the archetype ranges allow
+ * top-ups as small as 10 kWh, and at the top of a corridor detour range that
+ * produces premiums above £1/kWh — wider than the entire price range.
+ *
+ * FIRST GUESS, confirmed or moved by the measurement pass. Set it too low and
+ * every driver on a long detour collapses onto the same ceiling and the cliff
+ * this change exists to remove comes back; too high and a handful of small
+ * top-ups will pay anything.
+ */
+export const DETOUR_PREMIUM_MAX = 0.4;
+
 export interface MaintenanceProfile {
   standingCostPerSimDay: number;
   costPerRepair: number;
