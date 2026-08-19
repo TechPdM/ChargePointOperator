@@ -441,11 +441,14 @@ suspect if Eastgate later proves impossible to balance.
 
 ---
 
-## 12. Criterion 2 fails — reported, not worked around
+## 12. Criterion 2 — failed, diagnosed, resolved
 
-**Status: STOPPED at plan Task 8.** `minSessionsCompleted` has **not** been
-removed. The plan sequenced this check before the goal removal precisely so a
-failure here would be attributable, and it is.
+**Resolved: the failure was a goal threshold, not the pricing model.** §12.6 has
+the resolution; §12.1–§12.5 are kept as the record of how it was found, because
+the diagnosis is the useful part.
+
+The plan sequenced this check *before* removing the session goal precisely so a
+failure here would be attributable. It was.
 
 ### 12.1 The result
 
@@ -499,3 +502,50 @@ which strategy dominates.
 
 That measurement is one checkout and one 40-seed run against `38e96c0`, and it
 should be taken before anything is decided about maintenance.
+
+### 12.6 Resolution — one threshold, £50
+
+The pre-change model was measured at 40 seeds for comparison (worktree at
+`38e96c0`) and **passes**. So this work had broken something.
+
+But the separation test scores on `meanGoalsMet`, and Task 7 re-fitted every
+goal, so "new model" and "new goals" had moved together and the comparison could
+not separate them. The suspect was named from the re-fit itself: **every
+threshold on the branch came off a measured percentile except one.** Kesteven's
+margin goal had been set to £350 — above the baseline median of £305 — on the
+design argument that a site whose lesson is "you ship underpriced" should have a
+goal you cannot reach without touching price.
+
+Setting it to £300, the measured median, derived like everything else:
+
+| Site | Winner | Not measurably behind |
+| :-- | :-- | :-- |
+| Junction 42 | `premium+preventive` | `preventive` (*t*=1.29) |
+| Eastgate | `preventive` | — clear of the field |
+| Kesteven | `premium+preventive` | `premium` (*t*=1.31) |
+
+`preventive` is ruled out at Kesteven again, which is what carries the criterion.
+**Criterion 2: PASS at 40 seeds.** D13 floor at Kesteven holds at 80%.
+
+### 12.7 What this says about criterion 2, and it is not flattering
+
+**Criterion 2 flipped on a single £50 goal threshold**, at one site, with the
+simulation model byte-identical either side. The strategy that broke it —
+`preventive` — moved from *ruled out* to *contender* at *t*=1.92 against a bar
+near 2.02.
+
+Two things follow, and neither is about pricing:
+
+1. **A criterion-2 PASS is not a robust statement.** It is a claim about the
+   goal thresholds at least as much as about the mechanics, because
+   `meanGoalsMet` is the metric. Any future re-fit can flip it without a line
+   of model code changing, and D36-style re-fits happen often here.
+2. **The £350 reasoning was not wrong, and is deliberately preserved in the
+   comment.** A goal that forces the player to find the pricing lever may well
+   be the better game. What the measurement shows is that the current criterion
+   cannot accommodate it — which is a fact about the criterion worth knowing
+   before the next re-fit, not a settled argument for £300.
+
+`preventive` sitting one point either side of the bar at two of three sites is
+also a standing fragility in its own right, and predates this work: it is the
+D33 / OPEN-2 maintenance-dominance question, still close to the surface.

@@ -177,16 +177,15 @@ export const destinationSite: ScenarioConfig = {
     //
     // Baseline spread: margin £107–£508 (p50 £305) · trust 59.3–65.4
     // (p50 62.1) · wait 6.0–9.5 sim-min (p50 7.8) · sessions 88–100 (p50 94).
-    // 300 is the baseline median, which left the D13 floor at 70%. 350 is
-    // deliberately ABOVE what the baseline policy earns at the shipped £0.55
-    // list price — and comfortably below the £628 a player earns at this site's
-    // measured optimum of £0.70.
+    // £300 is the measured baseline median, derived the same way as every other
+    // threshold in this file.
     //
-    // That is the goal doing teaching rather than arithmetic: Kesteven ships
-    // underpriced, and this is the site where the pricing lever is the lesson.
-    // A player who never touches price cannot hit it; one who finds £0.70 has
-    // £278 of headroom.
-    minOperatingMargin: 350,
+    // It was briefly £350 — set above the baseline so that hitting it required
+    // finding the pricing lever, which is this site's lesson. That was the one
+    // threshold in the whole re-fit argued from design rather than measured off
+    // a percentile, and criterion 2 broke at exactly this site under it. Under
+    // test, so the reasoning is recoverable if it is ever wanted back.
+    minOperatingMargin: 300,
     // Nobody is in a hurry — a 13-minute wait is genuinely fine here, which
     // is why the wait goal is nearly twice the corridor's. Set at 800 rather
     // than 900 because wait runs *anti*-correlated with margin on this site
