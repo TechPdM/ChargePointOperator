@@ -138,6 +138,15 @@ export const roadsideHub: ScenarioConfig = {
   tickSeconds: TICK_SECONDS,
   demandWaves,
   referencePricePerKwh: 0.79,
+  /**
+   * D42. The next rapid is a junction away if you drive on, and one junction
+   * back if you have just passed it. UK motorway rapid hubs sit at roughly
+   * 20–25 mile spacing, which is 20–30 min once you count leaving the road and
+   * rejoining it — and near the bottom of the range if you are willing to turn
+   * round. This is the site with genuine pricing power, and the width of the
+   * range is direction of approach.
+   */
+  detourMinutes: [8, 30],
 
   bays: [
     { id: "bay-1", label: "Bay 1", type: "rapid_dc" },

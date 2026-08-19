@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { ARCHETYPES, PRICE_MAX, PRICE_MIN } from "../../game/core/calibration.ts";
+import { ARCHETYPES, DETOUR_PREMIUM_MAX, PRICE_MAX, PRICE_MIN } from "../../game/core/calibration.ts";
 import { priceMultiplier } from "../../game/systems/arrivals.ts";
 import { getActiveWave } from "../../game/core/selectors.ts";
 import { ARCHETYPE_PLURAL } from "../format.ts";
@@ -15,23 +15,67 @@ const MIX_KEY: Record<VehicleArchetype, keyof DemandWave> = {
 };
 
 /**
+ * What fraction of an archetype refuses this price outright, given how far this
+ * site's drivers would have to detour to an alternative (D42).
+ *
+ * Before D42 this was a binary — the whole archetype flipped at one price,
+ * because the ceiling was a constant. It is now a gradient: a driver's ceiling
+ * rises with their own detour, so at any price some of them refuse and some do
+ * not. Showing it as a binary would misreport the change this panel exists to
+ * make legible.
+ *
+ * The ceiling is monotonic in detour, so the refusing fraction is just where
+ * the price sits inside the site's detour range:
+ *
+ *   ceiling(d) = base + (d/60 × VTT) / kWh     ⇒     refuses ⟺ d < d*
+ *   d*         = (price − base) × kWh × 60 / VTT
+ *
+ * `kWh` is the archetype's mid-range demand, so this is the typical driver
+ * rather than every driver — the panel is an indicator, not the simulation.
+ */
+function refusingShare(
+  key: VehicleArchetype,
+  price: number,
+  detourMinutes: [number, number],
+): number {
+  const p = ARCHETYPES[key];
+  const midKwh = (p.targetSoc - (p.arrivalSoc[0] + p.arrivalSoc[1]) / 2) *
+    ((p.batteryKwh[0] + p.batteryKwh[1]) / 2);
+  if (price <= p.maxAcceptablePriceBase) return 0;
+  // Past base + the clamp, no amount of detour saves it: everyone refuses.
+  if (price > p.maxAcceptablePriceBase + DETOUR_PREMIUM_MAX) return 1;
+  const breakEven = ((price - p.maxAcceptablePriceBase) * midKwh * 60) / p.valueOfTimePerHour;
+  const [lo, hi] = detourMinutes;
+  if (breakEven <= lo) return 0;
+  if (breakEven >= hi) return 1;
+  return (breakEven - lo) / (hi - lo);
+}
+
+/**
  * Who refuses this price outright, and how much of the wave they are.
  *
  * The elasticity multiplier alone was badly understating price: it only thins
  * the arrival rate, while the far larger effect is drivers reaching the
- * forecourt and refusing on `maxAcceptablePricePerKwh`. Measured over 5 seeds,
- * £1.20 shows as "−62% arrivals" while sessions actually started fall 83%. Both
+ * forecourt and refusing on their price ceiling. Measured over 5 seeds, £1.20
+ * shows as "−62% arrivals" while sessions actually started fall 83%. Both
  * halves are now on screen; neither is multiplied into a single false-precision
  * figure, because the soft price term in `siteScore` sheds custom on top of
  * these and is not captured by either.
  */
-function hardRejectors(price: number, wave: DemandWave): { names: string[]; share: number } {
+function hardRejectors(
+  price: number,
+  wave: DemandWave,
+  detourMinutes: [number, number],
+): { names: string[]; share: number } {
   const names: string[] = [];
   let share = 0;
   for (const key of Object.keys(ARCHETYPES) as VehicleArchetype[]) {
-    if (price <= ARCHETYPES[key].maxAcceptablePricePerKwh) continue;
-    names.push(ARCHETYPE_PLURAL[key]);
-    share += (wave[MIX_KEY[key]] as number) ?? 0;
+    const refusing = refusingShare(key, price, detourMinutes);
+    if (refusing <= 0) continue;
+    // "most commuters" reads better than "commuters" when it is not all of them.
+    const qualifier = refusing >= 0.99 ? "" : refusing >= 0.5 ? "most " : "some ";
+    names.push(`${qualifier}${ARCHETYPE_PLURAL[key]}`);
+    share += ((wave[MIX_KEY[key]] as number) ?? 0) * refusing;
   }
   return { names, share };
 }
@@ -55,7 +99,9 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
   const demand = wave
     ? priceMultiplier(draft, state.scenario.referencePricePerKwh, wave.priceElasticity)
     : 1;
-  const refused = wave ? hardRejectors(draft, wave) : { names: [], share: 0 };
+  const refused = wave
+    ? hardRejectors(draft, wave, state.scenario.detourMinutes)
+    : { names: [], share: 0 };
 
   /**
    * Send the pair to the sim — on release, deliberately not from `onChange`.

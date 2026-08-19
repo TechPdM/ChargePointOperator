@@ -70,8 +70,32 @@ export interface ArchetypeProfile {
   urgency: [number, number];
   /** Where this archetype starts grumbling about price (D21). */
   referencePricePerKwh: number;
-  /** Hard rejection, applied on top of siteScore. */
-  maxAcceptablePricePerKwh: number;
+  /**
+   * What they would pay with a competing charger **right there** — no detour,
+   * no captivity (D42). The situational part is added per driver at spawn, so
+   * this is a floor on the hard rejection rather than the rejection itself.
+   *
+   * Derived, not chosen: each base is the old ceiling minus the premium a
+   * Junction-42-typical detour (19 sim-min) buys for that archetype at its
+   * mid-range energy demand. The corridor therefore keeps the tolerance it
+   * already had, and the differentiation comes from the other two sites being
+   * less captive — the honest direction, since the corridor's pricing power was
+   * never the anomaly.
+   */
+  maxAcceptablePriceBase: number;
+  /**
+   * DfT, *Provision of market research for value of travel time savings and
+   * reliability*, Aug 2015, Table 5.1 — **2014 perceived prices, £/hr**.
+   * Commute £11.21, other non-work £5.12.
+   *
+   * Perceived prices, not market or factor prices, is the right basis: this
+   * stands in for what a driver believes their own time is worth while deciding
+   * whether to drive on, which is exactly what a perceived-price VTT measures.
+   *
+   * Not uprated from 2014 — no uprating factor has been sourced, and leaving it
+   * understates premiums, which is the conservative direction. §9 register.
+   */
+  valueOfTimePerHour: number;
 }
 
 export const ARCHETYPES: Record<VehicleArchetype, ArchetypeProfile> = {
@@ -85,7 +109,10 @@ export const ARCHETYPES: Record<VehicleArchetype, ArchetypeProfile> = {
     waitSensitivity: 0.6,
     urgency: [0.3, 0.5],
     referencePricePerKwh: 0.75,
-    maxAcceptablePricePerKwh: 0.95,
+    // Was 0.95. 0.95 − premium(19 min, £11.21/hr, 21.0 kWh mid demand) = 0.78.
+    maxAcceptablePriceBase: 0.78,
+    // DfT VTT Table 5.1, commute.
+    valueOfTimePerHour: 11.21,
   },
   enroute: {
     batteryKwh: [50, 80],
@@ -97,7 +124,10 @@ export const ARCHETYPES: Record<VehicleArchetype, ArchetypeProfile> = {
     waitSensitivity: 0.5,
     urgency: [0.5, 0.7],
     referencePricePerKwh: 0.85,
-    maxAcceptablePricePerKwh: 1.1,
+    // Was 1.10. 1.10 − premium(19 min, £5.12/hr, 35.8 kWh mid demand) = 1.05.
+    maxAcceptablePriceBase: 1.05,
+    // DfT VTT Table 5.1, other non-work.
+    valueOfTimePerHour: 5.12,
   },
   panic_low_soc: {
     batteryKwh: [40, 70],
@@ -109,7 +139,11 @@ export const ARCHETYPES: Record<VehicleArchetype, ArchetypeProfile> = {
     waitSensitivity: 0.2,
     urgency: [0.9, 1.0],
     referencePricePerKwh: 1.0,
-    maxAcceptablePricePerKwh: 1.5,
+    // Was 1.50. 1.50 − premium(19 min, £5.12/hr, 28.9 kWh mid demand) = 1.44.
+    // Still by far the highest base: their alternative may not be reachable at
+    // all, and that is what the base carries rather than the detour premium.
+    maxAcceptablePriceBase: 1.44,
+    valueOfTimePerHour: 5.12,
   },
 };
 

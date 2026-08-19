@@ -114,6 +114,12 @@ export const commuterHub: ScenarioConfig = {
   tickSeconds: TICK_SECONDS,
   demandWaves,
   referencePricePerKwh: 0.72,
+  /**
+   * D42. Chargers on the next street, a supermarket bank round the corner, and
+   * home charging as the fallback that costs nothing to reach. Almost no
+   * pricing power — this is the site where premium pricing should hurt.
+   */
+  detourMinutes: [2, 7],
 
   // Six rapid bays, no ultra. Commuters cap around 90–120 kW and dwell for a
   // top-up, so ultra-rapid hardware would buy almost nothing — which makes the

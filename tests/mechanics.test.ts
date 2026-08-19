@@ -24,6 +24,8 @@ import { detourPremiumPerKwh, priceMultiplier } from "../src/game/systems/arriva
 import { abandonProbability } from "../src/game/systems/queue.ts";
 import { faultProbabilityPerTick } from "../src/game/systems/faults.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
+import { commuterHub } from "../src/game/scenarios/commuterHub.ts";
+import { destinationSite } from "../src/game/scenarios/destinationSite.ts";
 
 /** Read from the scenario, not hardcoded — it moves when the hardware is re-rated. */
 const UPGRADE_COST = roadsideHub.upgradeCosts[0]?.capexCost ?? 0;
@@ -45,7 +47,7 @@ function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
     demand: {
       targetSoc: p.targetSoc,
       requestedKwh: 30,
-      maxAcceptablePricePerKwh: p.maxAcceptablePricePerKwh,
+      maxAcceptablePricePerKwh: p.maxAcceptablePriceBase,
       patienceSeconds: p.patienceSeconds,
     },
   };
@@ -87,7 +89,10 @@ describe("admission — Calibration §5 worked example (D21)", () => {
   it("prices commuters out entirely at £1.10 — the demand-shaping lever", () => {
     expect(siteScore(vehicle("commuter", 0.4), 1.1, 0, 60)).toBeLessThan(ACCEPT_THRESHOLD);
     // …and their hard reject has already fired well below that.
-    expect(ARCHETYPES.commuter.maxAcceptablePricePerKwh).toBeLessThan(1.1);
+    // TASK 4 REWRITES THIS. The claim is now site-dependent — a commuter's
+    // ceiling depends on their detour — so asserting it against the archetype
+    // is no longer the same statement. Left compiling, not left correct.
+    expect(ARCHETYPES.commuter.maxAcceptablePriceBase).toBeLessThan(1.1);
   });
 });
 
@@ -545,5 +550,45 @@ describe("detour premium (D42)", () => {
 
   it("never divides by zero when a driver wants nothing", () => {
     expect(detourPremiumPerKwh(20, 11.21, 0)).toBe(DETOUR_PREMIUM_MAX);
+  });
+});
+
+describe("archetype bases and detour ranges (D42)", () => {
+  it("keeps the archetype tolerance ordering", () => {
+    expect(ARCHETYPES.commuter.maxAcceptablePriceBase).toBeLessThan(
+      ARCHETYPES.enroute.maxAcceptablePriceBase,
+    );
+    expect(ARCHETYPES.enroute.maxAcceptablePriceBase).toBeLessThan(
+      ARCHETYPES.panic_low_soc.maxAcceptablePriceBase,
+    );
+  });
+
+  it("puts every base above the price at which that archetype starts grumbling", () => {
+    for (const p of Object.values(ARCHETYPES)) {
+      expect(p.maxAcceptablePriceBase).toBeGreaterThan(p.referencePricePerKwh);
+    }
+  });
+
+  it("uses the DfT commute value for commuters and non-work for the rest", () => {
+    expect(ARCHETYPES.commuter.valueOfTimePerHour).toBeCloseTo(11.21, 2);
+    expect(ARCHETYPES.enroute.valueOfTimePerHour).toBeCloseTo(5.12, 2);
+    expect(ARCHETYPES.panic_low_soc.valueOfTimePerHour).toBeCloseTo(5.12, 2);
+  });
+
+  it("orders the sites by how captive their drivers are", () => {
+    const mid = (r: [number, number]) => (r[0] + r[1]) / 2;
+    expect(mid(commuterHub.detourMinutes)).toBeLessThan(mid(destinationSite.detourMinutes));
+    expect(mid(destinationSite.detourMinutes)).toBeLessThan(mid(roadsideHub.detourMinutes));
+  });
+
+  it("reproduces today's corridor ceilings at a Junction 42 mid detour", () => {
+    // This is the anchor the bases were derived from (design §3.2): the corridor
+    // keeps the tolerance it has, and the other sites come out cheaper. If this
+    // drifts, the bases were retuned without saying so.
+    const mid = (roadsideHub.detourMinutes[0] + roadsideHub.detourMinutes[1]) / 2;
+    const c = ARCHETYPES.commuter;
+    expect(
+      c.maxAcceptablePriceBase + detourPremiumPerKwh(mid, c.valueOfTimePerHour, 21),
+    ).toBeCloseTo(0.95, 2);
   });
 });

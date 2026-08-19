@@ -93,6 +93,12 @@ export const destinationSite: ScenarioConfig = {
   tickSeconds: TICK_SECONDS,
   demandWaves,
   referencePricePerKwh: 0.62,
+  /**
+   * D42. A market town has other chargers, but they are across town rather than
+   * next door, and the driver is parked up doing something else anyway. Real
+   * pricing power, well short of the corridor's.
+   */
+  detourMinutes: [5, 18],
 
   // Eight slow AC posts — the third tier, unused by the other two scenarios.
   // Cheap hardware, lots of it, and speed is beside the point.

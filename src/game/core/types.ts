@@ -440,6 +440,15 @@ export interface ScenarioConfig {
   tickSeconds: number;
   demandWaves: DemandWave[];
   referencePricePerKwh: number;
+  /**
+   * Sim-minutes to the nearest alternative rapid charger, as a range (D42).
+   *
+   * The range's width is direction of approach: at a motorway junction the next
+   * rapid is a long way ahead if you are driving on, and close behind if you
+   * have just passed one. Each driver draws their own, which is what turns the
+   * old shared price cliff into a demand curve.
+   */
+  detourMinutes: [number, number];
 
   bays: BayRosterEntry[];
   initialGridPowerKw: number;

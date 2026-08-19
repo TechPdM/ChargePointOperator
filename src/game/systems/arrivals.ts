@@ -127,7 +127,7 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
       // Driver-intent demand. The site's partial-charge policy may reduce this
       // at session start (D14); this figure is what they wanted.
       requestedKwh: Math.max(0, (p.targetSoc - currentSoc) * batteryCapacityKwh),
-      maxAcceptablePricePerKwh: p.maxAcceptablePricePerKwh,
+      maxAcceptablePricePerKwh: p.maxAcceptablePriceBase,
       patienceSeconds,
     },
   };
