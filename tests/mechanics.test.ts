@@ -54,13 +54,18 @@ function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
   };
 }
 
-/** Wait at which siteScore falls to ACCEPT_THRESHOLD. */
-function walkAwayWaitSeconds(archetype: VehicleArchetype, urgency: number): number {
+/** Wait at which siteScore falls to ACCEPT_THRESHOLD, at a given price. */
+function walkAwayWaitSeconds(
+  archetype: VehicleArchetype,
+  urgency: number,
+  price = 0.79,
+): number {
   let lo = 0;
   let hi = 20_000;
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
-    if (siteScore(vehicle(archetype, urgency), 0.79, mid, 60) >= ACCEPT_THRESHOLD) lo = mid;
+    const ref = roadsideHub.referencePricePerKwh;
+    if (siteScore(vehicle(archetype, urgency), price, ref, mid, 60) >= ACCEPT_THRESHOLD) lo = mid;
     else hi = mid;
   }
   return lo;
@@ -68,9 +73,14 @@ function walkAwayWaitSeconds(archetype: VehicleArchetype, urgency: number): numb
 
 describe("admission — Calibration §5 worked example (D21)", () => {
   it("reproduces the published siteScore intercepts at £0.79 / trust 60", () => {
-    expect(siteScore(vehicle("commuter", 0.4), 0.79, 0, 60)).toBeCloseTo(0.696, 3);
-    expect(siteScore(vehicle("enroute", 0.6), 0.79, 0, 60)).toBeCloseTo(1.512, 3);
-    expect(siteScore(vehicle("panic_low_soc", 0.95), 0.79, 0, 60)).toBeCloseTo(2.188, 3);
+    // D43 moved these. £0.79 IS the corridor's reference price, so the price
+    // term is exactly zero for every archetype here and the intercepts are now
+    // urgency and trust alone. They used to carry a per-archetype price offset
+    // (+0.224 / +0.192 / +0.168) that had no business being site-independent.
+    const ref = roadsideHub.referencePricePerKwh;
+    expect(siteScore(vehicle("commuter", 0.4), 0.79, ref, 0, 60)).toBeCloseTo(0.92, 3);
+    expect(siteScore(vehicle("enroute", 0.6), 0.79, ref, 0, 60)).toBeCloseTo(1.32, 3);
+    expect(siteScore(vehicle("panic_low_soc", 0.95), 0.79, ref, 0, 60)).toBeCloseTo(2.02, 3);
   });
 
   it("sheds commuters first, then en-route, then panic", () => {
@@ -78,17 +88,37 @@ describe("admission — Calibration §5 worked example (D21)", () => {
     const enroute = walkAwayWaitSeconds("enroute", 0.6) / 60;
     const panic = walkAwayWaitSeconds("panic_low_soc", 0.95) / 60;
 
-    expect(commuter).toBeGreaterThan(8);
-    expect(commuter).toBeLessThan(10);
-    expect(enroute).toBeGreaterThan(25);
-    expect(enroute).toBeLessThan(29);
-    expect(panic).toBeGreaterThan(95);
+    // D43 re-baselined all three. £0.79 is the corridor's own reference, so the
+    // price term is zero and these are urgency, wait-sensitivity and trust
+    // alone. They used to carry a per-archetype price offset — which is why
+    // commuters were shown shedding at ~9 sim-min and now hold out to ~13.
+    // The ORDERING is the claim this test exists to defend, and it is intact.
+    expect(commuter).toBeGreaterThan(11);
+    expect(commuter).toBeLessThan(15);
+    expect(enroute).toBeGreaterThan(21);
+    expect(enroute).toBeLessThan(26);
+    expect(panic).toBeGreaterThan(80);
     expect(commuter).toBeLessThan(enroute);
     expect(enroute).toBeLessThan(panic);
   });
 
+  it("and how long they will wait now depends on what you are charging (D43)", () => {
+    // New with D43, and the point of it. The old walk-away times were fixed per
+    // archetype, because the price term was measured against a reference the
+    // driver carried with them and so never moved with the site's pricing.
+    // Patience and price are now coupled: the same commuter holds out ~13
+    // sim-min at the going rate and will not queue at all at 16p over it.
+    const atReference = walkAwayWaitSeconds("commuter", 0.4, 0.79) / 60;
+    const dearer = walkAwayWaitSeconds("commuter", 0.4, 0.85) / 60;
+    const dearest = walkAwayWaitSeconds("commuter", 0.4, 0.95) / 60;
+    expect(atReference).toBeGreaterThan(dearer);
+    expect(dearer).toBeGreaterThan(dearest);
+    expect(dearest).toBe(0);
+  });
+
   it("prices commuters out entirely at £1.10 — the demand-shaping lever", () => {
-    expect(siteScore(vehicle("commuter", 0.4), 1.1, 0, 60)).toBeLessThan(ACCEPT_THRESHOLD);
+    expect(siteScore(vehicle("commuter", 0.4), 1.1, roadsideHub.referencePricePerKwh, 0, 60))
+      .toBeLessThan(ACCEPT_THRESHOLD);
     // …and their hard reject has already fired well below that, on every site:
     // the base alone is under £1.10, so no detour premium available anywhere
     // saves a commuter at that price.
@@ -642,5 +672,40 @@ describe("per-driver ceilings (D42)", () => {
         ARCHETYPES[v.archetype].maxAcceptablePriceBase,
       );
     }
+  });
+});
+
+describe("the reference price belongs to the market, not the driver (D43)", () => {
+  // siteScore used the ARCHETYPE's reference, so the soft admission test was
+  // completely site-blind on price and every site's margin optimum landed in
+  // the same place. A reference price is what charging costs round here; the
+  // sensitivity coefficient is how much this driver minds. The code had the
+  // first of those backwards.
+  const commuter = () => vehicle("commuter", 0.4);
+
+  it("makes the same driver judge the same price differently by site", () => {
+    const corridor = siteScore(commuter(), 0.85, roadsideHub.referencePricePerKwh, 0, 50);
+    const urban = siteScore(commuter(), 0.85, commuterHub.referencePricePerKwh, 0, 50);
+    const destination = siteScore(commuter(), 0.85, destinationSite.referencePricePerKwh, 0, 50);
+    expect(corridor).toBeGreaterThan(urban);
+    expect(urban).toBeGreaterThan(destination);
+  });
+
+  it("puts £0.85 on the right side of the line at the corridor and the wrong side elsewhere", () => {
+    expect(siteScore(commuter(), 0.85, roadsideHub.referencePricePerKwh, 0, 50))
+      .toBeGreaterThan(ACCEPT_THRESHOLD);
+    expect(siteScore(commuter(), 0.85, commuterHub.referencePricePerKwh, 0, 50))
+      .toBeLessThan(ACCEPT_THRESHOLD);
+    expect(siteScore(commuter(), 0.85, destinationSite.referencePricePerKwh, 0, 50))
+      .toBeLessThan(ACCEPT_THRESHOLD);
+  });
+
+  it("leaves a desperate driver still barely caring, wherever they are", () => {
+    // The archetype character now rides entirely on priceSensitivity (0.1 for
+    // panic against 0.7 for commuters), which is where it always belonged.
+    const spread = (a: VehicleArchetype, urgency: number) =>
+      siteScore(vehicle(a, urgency), 0.85, roadsideHub.referencePricePerKwh, 0, 50) -
+      siteScore(vehicle(a, urgency), 0.85, destinationSite.referencePricePerKwh, 0, 50);
+    expect(spread("panic_low_soc", 0.95)).toBeLessThan(spread("commuter", 0.4) / 3);
   });
 });

@@ -1,5 +1,6 @@
 /**
- * Admission — the siteScore test (D21).
+ * Admission — the siteScore test (D21), with the price reference taken from the
+ * site rather than the archetype (D43).
  *
  * The per-archetype price/wait sensitivities are the whole point of this
  * formula: before D21 they were calibrated and read by nothing, so all three
@@ -10,7 +11,6 @@
 import { archetypeName } from "../core/labels.ts";
 import {
   ACCEPT_THRESHOLD,
-  ARCHETYPES,
   SITE_SCORE,
   TRUST,
   WAIT_PERCEPTION_NOISE,
@@ -20,17 +20,31 @@ import { getProjectedWait } from "../core/selectors.ts";
 import type { SimulationState, VehicleAgent } from "../core/types.ts";
 import { departVehicle } from "./vehicles.ts";
 
+/**
+ * The soft admission test.
+ *
+ * `referencePricePerKwh` is the **site's** (D43), not the archetype's. It used
+ * to be the archetype's, which made this whole test site-blind on price: a
+ * commuter judged £0.85 identically at a motorway services and a garden centre,
+ * and every site's margin optimum landed in the same place as a result.
+ *
+ * A reference price is what charging costs round here — a property of the
+ * market. How much a driver minds paying over it is `priceSensitivity` — a
+ * property of the driver. The two were conflated; separating them is the whole
+ * change, and archetype character is unharmed because it rides on the
+ * sensitivity coefficient (0.7 commuter · 0.4 en-route · 0.1 panic).
+ */
 export function siteScore(
   vehicle: VehicleAgent,
   price: number,
+  referencePricePerKwh: number,
   expectedWaitSeconds: number,
   trust: number,
 ): number {
-  const reference = ARCHETYPES[vehicle.archetype].referencePricePerKwh;
   return (
     SITE_SCORE.a * vehicle.urgencyScore -
     SITE_SCORE.b * vehicle.waitSensitivity * (expectedWaitSeconds / 600) -
-    SITE_SCORE.c * vehicle.priceSensitivity * ((price - reference) / 0.1) +
+    SITE_SCORE.c * vehicle.priceSensitivity * ((price - referencePricePerKwh) / 0.1) +
     SITE_SCORE.d * ((trust - 50) / 25)
   );
 }
@@ -53,6 +67,7 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
     const score = siteScore(
       vehicle,
       state.site.policy.pricePerKwh,
+      state.scenario.referencePricePerKwh,
       perceivedWait,
       state.site.metrics.trust,
     );
@@ -71,6 +86,7 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
           expected_wait_seconds: round(perceivedWait, 0),
           true_wait_seconds: round(trueWait, 0),
           price_per_kwh: round(state.site.policy.pricePerKwh, 2),
+          reference_price_per_kwh: round(state.scenario.referencePricePerKwh, 2),
           hard_price_reject: priceRejected,
           archetype: vehicle.archetype,
         }),
