@@ -228,9 +228,22 @@ export const roadsideHub: ScenarioConfig = {
    * carries the difficulty floor on its own (met on 4/20).
    */
   goals: {
-    minOperatingMargin: 2_800,
+    // Re-fitted for D42/D43 (2026-08-19). Margin and sessions had both gone
+    // free — met on 20/20 — because site-aware pricing lets the corridor charge
+    // more for the same traffic. Re-set from the new 20-seed baseline spread
+    // the way D36 set the last set: round numbers off the measured distribution,
+    // not fitted to the decimal.
+    //
+    // Baseline spread: margin £3,169–£4,445 (p50 £3,453) · trust 41.4–57.6
+    // (p50 49.8) · wait 5.5–7.5 sim-min (p50 6.6) · sessions 312–343 (p50 320).
+    minOperatingMargin: 3_200,
     maxAvgWaitSeconds: 420,
+    // Unchanged, and still the goal that bites: met on 4/20. D36 kept it at 55
+    // through the last re-rating on the grounds that moving every other number
+    // does not change what a good reputation is worth, and that holds here too.
     minTrust: 55,
-    minSessionsCompleted: 300,
+    // 310 sits below the measured p10 of 312, so it was met on 20/20 — still
+    // free. 320 is the median.
+    minSessionsCompleted: 320,
   },
 };

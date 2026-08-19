@@ -169,14 +169,38 @@ export const destinationSite: ScenarioConfig = {
     // floor sat at exactly 75%. Wait does not separate them — every seed that
     // fails on wait already fails on margin — so the two thresholds that do
     // were moved by the smallest amount that breaks s1 and s4.
-    minOperatingMargin: 520,
+    // Re-fitted for D42/D43 (2026-08-19). §11.2 of the pricing design predicted
+    // this site would take the hardest knock and it did: its optimum price fell
+    // £0.85 → £0.70 once drivers judged price against a £0.62 local going rate
+    // instead of a national one, and margin at optimum fell £845 → £628. The
+    // old £520 goal was met on 2/20.
+    //
+    // Baseline spread: margin £107–£508 (p50 £305) · trust 59.3–65.4
+    // (p50 62.1) · wait 6.0–9.5 sim-min (p50 7.8) · sessions 88–100 (p50 94).
+    // 300 is the baseline median, which left the D13 floor at 70%. 350 is
+    // deliberately ABOVE what the baseline policy earns at the shipped £0.55
+    // list price — and comfortably below the £628 a player earns at this site's
+    // measured optimum of £0.70.
+    //
+    // That is the goal doing teaching rather than arithmetic: Kesteven ships
+    // underpriced, and this is the site where the pricing lever is the lesson.
+    // A player who never touches price cannot hit it; one who finds £0.70 has
+    // £278 of headroom.
+    minOperatingMargin: 350,
     // Nobody is in a hurry — a 13-minute wait is genuinely fine here, which
     // is why the wait goal is nearly twice the corridor's. Set at 800 rather
     // than 900 because wait runs *anti*-correlated with margin on this site
     // (a busy day is a profitable one), so it is the threshold that catches
     // the seeds margin does not — at 900 the floor sat at 75%.
-    maxAvgWaitSeconds: 800,
-    minTrust: 58,
-    minSessionsCompleted: 95,
+    // 800 s was met on 20/20 — free — and 540 s left the D13 floor short at
+    // 75%. 8 sim-min is still the most generous wait goal of the three sites
+    // (the corridor's is 7) so the "nobody here is in a hurry" character
+    // survives; it just stops being unconstrained.
+    maxAvgWaitSeconds: 480,
+    // Trust ran 59.3–65.4 (p50 62.1), so 58 was met on 19/20 — free. 61 sits
+    // just under the median and makes a bad day on trust cost something.
+    minTrust: 61,
+    // 90 left the D13 floor at 70%. 94 is the measured median.
+    minSessionsCompleted: 94,
   },
 };

@@ -193,9 +193,24 @@ export const commuterHub: ScenarioConfig = {
    * and the money is the thing that is genuinely hard to make.
    */
   goals: {
-    minOperatingMargin: 1_200,
-    maxAvgWaitSeconds: 310,
-    minTrust: 60,
-    minSessionsCompleted: 145,
+    // Re-fitted for D42/D43 (2026-08-19). This site moved furthest: it is the
+    // one where premium pricing now actively loses money, so the old £1,200
+    // margin goal became near-unreachable (met on 3/20) while wait and trust
+    // went slack (19/20 and 18/20).
+    //
+    // Baseline spread: margin £678–£1,223 (p50 £894) · trust 60.4–67.6
+    // (p50 62.3) · wait 3.9–4.7 sim-min (p50 4.2) · sessions 136–157 (p50 147).
+    //
+    // Margin stays the sharp one here — an urban site with no pricing power
+    // should be a margin problem — but at a figure inside the measured spread
+    // rather than above the top of it.
+    minOperatingMargin: 1_000,
+    maxAvgWaitSeconds: 270,
+    minTrust: 61,
+    // 140 left the D13 floor at 75%, under the ≥80% bar: four goals that are
+    // each individually reachable still have to combine into a day the baseline
+    // loses. 147 is the measured median, which is the same lever D36 pulled to
+    // put the floor back on the corridor.
+    minSessionsCompleted: 147,
   },
 };
