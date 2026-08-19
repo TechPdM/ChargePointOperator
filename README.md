@@ -19,6 +19,7 @@ The design documents are canonical and come first:
 | `ChargePointOperator_Gate_Scorecard.md` | the gate, 3 of 5 criteria scored |
 | `ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
 | `ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
+| `ChargePointOperator_PricingModel_Discovery.md` | why profit alone cannot be the objective yet — measured, nothing decided |
 
 Where code and documents disagree, the documents win — fix the document first, then the code.
 
