@@ -14,6 +14,7 @@
  * asserts a direction tells you when the model is lying to you.
  */
 
+import { PRICE_MIN } from "../core/calibration.ts";
 import { runScenario, type RunOptions } from "../core/run.ts";
 import type { ScenarioConfig, SimulationState } from "../core/types.ts";
 import { baselinePolicy, type PolicyActor } from "./baselinePolicy.ts";
@@ -36,7 +37,7 @@ export interface SweepAxis {
   notes?: string;
 }
 
-export type Direction = "up" | "down" | "flat" | "up-then-flat";
+export type Direction = "up" | "down" | "flat" | "up-then-flat" | "up-then-down";
 
 export interface GradientExpectation {
   metric: MetricKey;
@@ -183,6 +184,26 @@ function judge(expectation: GradientExpectation, values: number[]): GradientVerd
       observed = rose ? (plateaued ? "up-then-flat" : "up") : observed;
       break;
     }
+    case "up-then-down": {
+      // Rises to an interior peak, then falls away — the shape of an optimum.
+      //
+      // Added for D42. Before it, the price axis stopped at £0.89 and margin
+      // per session rose monotonically across the whole of it, so "up" was the
+      // truthful expectation. Now that the axis runs past the price at which
+      // drivers refuse, the honest claim is that there IS a peak and it is not
+      // at either end — which is a stronger statement about the model than
+      // monotonicity was, and the one the pricing decision rests on.
+      let peak = 0;
+      for (let i = 1; i < values.length; i++) {
+        if ((values[i] ?? 0) > (values[peak] ?? 0)) peak = i;
+      }
+      const interior = peak > 0 && peak < values.length - 1;
+      const rose = ((values[peak] ?? 0) - first) / scale > tolerance;
+      const fell = ((values[peak] ?? 0) - last) / scale > tolerance;
+      pass = interior && rose && fell;
+      observed = pass ? "up-then-down" : observed;
+      break;
+    }
   }
 
   return { metric: expectation.metric, expected: expectation.direction, observed, values, pass };
@@ -215,15 +236,27 @@ export function sanityAxes(): SweepAxis[] {
   return [
     {
       name: "pricePerKwh",
-      notes: "arrivals ↓, wait ↓, margin/session ↑, trust ↘ mild",
-      points: [0.55, 0.65, 0.79, 0.89].map((price) => ({
+      notes: "arrivals ↓, wait ↓, margin/session peaks then falls, trust ↘ mild",
+      // Re-ranged for D42. The old four points (0.55–0.89) could not resolve an
+      // optimum above £0.89, which is exactly where the corridor's is expected
+      // once its drivers' ceilings reflect a 25-minute detour — so the axis
+      // would have reported "the optimum is the top of the range" on every
+      // site and called it a result. £0.05 steps across the full
+      // PRICE_MIN–PRICE_MAX range: the design's criterion 1 asks for a ≥ £0.10
+      // spread between sites, so the grid has to be finer than the bar it is
+      // being used to measure.
+      points: Array.from({ length: 16 }, (_, i) => PRICE_MIN + i * 0.05).map((price) => ({
         label: `£${price.toFixed(2)}`,
         scenario: (base) => ({ ...base, initialPricePerKwh: price }),
       })),
       expect: [
         { metric: "arrivals", direction: "down" },
         { metric: "cumAvgWaitSeconds", direction: "down" },
-        { metric: "marginPerSession", direction: "up" },
+        // D42: "up" was only true because the old axis stopped below the
+        // price at which drivers refuse. Across the full range there is a
+        // peak, and where that peak sits now differs by site — which is the
+        // whole point of the change.
+        { metric: "marginPerSession", direction: "up-then-down" },
       ],
     },
     {
