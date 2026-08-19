@@ -72,9 +72,12 @@ function hardRejectors(
   for (const key of Object.keys(ARCHETYPES) as VehicleArchetype[]) {
     const refusing = refusingShare(key, price, detourMinutes);
     if (refusing <= 0) continue;
-    // "most commuters" reads better than "commuters" when it is not all of them.
-    const qualifier = refusing >= 0.99 ? "" : refusing >= 0.5 ? "most " : "some ";
-    names.push(`${qualifier}${ARCHETYPE_PLURAL[key]}`);
+    // "most commuters" reads better than "commuters" when it is not all of
+    // them. The plural is capitalised for use at the head of a sentence, so
+    // lower it when a qualifier now holds that position.
+    const plural = ARCHETYPE_PLURAL[key];
+    const qualifier = refusing >= 0.99 ? "" : refusing >= 0.5 ? "Most " : "Some ";
+    names.push(qualifier ? `${qualifier}${plural[0]?.toLowerCase()}${plural.slice(1)}` : plural);
     share += ((wave[MIX_KEY[key]] as number) ?? 0) * refusing;
   }
   return { names, share };
