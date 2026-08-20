@@ -23,6 +23,8 @@ The design documents are canonical and come first:
 
 Where code and documents disagree, the documents win — fix the document first, then the code.
 
+`docs/model-map.html` is the exception, and runs the other way: it is a map of the model **as built**, read out of `src/game` rather than specified. Open it in a browser. It draws every variable and every path by which one moves another, banded in tick-pipeline order — click a block for its formula, its constants and its source line, or filter to one channel to isolate a mechanism. It is a reading aid, not a source of truth; where it disagrees with the code, the code is right and the map is stale.
+
 ## Running it
 
 ```bash

@@ -1,0 +1,1358 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Charge Point Model Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ---------------------------------------------------------------------------
+   Tokens — complete light palette on bare :root, redefined for both dark paths.
+   --------------------------------------------------------------------------- */
+:root {
+  --ground:   #EDEFF1;
+  --panel:    #FFFFFF;
+  --panel-2:  #F5F7F8;
+  --ink:      #11171A;
+  --ink-2:    #3A464C;
+  --muted:    #5C686E;
+  --faint:    #8A959B;
+  --rule:     #D2D9DC;
+  --rule-2:   #E3E8EA;
+  --busbar:   #B9C3C8;
+
+  --ch-price: #B57A12;
+  --ch-wait:  #2C6E8F;
+  --ch-trust: #6E4A9E;
+  --ch-fault: #A8442C;
+  --ch-power: #2E7259;
+  --ch-money: #6B767C;
+
+  --ch-price-bg: #B57A1216;
+  --ch-wait-bg:  #2C6E8F16;
+  --ch-trust-bg: #6E4A9E16;
+  --ch-fault-bg: #A8442C16;
+  --ch-power-bg: #2E725916;
+
+  --node-fill:   #FFFFFF;
+  --node-stroke: #C3CCD1;
+  --node-fill-2: #F3F5F6;
+  --sel:         #11171A;
+  --shadow:      0 1px 2px rgba(17,23,26,.06), 0 6px 18px rgba(17,23,26,.05);
+
+  --band-a: #6B767C;
+  --band-b: #B57A12;
+  --band-c: #2C6E8F;
+  --band-d: #6E4A9E;
+  --band-e: #2E7259;
+  --band-f: #A8442C;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:   #0F1315;
+    --panel:    #171C1F;
+    --panel-2:  #1E2529;
+    --ink:      #E4EAEC;
+    --ink-2:    #B7C1C6;
+    --muted:    #8B979D;
+    --faint:    #6C777D;
+    --rule:     #2A3337;
+    --rule-2:   #212A2E;
+    --busbar:   #39454A;
+
+    --ch-price: #E0A63C;
+    --ch-wait:  #56A8CC;
+    --ch-trust: #A783D9;
+    --ch-fault: #D4735A;
+    --ch-power: #4FA383;
+    --ch-money: #8B979D;
+
+    --ch-price-bg: #E0A63C1F;
+    --ch-wait-bg:  #56A8CC1F;
+    --ch-trust-bg: #A783D91F;
+    --ch-fault-bg: #D4735A1F;
+    --ch-power-bg: #4FA3831F;
+
+    --node-fill:   #1B2225;
+    --node-stroke: #384349;
+    --node-fill-2: #222A2E;
+    --sel:         #E4EAEC;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+
+    --band-a: #8B979D;
+    --band-b: #E0A63C;
+    --band-c: #56A8CC;
+    --band-d: #A783D9;
+    --band-e: #4FA383;
+    --band-f: #D4735A;
+  }
+}
+:root[data-theme="dark"] {
+  --ground:   #0F1315;
+  --panel:    #171C1F;
+  --panel-2:  #1E2529;
+  --ink:      #E4EAEC;
+  --ink-2:    #B7C1C6;
+  --muted:    #8B979D;
+  --faint:    #6C777D;
+  --rule:     #2A3337;
+  --rule-2:   #212A2E;
+  --busbar:   #39454A;
+
+  --ch-price: #E0A63C;
+  --ch-wait:  #56A8CC;
+  --ch-trust: #A783D9;
+  --ch-fault: #D4735A;
+  --ch-power: #4FA383;
+  --ch-money: #8B979D;
+
+  --ch-price-bg: #E0A63C1F;
+  --ch-wait-bg:  #56A8CC1F;
+  --ch-trust-bg: #A783D91F;
+  --ch-fault-bg: #D4735A1F;
+  --ch-power-bg: #4FA3831F;
+
+  --node-fill:   #1B2225;
+  --node-stroke: #384349;
+  --node-fill-2: #222A2E;
+  --sel:         #E4EAEC;
+  --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+
+  --band-a: #8B979D;
+  --band-b: #E0A63C;
+  --band-c: #56A8CC;
+  --band-d: #A783D9;
+  --band-e: #4FA383;
+  --band-f: #D4735A;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Identifiers and paths are long and unbreakable — without this a string like
+   src/game/core/{types,calibration}.ts pushes the whole page sideways on a phone. */
+.mono, .finding code, .finding .where, .ent td.f, .ent .rel {
+  overflow-wrap: anywhere;
+}
+.mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+
+.eyebrow {
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* --- shell --------------------------------------------------------------- */
+.wrap { max-width: 1660px; margin: 0 auto; padding: 0 24px 88px; }
+
+header.masthead {
+  border-bottom: 1px solid var(--rule);
+  padding: 40px 0 26px;
+  margin-bottom: 26px;
+}
+.masthead h1 {
+  font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -.02em;
+  font-weight: 600;
+  margin: 10px 0 12px;
+  text-wrap: balance;
+}
+.masthead p.lede {
+  max-width: 65ch;
+  color: var(--ink-2);
+  margin: 0;
+  font-size: 16px;
+}
+.masthead .meta {
+  display: flex; flex-wrap: wrap; gap: 8px 20px;
+  margin-top: 18px;
+}
+.masthead .meta span { font-size: 12px; color: var(--faint); }
+.masthead .meta b { color: var(--muted); font-weight: 600; }
+
+/* --- controls ------------------------------------------------------------ */
+.controls {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 10px 22px;
+  padding: 14px 0 16px;
+}
+.tabs { display: flex; gap: 2px; background: var(--panel-2); border: 1px solid var(--rule); border-radius: 3px; padding: 3px; }
+.tabs button {
+  font: inherit; font-size: 13px; font-weight: 500;
+  border: 0; background: transparent; color: var(--muted);
+  padding: 6px 16px; border-radius: 2px; cursor: pointer;
+}
+.tabs button[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+.tabs button:focus-visible { outline: 2px solid var(--ch-wait); outline-offset: 1px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips > .eyebrow { margin-right: 4px; }
+.chip {
+  font: inherit; font-size: 12px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--rule); background: var(--panel);
+  color: var(--muted); padding: 5px 11px 5px 9px;
+  border-radius: 999px; cursor: pointer;
+}
+.chip .swatch { width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex: none; }
+.chip[data-on="true"] { color: var(--ink); border-color: var(--busbar); background: var(--panel); }
+.chip[data-on="false"] { opacity: .42; }
+.chip:focus-visible { outline: 2px solid var(--ch-wait); outline-offset: 1px; }
+.chip.price { --c: var(--ch-price); }
+.chip .swatch { background: var(--c, currentColor); }
+
+/* --- stage --------------------------------------------------------------- */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 372px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1120px) { .stage { grid-template-columns: minmax(0,1fr); } }
+
+.canvas {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-shadow: var(--shadow);
+}
+.canvas svg { display: block; min-width: 1000px; width: 100%; height: auto; }
+
+/* SVG type */
+.n-label { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 13px; fill: var(--ink); }
+.n-sub   { font-family: "IBM Plex Mono", monospace; font-weight: 400; font-size: 10.5px; fill: var(--muted); }
+.band-label {
+  font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 700;
+  font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+}
+.e-label {
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 500;
+  paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round;
+}
+g.node { cursor: pointer; }
+g.node rect.body { fill: var(--node-fill); stroke: var(--node-stroke); stroke-width: 1; }
+g.node:hover rect.body { stroke: var(--busbar); }
+g.node[data-sel="true"] rect.body { stroke: var(--sel); stroke-width: 1.8; }
+g.node[data-dim="true"] { opacity: .2; }
+g.node:focus-visible rect.body { stroke: var(--ch-wait); stroke-width: 2; }
+path.edge { fill: none; stroke-width: 1.25; stroke-linecap: round; opacity: .48; }
+path.edge[data-dim="true"] { opacity: .07; }
+path.edge[data-hot="true"] { stroke-width: 2.4; opacity: 1; }
+.busbar { stroke: var(--busbar); stroke-width: 1; stroke-dasharray: 2 4; }
+.flagdot { fill: var(--ch-fault); }
+
+/* --- detail rail --------------------------------------------------------- */
+.rail {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 20px 20px 24px;
+  box-shadow: var(--shadow);
+  position: sticky; top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+@media (max-width: 1120px) { .rail { position: static; max-height: none; } }
+.rail h2 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; margin: 8px 0 2px; text-wrap: balance; }
+.rail .kindline { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.rail .kindline .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.rail p { color: var(--ink-2); font-size: 14px; margin: 0 0 14px; }
+.rail .formula {
+  font-family: "IBM Plex Mono", monospace; font-size: 12.5px; line-height: 1.7;
+  background: var(--panel-2); border: 1px solid var(--rule-2);
+  border-left: 2px solid var(--busbar);
+  padding: 11px 13px; border-radius: 2px; margin: 0 0 16px;
+  overflow-x: auto; white-space: pre; color: var(--ink);
+}
+.rail dl { display: grid; grid-template-columns: 1fr auto; gap: 0; margin: 0 0 16px; font-size: 12.5px; }
+.rail dt { color: var(--muted); font-family: "IBM Plex Mono", monospace; padding: 5px 12px 5px 0; border-bottom: 1px solid var(--rule-2); }
+.rail dd { margin: 0; text-align: right; font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; color: var(--ink); padding: 5px 0; border-bottom: 1px solid var(--rule-2); }
+.rail .src { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--faint); word-break: break-all; margin-bottom: 16px; }
+.rail ul { margin: 0 0 4px; padding-left: 17px; }
+.rail li { font-size: 13.5px; color: var(--ink-2); margin-bottom: 8px; }
+.rail li::marker { color: var(--faint); }
+.rail .weakflag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ch-fault); background: var(--ch-fault-bg);
+  border-radius: 2px; padding: 3px 8px; margin-bottom: 12px;
+}
+.rail .empty { color: var(--faint); font-size: 14px; }
+
+/* --- ledger -------------------------------------------------------------- */
+.ledger { margin-top: 56px; }
+.ledger > .eyebrow { display: block; margin-bottom: 6px; }
+.ledger h2 { font-size: 26px; font-weight: 600; letter-spacing: -.015em; margin: 0 0 8px; }
+.ledger > p { max-width: 65ch; color: var(--ink-2); margin: 0 0 26px; }
+.findings { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.finding {
+  background: var(--panel); padding: 20px 22px;
+  display: grid; grid-template-columns: 132px minmax(0,1fr); gap: 4px 26px;
+  align-items: start;
+  border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%;
+}
+.finding:hover { background: var(--panel-2); }
+.finding:focus-visible { outline: 2px solid var(--ch-wait); outline-offset: -2px; }
+@media (max-width: 720px) { .finding { grid-template-columns: minmax(0,1fr); } }
+.finding .tagcol { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+.sev {
+  font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 700;
+  font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 2px;
+}
+.sev.structural { color: var(--ch-fault); background: var(--ch-fault-bg); }
+.sev.calibration { color: var(--ch-price); background: var(--ch-price-bg); }
+.sev.hygiene { color: var(--ch-money); background: var(--rule-2); }
+.finding .chan { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--faint); }
+.finding h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.005em; text-wrap: balance; }
+.finding p { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
+.finding p:last-child { margin-bottom: 0; }
+.finding code { font-family: "IBM Plex Mono", monospace; font-size: .88em; background: var(--panel-2); border: 1px solid var(--rule-2); border-radius: 2px; padding: 1px 4px; }
+.finding .where { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--faint); }
+
+/* --- entity view --------------------------------------------------------- */
+.ents { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; }
+.ent { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 0; box-shadow: var(--shadow); overflow: hidden; }
+.ent > header { padding: 13px 16px 11px; border-bottom: 1px solid var(--rule-2); display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ent h3 { font-family: "IBM Plex Mono", monospace; font-size: 14px; font-weight: 600; margin: 0; }
+.ent .card { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--faint); white-space: nowrap; }
+.ent > p { margin: 0; padding: 11px 16px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--rule-2); }
+.ent table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ent td { padding: 6px 16px; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+.ent tr:last-child td { border-bottom: 0; }
+.ent td.f { font-family: "IBM Plex Mono", monospace; color: var(--ink); width: 55%; }
+.ent td.n { color: var(--muted); text-align: right; font-size: 11px; }
+.ent td.n .tag { font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; font-size: 9.5px; padding: 2px 6px; border-radius: 2px; }
+.tag.derived { color: var(--ch-power); background: var(--ch-power-bg); }
+.tag.dead    { color: var(--ch-fault); background: var(--ch-fault-bg); }
+.tag.lever   { color: var(--ch-price); background: var(--ch-price-bg); }
+.tag.loop    { color: var(--ch-trust); background: var(--ch-trust-bg); }
+.ent .rel { padding: 11px 16px; font-size: 11.5px; font-family: "IBM Plex Mono", monospace; color: var(--faint); border-top: 1px solid var(--rule-2); background: var(--panel-2); }
+
+.viewnote { color: var(--muted); font-size: 14px; max-width: 65ch; margin: 0 0 22px; }
+
+footer.foot { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--rule); color: var(--faint); font-size: 12.5px; }
+footer.foot p { margin: 0 0 6px; max-width: 72ch; }
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  path.edge, g.node rect.body { transition: opacity .18s ease, stroke-width .18s ease, stroke .18s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <span class="eyebrow">ChargePointOperator · simulation model</span>
+  <h1>How a day at the site is computed</h1>
+  <p class="lede">Every quantity the simulation holds, and every path by which one quantity moves another — laid out in the order the tick pipeline runs them. Select any block for its formula, its constants and where it lives in the source. Filter by channel to isolate one mechanism from the rest.</p>
+  <div class="meta">
+    <span><b>60&nbsp;s</b> tick · <b>1,440</b> ticks per run</span>
+    <span><b>3</b> scenarios · <b>3</b> scored goals</span>
+    <span><b>7</b> player levers · <b>11</b> tick systems</span>
+    <span>read from <b>src/game</b> at <b>d42-detour-price-ceiling</b></span>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="tabs" role="tablist" aria-label="View">
+    <button role="tab" id="tab-causal" aria-selected="true" aria-controls="view-causal">Causal map</button>
+    <button role="tab" id="tab-ents" aria-selected="false" aria-controls="view-ents">Entities</button>
+  </div>
+  <div class="chips" id="chips">
+    <span class="eyebrow">Channels</span>
+  </div>
+</div>
+
+<!-- ================= CAUSAL ================= -->
+<section id="view-causal" role="tabpanel" aria-labelledby="tab-causal">
+  <div class="stage">
+    <div class="canvas" id="canvas"></div>
+    <aside class="rail" id="rail" aria-live="polite"></aside>
+  </div>
+
+  <section class="ledger">
+    <span class="eyebrow">Reading the map</span>
+    <h2>Nine places the model is thin</h2>
+    <p>These came out of tracing the edges above rather than reading the code top to bottom — each one is a shape in the graph before it is a line in a file. Grouped by kind, not ranked: a structural finding changes what the model can express, a calibration finding changes where its optimum sits, a hygiene finding is just untidy. Select one to focus the block it concerns.</p>
+    <div class="findings" id="findings"></div>
+  </section>
+</section>
+
+<!-- ================= ENTITIES ================= -->
+<section id="view-ents" role="tabpanel" aria-labelledby="tab-ents" hidden>
+  <p class="viewnote">The record graph under <code class="mono">SimulationState</code>. Cardinalities are against a single site — the model has exactly one, so <code class="mono">Site</code> is effectively a singleton and every <code class="mono">siteId</code> is decorative. Fields are tagged where they are computed rather than stored, where they are the player's to set, or where nothing in <code class="mono">src/</code> reads them.</p>
+  <div class="ents" id="ents"></div>
+</section>
+
+<footer class="foot">
+  <p>Built by reading <span class="mono">src/game/core/{types,calibration,tick,selectors}.ts</span>, <span class="mono">src/game/systems/*.ts</span> and the three scenario files. Constants shown are the committed values on this branch; formulas are transcribed, not paraphrased.</p>
+  <p>Edges are drawn only where one quantity actually reaches another in code. An edge that you expect and cannot find on the map is the interesting case — several of the findings below are exactly that.</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ======================================================================
+     Channels
+     ====================================================================== */
+  const CHANNELS = {
+    price: { label: "Price",       cssvar: "--ch-price", desc: "How the tariff reaches demand" },
+    wait:  { label: "Wait",        cssvar: "--ch-wait",  desc: "Queueing time and how drivers perceive it" },
+    trust: { label: "Reputation",  cssvar: "--ch-trust", desc: "Trust deltas, the clamp, and the one loop back" },
+    fault: { label: "Reliability", cssvar: "--ch-fault", desc: "Faults, repairs, maintenance tier" },
+    power: { label: "Energy",      cssvar: "--ch-power", desc: "Grid pool, allocation, kWh delivered" },
+    money: { label: "Money",       cssvar: "--ch-money", desc: "Revenue, cost, margin" }
+  };
+
+  /* ======================================================================
+     Geometry
+     ====================================================================== */
+  const VB_W = 1300, VB_H = 940;
+  const L = 96, R = 1240, USABLE = R - L;
+
+  function row(n, w, y, h) {
+    const gap = (USABLE - n * w) / (n - 1);
+    const out = [];
+    for (let i = 0; i < n; i++) out.push({ x: L + i * (w + gap), y: y, w: w, h: h });
+    return out;
+  }
+  function centred(n, w, y, h, gap) {
+    const total = n * w + (n - 1) * gap;
+    const start = L + (USABLE - total) / 2;
+    const out = [];
+    for (let i = 0; i < n; i++) out.push({ x: start + i * (w + gap), y: y, w: w, h: h });
+    return out;
+  }
+
+  const BANDS = [
+    { id: "a", label: "Scenario",   y: 34,  h: 92,  note: "fixed per site" },
+    { id: "b", label: "Levers",     y: 162, h: 92,  note: "the player's seven" },
+    { id: "c", label: "Mechanisms", y: 290, h: 256, note: "tick pipeline order" },
+    { id: "d", label: "State",      y: 582, h: 92,  note: "carried between ticks" },
+    { id: "e", label: "Measures",   y: 710, h: 92,  note: "derived each tick" },
+    { id: "f", label: "Goals",      y: 838, h: 84,  note: "scored at midnight" }
+  ];
+
+  const A = row(6, 170, 46, 68);
+  const B = row(7, 144, 174, 68);
+  const C1 = row(4, 250, 302, 78);
+  const C2 = row(6, 168, 440, 78);
+  const D = row(6, 170, 594, 68);
+  const E = row(6, 170, 722, 68);
+  const F = centred(3, 300, 852, 60, 44);
+
+  /* ======================================================================
+     Nodes
+     ====================================================================== */
+  const NODES = [
+    /* --- A: scenario ------------------------------------------------- */
+    { id: "waves", band: "a", g: A[0], label: "Demand waves", sub: "DemandWave[]", kind: "money",
+      blurb: "The arrival schedule. Rates are absolute — there is no separate base-demand term — and each wave carries its own price elasticity, which is the only elasticity coefficient in the model.",
+      formula: "arrivalRatePerMinute   absolute, per wave\ncommuterMix / enrouteMix / panicMix\npriceElasticity        IS the coefficient (D21)",
+      consts: [["Junction 42 waves", "9"], ["Kesteven waves", "8"], ["Eastgate waves", "7"]],
+      src: "src/game/core/types.ts:106 · scenarios/*.ts",
+      notes: ["Elasticity varies by time of day, but price sensitivity in admission varies by driver type. The two segmentations never meet."] },
+
+    { id: "refprice", band: "a", g: A[1], label: "Reference price", sub: "referencePricePerKwh", kind: "price",
+      blurb: "What charging costs round here — a property of the market, not of the driver. Since D43 this is the site's figure and it feeds both price channels.",
+      formula: "Junction 42   £0.79 / kWh\nKesteven      £0.72 / kWh\nEastgate      £0.62 / kWh",
+      consts: [["roadsideHub", "0.79"], ["commuterHub", "0.72"], ["destinationSite", "0.62"]],
+      src: "src/game/core/types.ts:460",
+      notes: ["ArchetypeProfile carries its own referencePricePerKwh too — 0.75 / 0.85 / 1.00. Nothing in src/ reads it any more."],
+      flag: true },
+
+    { id: "detour", band: "a", g: A[2], label: "Detour range", sub: "detourMinutes: [min,max]", kind: "price",
+      blurb: "How far the nearest alternative rapid charger is, as a range. Each driver draws their own from it, which is what turns a shared price cliff into a spread of individual ones.",
+      formula: "Junction 42   [ 8, 30 ] sim-min\nKesteven      [ 2,  7 ] sim-min\nEastgate      [ 5, 18 ] sim-min",
+      consts: [["draw", "uniform"], ["redrawn", "per vehicle"]],
+      src: "src/game/core/types.ts:470 · arrivals.ts:118",
+      notes: ["Direction of approach is the stated justification for the width — the next rapid is far ahead or close behind."] },
+
+    { id: "sitechar", band: "a", g: A[3], label: "Site character", sub: "patience× · urgency×", kind: "wait",
+      blurb: "Two multipliers on driver behaviour. A destination site is somewhere you leave the car and go and do something else; a corridor hub is the opposite.",
+      formula: "patienceSeconds ×= patienceMultiplier\nurgencyScore    ×= urgencyMultiplier   (then min 1)",
+      consts: [["default", "1.0"], ["Eastgate patience", "2.0"], ["Eastgate urgency", "0.7"]],
+      src: "src/game/core/types.ts:490 · arrivals.ts:124" },
+
+    { id: "plant", band: "a", g: A[4], label: "Plant", sub: "bays · gridPowerKw · queue cap", kind: "power",
+      blurb: "The physical site. The grid pool is a hard ceiling that no power policy can raise — only partial-charge can, by lowering what each driver asks for.",
+      formula: "bays[]            roster of BayRosterEntry\ninitialGridPowerKw\nmaxQueueLength",
+      consts: [["Junction 42", "6 bays · 600 kW · q12"], ["Kesteven", "8 bays · 400 kW · q10"], ["Eastgate", "10 bays · 250 kW · q8"]],
+      src: "src/game/core/types.ts:474" },
+
+    { id: "costin", band: "a", g: A[5], label: "Cost inputs", sub: "energyCost · opex · capex", kind: "money",
+      blurb: "The three standing costs. Energy accrues per kWh delivered, opex prorates across the day, capex is debited at the action tick and excluded from margin.",
+      formula: "energyCostPerKwh\nopexPerSimDay        prorated by delta/86400\nupgradeCosts[]       capex, excluded from margin (D12)",
+      consts: [["Junction 42 energy", "£0.28"], ["opex/day", "£380–620"], ["repair call-out", "£200 flat"]],
+      src: "src/game/systems/economics.ts:16" },
+
+    /* --- B: levers ---------------------------------------------------- */
+    { id: "price", band: "b", g: B[0], label: "Price / kWh", sub: "policy.pricePerKwh", kind: "price",
+      blurb: "The headline lever, and the one that reaches demand by three separate routes that were each calibrated on their own.",
+      formula: "PRICE_MIN  0.45\nPRICE_MAX  1.20\n\nreaches demand via\n  1. priceMultiplier()   → arrival rate\n  2. siteScore() c-term  → soft admission\n  3. hard gate           → maxAcceptablePricePerKwh",
+      consts: [["PRICE_MIN", "0.45"], ["PRICE_MAX", "1.20"]],
+      src: "src/game/core/calibration.ts:172",
+      notes: ["Three channels means no single number describes this model's price elasticity — the three compose, and only two of them are even labelled elasticity."],
+      flag: true },
+
+    { id: "fee", band: "b", g: B[1], label: "Connection fee", sub: "policy.connectionFee", kind: "money",
+      blurb: "A flat charge earned at plug-in rather than at completion. It reaches revenue and reaches nothing else.",
+      formula: "revenueToday += session.connectionFee   at startSession\n\nreaches demand via\n  — nothing —",
+      consts: [["Junction 42", "£0.99"], ["Kesteven", "£0.50"], ["Eastgate", "£0.00"], ["upper bound", "none"]],
+      src: "src/game/systems/charging.ts:71",
+      notes: ["Not in siteScore. Not in the hard price gate. Not in priceMultiplier. Raising it is free revenue.", "Math.max(0, fee) is the only clamp — there is no PRICE_MAX equivalent."],
+      flag: true },
+
+    { id: "powpol", band: "b", g: B[2], label: "Power policy", sub: "equal · fast · relief · manual", kind: "power",
+      blurb: "Four ways to divide a fixed pool. Under a binding cap none of them creates kilowatts — they choose who waits, which is the intended lesson.",
+      formula: "equal_share   even split, clamped per bay, surplus redistributed\nfast_first    greedy by spec.maxPowerKw\nqueue_relief  greedy by shortest estimated remaining\nmanual        per-bay kW, scaled down if over pool",
+      consts: [["policies", "4"], ["creates power", "no"]],
+      src: "src/game/systems/power.ts:26" },
+
+    { id: "partial", band: "b", g: B[3], label: "Partial charge", sub: "partialChargeTargetSoc", kind: "power",
+      blurb: "Caps a driver's own target, never raises it. The only lever that lifts the site's effective throughput ceiling rather than redistributing it.",
+      formula: "target = min(vehicle.demand.targetSoc, policyTarget)\nrequestedKwh = max(0, (target − soc) × capacityKwh)",
+      consts: [["options", "off / 0.70 / 0.60 / 0.50"], ["trust cost", "−0.1 per capped session"]],
+      src: "src/game/systems/charging.ts:16",
+      notes: ["0.90 and 0.80 were removed as exact no-ops — every archetype already targets 0.80 or less."] },
+
+    { id: "maint", band: "b", g: B[4], label: "Maintenance", sub: "reactive · standard · preventive", kind: "fault",
+      blurb: "Buys down fault frequency and repair time. Since the repair-price ladder was flattened the tiers differ only on how often things break and how fast they are fixed.",
+      formula: "faultProbability ×= faultProbabilityMultiplier\nrepairSeconds    ×= repairTimeMultiplier",
+      consts: [["reactive", "£0/day · ×1.25 · ×1.2"], ["standard", "£25/day · ×1.0 · ×1.0"], ["preventive", "£150/day · ×0.5 · ×0.7"], ["per repair", "£200 flat"]],
+      src: "src/game/core/calibration.ts:214" },
+
+    { id: "baytoggle", band: "b", g: B[5], label: "Bay open / close", sub: "toggle_bay_group", kind: "power",
+      blurb: "Closing a busy bay latches and lands the moment it next reaches idle. Closed time is tracked but kept out of the uptime denominator — capacity decisions are not unreliability.",
+      formula: "closeRequested = true   → applied at next idle (D19)\ndowntimeClosedSeconds accrues, excluded from uptime",
+      consts: [["latency", "until idle"], ["counts against uptime", "no"]],
+      src: "src/game/systems/faults.ts:122" },
+
+    { id: "upgrade", band: "b", g: B[6], label: "Upgrade · repair", sub: "capex · call-out", kind: "fault",
+      blurb: "Upgrading swaps the charger spec — power ceiling and base reliability move together. Repairs are debited at the action tick.",
+      formula: "slow_ac        22 kW · 0.990 · 1,800 s\nrapid_dc      150 kW · 0.985 · 2,700 s\nultrarapid_dc 350 kW · 0.975 · 3,600 s",
+      consts: [["upgrade", "deferred to idle"], ["call-out", "£200"]],
+      src: "src/game/core/calibration.ts:49",
+      notes: ["Faster hardware is less reliable — the only place in the model where a capacity upgrade carries a built-in penalty."] },
+
+    /* --- C1: demand mechanisms --------------------------------------- */
+    { id: "spawn", band: "c", g: C1[0], label: "spawnArrivals", sub: "Poisson(λ) · priceMultiplier()", kind: "price",
+      blurb: "Channel one. The wave's rate is scaled by a linear price response, clamped, and used as the mean of a Poisson draw. One tick is one sim-minute, so the per-minute rate is the mean directly.",
+      formula: "raw = 1 − (ε × (p − ref)) / ref\nmultiplier = clamp(raw, 0.3, 1.5)\nλ = arrivalRatePerMinute × multiplier × (delta / 60)\ncount = Poisson(λ)",
+      consts: [["PRICE_MULTIPLIER_MIN", "0.30"], ["PRICE_MULTIPLIER_MAX", "1.50"], ["ε", "per wave"]],
+      src: "src/game/systems/arrivals.ts:17, 55",
+      notes: ["The clamp is symmetric about 1.0 but the price range is not symmetric about ref — at PRICE_MIN the multiplier is nowhere near 1.5."] },
+
+    { id: "create", band: "c", g: C1[1], label: "createVehicle", sub: "archetype draw · detour premium", kind: "price",
+      blurb: "Everything about a driver is fixed here and never changes again: battery, SOC, urgency, patience, sensitivities, their own detour, and the price above which they will drive on.",
+      formula: "requestedKwh = max(0, (targetSoc − soc) × capacityKwh)\n\npremium = min(0.40, (detourMin/60 × VoT) / requestedKwh)\nmaxAcceptablePricePerKwh = maxAcceptablePriceBase + premium",
+      consts: [["commuter base · VoT", "£0.78 · £11.21/hr"], ["enroute base · VoT", "£1.05 · £5.12/hr"], ["panic base · VoT", "£1.44 · £5.12/hr"], ["DETOUR_PREMIUM_MAX", "0.40"]],
+      src: "src/game/systems/arrivals.ts:41, 103",
+      notes: ["Dividing by requestedKwh makes the premium inversely proportional to basket size — a driver who arrives nearly full will pay more per kWh than one who arrives empty.", "urgencyScore is drawn once and never decays. A panic arrival who queues for an hour is exactly as desperate as when they pulled in."],
+      flag: true },
+
+    { id: "admit", band: "c", g: C1[2], label: "evaluateDemandAcceptance", sub: "siteScore() + hard gate", kind: "price",
+      blurb: "Channels two and three, in one function. A soft weighted score decides most drive-ons; a hard inequality overrides it when the price exceeds what this driver will pay at all.",
+      formula: "score = 2.0·urgency\n      − 1.0·waitSens·(perceivedWait / 600)\n      − 0.8·priceSens·((p − ref) / 0.10)\n      + 0.3·((trust − 50) / 25)\n\nperceivedWait = trueWait × U(0.65, 1.35)\naccepted = score ≥ 0.15  AND  p ≤ maxAcceptablePrice",
+      consts: [["a urgency", "2.0"], ["b wait /600 s", "1.0"], ["c price /£0.10", "0.8"], ["d trust /25 pts", "0.3"], ["ACCEPT_THRESHOLD", "0.15"], ["WAIT_PERCEPTION_NOISE", "0.35"]],
+      src: "src/game/systems/admission.ts:38, 57",
+      notes: ["The trust term is the weakest of the four by a factor of nearly seven against urgency. It is also the model's only feedback path.",
+              "The hard gate is a step in an otherwise entirely soft model — D42 removed the shared cliff, but each driver still has one of their own.",
+              "Perceived-wait noise is redrawn per arrival, so it is noise rather than persistent optimism or pessimism in a population."],
+      flag: true },
+
+    { id: "assign", band: "c", g: C1[3], label: "assignToIdleBaysOrQueue", sub: "FCFS · enqueue · site_full", kind: "wait",
+      blurb: "An accepted driver takes a free bay, joins the back of the queue, or is turned away because the queue is at capacity. First come, first served, with no preference logic.",
+      formula: "free bay        → startSession()\nqueue at cap    → depart(site_full)\notherwise       → enqueue(), predictedWait recorded",
+      consts: [["discipline", "FCFS"], ["preferredChargerTypes", "universal (A5)"]],
+      src: "src/game/systems/queue.ts:17",
+      notes: ["predictedWaitSeconds is stored on the queue entry and then read by nothing — abandonment uses elapsed wait against patience instead."] },
+
+    /* --- C2: service mechanisms --------------------------------------- */
+    { id: "rebal", band: "c", g: C2[0], label: "rebalancePower", sub: "pool → allocatedPowerKw", kind: "power",
+      blurb: "Divides the grid pool across active bays under the chosen policy. Each bay's ceiling is the lesser of hardware and vehicle, tapered by state of charge.",
+      formula: "ceiling = min(spec.maxPowerKw, vehicle.maxChargeRateKw) × taper(soc)\ntaper(soc) = soc ≥ 0.80 ? 0.40 : 1.00\n\nbay.state = allocatedPowerKw > 0 ? charging : allocated",
+      consts: [["TAPER_KNEE_SOC", "0.80"], ["TAPER_ABOVE_KNEE", "0.40"]],
+      src: "src/game/systems/power.ts:26",
+      notes: ["The taper is two flat segments, not a curve. Real charge curves are continuous and vehicle-specific."] },
+
+    { id: "advance", band: "c", g: C2[1], label: "advanceActiveSessions", sub: "kWh · revenue · cost", kind: "power",
+      blurb: "Delivers energy at whatever the rebalance allocated, accrues revenue and energy cost against it, and completes the session when the request is met.",
+      formula: "delivered = min(allocatedKw × delta / 3600, remainingKwh)\nsoc      += delivered / capacityKwh\nrevenue  += delivered × session.pricePerKwh\nenergy   += delivered × scenario.energyCostPerKwh",
+      consts: [["price frozen at", "session start"], ["fee earned at", "plug-in"]],
+      src: "src/game/systems/charging.ts:121",
+      notes: ["pricePerKwh is frozen at session start, so a mid-session price change never touches a car already plugged in."] },
+
+    { id: "faults", band: "c", g: C2[2], label: "resolveFaultsAndRepairs", sub: "hazard per tick", kind: "fault",
+      blurb: "A per-tick hazard that integrates to roughly the spec's failure probability over one session. Only bays actually delivering power can fault randomly; scripted faults ignore maintenance entirely.",
+      formula: "p = ((1 − reliabilityBase) / max(1, expectedSessionTicks))\n    × faultProbabilityMultiplier\n\nexpectedSessionTicks frozen at session start",
+      consts: [["connector", "0.40"], ["power module", "0.25"], ["cooling", "0.20"], ["software", "0.15"]],
+      src: "src/game/systems/faults.ts:17, 62",
+      notes: ["Idle and queueing bays never fault randomly, so closing bays lowers the fault rate as well as capacity.",
+              "The divisor is frozen at session start, so a session slowed by contention runs more ticks at unchanged per-tick hazard and faults more often than its spec implies."],
+      flag: true },
+
+    { id: "abandon", band: "c", g: C2[3], label: "processQueueAbandonment", sub: "patience → linear ramp", kind: "wait",
+      blurb: "Nothing happens until patience is spent, then the per-tick chance of giving up ramps linearly to a ceiling.",
+      formula: "if waited < patienceSeconds → 0\nover = waited − patienceSeconds\np = min(1, over / 600) × 0.5",
+      consts: [["ABANDON_RAMP_SECONDS", "600"], ["ABANDON_MAX_PER_TICK", "0.50"], ["commuter patience", "900 s"], ["enroute patience", "1,200 s"], ["panic patience", "1,800 s"]],
+      src: "src/game/systems/queue.ts:70",
+      notes: ["Reads wait and patience only. Price and trust are absent — a driver who has committed never reconsiders on either."],
+      flag: true },
+
+    { id: "opcost", band: "c", g: C2[4], label: "applyOperatingCosts", sub: "standing charges · cash", kind: "money",
+      blurb: "Adds the two standing charges, prorated to the tick, and settles cash against the tick's five terms.",
+      formula: "standing = MAINTENANCE[level].standingCostPerSimDay × delta/86400\nopex     = scenario.opexPerSimDay × delta/86400\ncash    += revenue − energy − maintenance − opex − capex",
+      consts: [["capex in margin", "no (D12)"], ["capex in cash", "yes"]],
+      src: "src/game/systems/economics.ts:16" },
+
+    { id: "trustupd", band: "c", g: C2[5], label: "updateTrust", sub: "deltas → clamp ±5 / hr", kind: "trust",
+      blurb: "Sums everything that happened to reputation this tick and applies it against a rolling one-hour budget, so no single bad hour can move trust more than five points.",
+      formula: "if ROLL uptime > 98%  → +0.5 × delta/3600\n\nwindowSum = Σ trustDelta over rolling 3,600 s\napplied   = clamp(raw, −5 − windowSum, +5 − windowSum)\ntrust     = clamp(trust + applied, 0, 100)",
+      consts: [["clampPerWindow", "±5"], ["window", "3,600 s rolling"], ["drive-on", "−0.15"], ["…if on price", "−0.20 extra"], ["abandon", "−1.50"], ["fault mid-session", "−2.00"], ["fault idle", "−0.50"], ["completion", "0.00"], ["fast (<300 s)", "+0.10"], ["slow", "−0.05"], ["capped charge", "−0.10"], ["uptime >98%", "+0.5 / hr"]],
+      src: "src/game/systems/trust.ts:16 · calibration.ts:283",
+      notes: ["Clamping is silent, so clamp hits are counted separately. A climbing counter means the underlying deltas are wrong."] },
+
+    /* --- D: state ------------------------------------------------------ */
+    { id: "queue", band: "d", g: D[0], label: "Queue · vehicles", sub: "QueueEntry[] · VehicleAgent{}", kind: "wait",
+      blurb: "Who is on site right now. Departed drivers are flattened into DepartedVehicle records so the per-tick deep clone does not carry them.",
+      formula: "getProjectedWait(state, queueAhead)\n  → simulate each bay freeing, walk the queue, then this driver\n  → no open bay ⇒ +Infinity",
+      consts: [["FALLBACK_SESSION_SECONDS", "1,400"], ["queuePressure", "queueLen / openBays"]],
+      src: "src/game/core/selectors.ts:119",
+      notes: ["The projection assumes current allocation holds for the whole remaining session — it cannot see that finishing cars will free power to the rest."] },
+
+    { id: "sessions", band: "d", g: D[1], label: "Sessions", sub: "ChargingSession{}", kind: "power",
+      blurb: "One per plugged-in car. Deleted on conclusion — nothing reads a finished session, and its numbers go to the log instead.",
+      formula: "price, fee, targetSoc, expectedSessionTicks\n  all frozen at session start\n\nconcluded → detach, push id, delete record",
+      consts: [["frozen fields", "5"], ["retained after end", "id only"]],
+      src: "src/game/systems/charging.ts:253" },
+
+    { id: "chargers", band: "d", g: D[2], label: "Chargers", sub: "ChargerBay{}", kind: "fault",
+      blurb: "Six states per bay. A bay holding a car but drawing nothing is allocated, not charging — which is what a car plugged in behind a saturated grid actually is.",
+      formula: "idle → allocated → charging → idle\n              ↘ faulted → repairing → idle\n\nlatched: closeRequested, pendingUpgradeType",
+      consts: [["states", "5"], ["latched transitions", "2"]],
+      src: "src/game/core/types.ts:254" },
+
+    { id: "trust", band: "d", g: D[3], label: "Trust", sub: "metrics.trust · 0–100", kind: "trust",
+      blurb: "Persistent state, not a derived measure — it carries between ticks and is the only quantity that feeds back into demand.",
+      formula: "trust ∈ [0, 100]\nfeeds siteScore d-term:  +0.3 × ((trust − 50) / 25)\n\nat trust 100 vs 50 the term is worth +0.60 of score",
+      consts: [["min / max", "0 / 100"], ["initial", "50–62 by site"], ["d coefficient", "0.3"], ["max swing", "±0.60"]],
+      src: "src/game/systems/trust.ts",
+      notes: ["The whole feedback loop is worth ±0.6 of a score whose threshold is 0.15 and whose urgency term alone spans 1.8."],
+      flag: true },
+
+    { id: "econ", band: "d", g: D[4], label: "Economics", sub: "SiteEconomics", kind: "money",
+      blurb: "Six running totals. Capex hits cash but is excluded from margin, which is why the reconciliation invariant has five terms and the margin formula four.",
+      formula: "cash, revenueToday, energyCostToday,\nmaintenanceCostToday, opexAccruedToday, capexSpentToday",
+      consts: [["margin terms", "4"], ["cash terms", "5"]],
+      src: "src/game/core/types.ts:130" },
+
+    { id: "samples", band: "d", g: D[5], label: "Tick samples", sub: "TickSample[] ring", kind: "money",
+      blurb: "A ring of raw per-tick samples. Every rolling measure is recomputed from these rather than from a mutated running average, so a rate and its inputs cannot drift apart.",
+      formula: "ring length = TRUST_WINDOW / TICK = 60 samples\nROLL window = 900 s   (15 samples)\ntrust window = 3,600 s (60 samples)",
+      consts: [["ROLL_WINDOW_SECONDS", "900"], ["TRUST_WINDOW_SECONDS", "3,600"], ["ring size", "60"]],
+      src: "src/game/core/types.ts:152" },
+
+    /* --- E: measures ---------------------------------------------------- */
+    { id: "funnel", band: "e", g: E[0], label: "Demand funnel", sub: "DemandFunnel", kind: "wait",
+      blurb: "Nine counters, and exactly one increments per vehicle terminal state. Every arrival lands in exactly one bucket by close-out.",
+      formula: "arrived = rejectedSite + siteFull + abandonedQueue\n        + completed + interruptedByFault + closedAtRunEnd",
+      consts: [["buckets", "9"], ["invariant", "7"]],
+      src: "src/game/core/types.ts:136",
+      notes: ["rejectedSite merges soft score rejections and hard price rejections into one counter — the split exists in the log but not in state."] },
+
+    { id: "wait", band: "e", g: E[1], label: "Average wait", sub: "cumAvgWaitSeconds", kind: "wait",
+      blurb: "The scored figure is cumulative across the day. The dashboard shows a rolling 15-minute version derived from the sample ring, which is a different number.",
+      formula: "CUM = cumWaitSecondsSum / cumStartedSessions\nROLL = Σ startedWaitSecondsSum / Σ sessionsStarted  over 900 s",
+      consts: [["scored scope", "CUM"], ["displayed scope", "ROLL"]],
+      src: "src/game/systems/scoring.ts:151",
+      notes: ["Only drivers who started a session contribute. Everyone who gave up waiting is excluded from the wait measure entirely."],
+      flag: true },
+
+    { id: "uptime", band: "e", g: E[2], label: "Uptime · utilisation", sub: "bay-time accounting", kind: "fault",
+      blurb: "Each bay is attributed to exactly one bucket per tick, read after all transitions have landed. Player-closed time is tracked but kept out of the uptime denominator.",
+      formula: "uptime = 1 − (faultSeconds + repairSeconds) / openBaySeconds\nutilisation = occupiedBaySeconds / openBaySeconds\nno open bay ⇒ uptime falls back to 100%",
+      consts: [["uptime bonus at", ">98%"], ["low-uptime alert", "<90%"], ["spiral threshold", "<85%"]],
+      src: "src/game/systems/scoring.ts:26" },
+
+    { id: "margin", band: "e", g: E[3], label: "Operating margin", sub: "cumulativeMargin()", kind: "money",
+      blurb: "Cumulative across the day, four terms, capex excluded. This is the scored economic figure.",
+      formula: "margin = revenueToday − energyCostToday\n       − maintenanceCostToday − opexAccruedToday",
+      consts: [["negative-margin alert", "−£25 ROLL"], ["sustain", "900 s"]],
+      src: "src/game/systems/economics.ts:38" },
+
+    { id: "rates", band: "e", g: E[4], label: "Rates", sub: "abandon · throughput · success", kind: "wait",
+      blurb: "All derived from accumulators rather than stored alongside their inputs. Two success rates that measure different things and are easy to confuse.",
+      formula: "sessionSuccess     = completed / (completed + interrupted)\nchargeStartSuccess = sessionsStarted / (accepted − closedAtRunEnd)\nthroughput         = ROLL sessionsCompleted / windowHours",
+      consts: [["ROLL window", "900 s"], ["success denominators", "2, different"]],
+      src: "src/game/systems/scoring.ts:105" },
+
+    { id: "detect", band: "e", g: E[5], label: "Failure states · alerts", sub: "5 + 5, sustained", kind: "fault",
+      blurb: "Detection only — since D41 nothing ends a run early. Each condition must hold for a sustain period, with a grace window so a single flickering tick does not reset the clock.",
+      formula: "queue_collapse      pressure ≥ 1.0 AND abandon ≥ 30%, 1,800 s\npower_choke         allocated ≥ 95% AND queue ≥ 3, 1,800 s\nreliability_spiral  uptime < 85% OR 3 bays down, 3,600 s\nmargin_trap         ROLL margin negative, immediate\ntrust_crash         trust < 40 and falling, immediate",
+      consts: [["FAILURE_ENTER_GRACE", "300 s"], ["failure states", "5"], ["alerts", "5"]],
+      src: "src/game/core/calibration.ts:392" },
+
+    /* --- F: goals ------------------------------------------------------- */
+    { id: "gtrust", band: "f", g: F[0], label: "minTrust", sub: "trust ≥ target", kind: "trust",
+      blurb: "Trust at midnight against the site's floor.",
+      formula: "Junction 42   ≥ 55\nKesteven      ≥ 61\nEastgate      ≥ 61",
+      consts: [["roadsideHub", "55"], ["commuterHub", "61"], ["destinationSite", "61"]],
+      src: "src/game/scenarios/*.ts" },
+
+    { id: "gmargin", band: "f", g: F[1], label: "minOperatingMargin", sub: "cumMargin ≥ target", kind: "money",
+      blurb: "Cumulative margin at midnight against the site's floor.",
+      formula: "Junction 42   ≥ £3,200\nKesteven      ≥ £1,000\nEastgate      ≥ £300",
+      consts: [["roadsideHub", "£3,200"], ["commuterHub", "£1,000"], ["destinationSite", "£300"]],
+      src: "src/game/scenarios/*.ts" },
+
+    { id: "gwait", band: "f", g: F[2], label: "maxAvgWaitSeconds", sub: "cumAvgWait ≤ target", kind: "wait",
+      blurb: "Cumulative average wait across started sessions, against the site's ceiling.",
+      formula: "Junction 42   ≤ 420 s\nKesteven      ≤ 250 s\nEastgate      ≤ 480 s",
+      consts: [["roadsideHub", "420 s"], ["commuterHub", "250 s"], ["destinationSite", "480 s"]],
+      src: "src/game/scenarios/*.ts",
+      notes: ["Turning drivers away improves this measure. Serving fewer, faster is a legitimate way to pass it."] }
+  ];
+
+  const byId = {};
+  NODES.forEach(function (n) { byId[n.id] = n; });
+
+  /* ======================================================================
+     Edges
+     ====================================================================== */
+  const EDGES = [
+    /* price channel */
+    { f: "refprice", t: "spawn",  c: "price", l: "ref" },
+    { f: "price",    t: "spawn",  c: "price", l: "priceMultiplier() · clamp 0.3–1.5" },
+    { f: "waves",    t: "spawn",  c: "price", l: "λ, mix, ε" },
+    { f: "detour",   t: "create", c: "price", l: "detourPremiumPerKwh()" },
+    { f: "sitechar", t: "create", c: "wait",  l: "patience× urgency×" },
+    { f: "spawn",    t: "create", c: "price", l: "n arrivals" },
+    { f: "create",   t: "admit",  c: "price", l: "maxAcceptablePricePerKwh" },
+    { f: "price",    t: "admit",  c: "price", l: "siteScore c-term · 0.8 per £0.10", dash: true },
+    { f: "refprice", t: "admit",  c: "price", l: "ref" },
+    { f: "price",    t: "advance",c: "money", l: "revenue = kWh × p" },
+    { f: "fee",      t: "advance",c: "money", l: "revenue only — no demand path", weak: true },
+
+    /* wait channel */
+    { f: "admit",    t: "assign", c: "wait",  l: "accepted" },
+    { f: "plant",    t: "assign", c: "wait",  l: "maxQueueLength" },
+    { f: "assign",   t: "queue",  c: "wait",  l: "enqueue / startSession" },
+    { f: "queue",    t: "admit",  c: "wait",  l: "getProjectedWait × U(0.65,1.35)", back: true, lane: 0 },
+    { f: "assign",   t: "abandon",c: "wait",  l: "waiting drivers" },
+    { f: "abandon",  t: "funnel", c: "wait",  l: "abandonedQueue" },
+    { f: "assign",   t: "wait",   c: "wait",  l: "cumWaitSecondsSum" },
+    { f: "admit",    t: "funnel", c: "wait",  l: "rejectedSite" },
+
+    /* power channel */
+    { f: "plant",    t: "rebal",  c: "power", l: "gridPowerKw pool" },
+    { f: "powpol",   t: "rebal",  c: "power", l: "allocation order" },
+    { f: "rebal",    t: "advance",c: "power", l: "allocatedPowerKw" },
+    { f: "partial",  t: "advance",c: "power", l: "caps requestedKwh" },
+    { f: "advance",  t: "sessions", c: "power", l: "deliveredKwh" },
+    { f: "advance",  t: "rates",  c: "power", l: "throughput" },
+    { f: "queue",    t: "rebal",  c: "power", l: "vehicle kW cap", back: true, lane: 2 },
+
+    /* reliability channel */
+    { f: "maint",    t: "faults", c: "fault", l: "×1.25 / ×1.0 / ×0.5" },
+    { f: "upgrade",  t: "faults", c: "fault", l: "reliabilityBase by type" },
+    { f: "baytoggle",t: "chargers", c: "fault", l: "latched close" },
+    { f: "faults",   t: "chargers", c: "fault", l: "faulted → repairing" },
+    { f: "faults",   t: "uptime", c: "fault", l: "downtime seconds" },
+    { f: "faults",   t: "detect", c: "fault", l: "bays down" },
+
+    /* money channel */
+    { f: "costin",   t: "opcost", c: "money", l: "opex · energy" },
+    { f: "maint",    t: "opcost", c: "money", l: "standing charge" },
+    { f: "advance",  t: "econ",   c: "money", l: "revenue − energy" },
+    { f: "opcost",   t: "econ",   c: "money", l: "cash settle" },
+    { f: "econ",     t: "margin", c: "money", l: "4 terms" },
+
+    /* trust channel */
+    { f: "admit",    t: "trustupd", c: "trust", l: "−0.15 drive-on · −0.20 if price" },
+    { f: "abandon",  t: "trustupd", c: "trust", l: "−1.50" },
+    { f: "advance",  t: "trustupd", c: "trust", l: "+0.10 fast · −0.05 slow" },
+    { f: "faults",   t: "trustupd", c: "trust", l: "−2.00 mid-session · −0.50 idle" },
+    { f: "partial",  t: "trustupd", c: "trust", l: "−0.10 capped" },
+    { f: "trustupd", t: "trust",  c: "trust", l: "clamp ±5 / rolling hr" },
+    { f: "uptime",   t: "trustupd", c: "trust", l: "+0.5/hr above 98%", back: true, lane: 1 },
+    { f: "trust",    t: "admit",  c: "trust", l: "d-term · 0.3 per 25 pts · the only loop back", back: true, lane: 3, weak: true },
+
+    /* measures → goals */
+    { f: "trust",    t: "gtrust",  c: "trust", l: "≥ target" },
+    { f: "margin",   t: "gmargin", c: "money", l: "≥ target" },
+    { f: "wait",     t: "gwait",   c: "wait",  l: "≤ target" },
+    { f: "queue",    t: "funnel",  c: "wait",  l: "terminal states" },
+    { f: "chargers", t: "uptime",  c: "fault", l: "bay-time" },
+    { f: "econ",     t: "detect",  c: "money", l: "margin_trap" },
+    { f: "samples",  t: "rates",   c: "money", l: "ROLL window" },
+    { f: "queue",    t: "samples", c: "wait",  l: "queueLength" }
+  ];
+
+  /* ======================================================================
+     Findings
+     ====================================================================== */
+  const FINDINGS = [
+    { sev: "structural", chan: "price · money", node: "fee",
+      title: "The connection fee is revenue with no demand consequence",
+      body: "<code>connectionFee</code> is added to <code>revenueToday</code> at plug-in and appears nowhere else in the simulation. It is not a term in <code>siteScore</code>, it is not compared against <code>maxAcceptablePricePerKwh</code>, and it is not an input to <code>priceMultiplier</code>. A driver deciding whether to pull in cannot see it. The only clamp on it is <code>Math.max(0, fee)</code> — there is no ceiling equivalent to <code>PRICE_MAX</code>.",
+      also: "That makes raising the fee a strictly dominant move, and one the pricing work of D42/D43 does not reach: everything those decisions did to make premium <em>per-kWh</em> pricing punishable leaves per-<em>session</em> pricing untouched. Junction 42 already ships at £0.99.",
+      where: "systems/charging.ts:71 · admission.ts:57 · arrivals.ts:55" },
+
+    { sev: "structural", chan: "price", node: "price",
+      title: "Price reaches demand three times, through three unrelated calibrations",
+      body: "Arrival rate scales by <code>priceMultiplier()</code> using the wave's elasticity. The <code>siteScore</code> c-term applies 0.8 per £0.10 over reference, weighted by an archetype's <code>priceSensitivity</code>. And a hard gate rejects outright above <code>maxAcceptablePricePerKwh</code>. All three fire on the same price change and compose multiplicatively into the observed response.",
+      also: "No single number in the codebase describes this model's price elasticity, and two of the three channels are not labelled as elasticity at all. It also means a calibration change to any one of them silently moves the other two's effective contribution.",
+      where: "arrivals.ts:17 · admission.ts:47 · admission.ts:78" },
+
+    { sev: "structural", chan: "trust", node: "trust",
+      title: "Trust is the only feedback loop, and it is the weakest term in the equation",
+      body: "Every other path in the map runs forwards: levers to mechanisms to state to measures to goals. Trust is the sole edge that returns — via the <code>siteScore</code> d-term — and its coefficient is 0.3 per 25 points. Across the full 0–100 range the term spans ±0.6, against an urgency term that spans 1.8 and a threshold of 0.15.",
+      also: "So a site can run its reputation from perfect to catastrophic and move the admission score by about a third of what an archetype draw already varies by. Trust is close to being a scorecard rather than a driver, which is worth knowing before tuning it further.",
+      where: "admission.ts:47 · trust.ts:16" },
+
+    { sev: "structural", chan: "wait", node: "abandon",
+      title: "Abandonment is blind to price and to trust",
+      body: "<code>abandonProbability()</code> takes exactly two arguments: seconds waited and the driver's patience. Once a driver has joined the queue, nothing about the site can make them leave except time — not a price rise, not a visible fault, not a collapsing reputation.",
+      also: "The asymmetry is worth noting: admission weighs urgency, wait, price and trust together, and then the moment a driver commits, three of those four stop mattering. Whether that is right is a design question, but it is currently implicit.",
+      where: "systems/queue.ts:70" },
+
+    { sev: "calibration", chan: "price", node: "create",
+      title: "The detour premium is inversely proportional to basket size",
+      body: "<code>detourPremiumPerKwh</code> divides a fixed time cost by <code>requestedKwh</code>. The economics are defensible — a 10 kWh top-up really does justify a larger per-kWh premium than a 40 kWh fill — but the consequence is that a driver who arrives nearly full will tolerate a <em>higher</em> price per kWh than one who arrives desperate.",
+      also: "It interacts with the archetypes in a way that partly cancels the intent: panic arrivals have the lowest SOC, so the largest <code>requestedKwh</code>, so the smallest detour premium — and they are the drivers who are meant to be most captive. Their captivity is carried entirely by <code>maxAcceptablePriceBase</code> instead.",
+      where: "arrivals.ts:41 · calibration.ts:101" },
+
+    { sev: "calibration", chan: "fault", node: "faults",
+      title: "The fault divisor is frozen while the session length is not",
+      body: "<code>expectedSessionTicks</code> is computed at session start from an optimistic power estimate — the bay and vehicle with the whole grid ceiling to themselves — and then used as a fixed divisor for the per-tick hazard. A session that actually runs slower because of power contention accumulates more ticks at the unchanged per-tick rate.",
+      also: "So contention raises the realised fault rate above the spec's <code>reliabilityBase</code>, and does so most on exactly the busy days where uptime matters. The hazard is calibrated to integrate to <code>1 − reliabilityBase</code> over the <em>expected</em> session, not the actual one.",
+      where: "faults.ts:17 · charging.ts:36" },
+
+    { sev: "calibration", chan: "wait", node: "wait",
+      title: "The scored wait measure excludes everyone who gave up",
+      body: "<code>cumAvgWaitSeconds</code> is <code>cumWaitSecondsSum / cumStartedSessions</code>, and both accumulate only in <code>startSession</code>. A driver who queued for forty minutes and abandoned contributes nothing to the average wait.",
+      also: "Combined with <code>maxAvgWaitSeconds</code> being a scored goal, this means driving demand away is a valid strategy for passing the wait goal — and the abandonment rate that would expose it is measured but not scored. The trust penalty for abandonment is the only thing pushing back.",
+      where: "scoring.ts:151 · charging.ts:76" },
+
+    { sev: "calibration", chan: "wait", node: "admit",
+      title: "Wait misperception is noise, not heterogeneity",
+      body: "<code>WAIT_PERCEPTION_NOISE</code> scales the true projected wait by a uniform draw in [0.65, 1.35], redrawn independently for every arrival. It does what it was added for — before it, perfect information capped the queue and abandonment did no work — but it models a population where each person is randomly wrong once, not one containing optimists and pessimists.",
+      also: "If the same driver evaluated twice they would get two different answers. Attaching the draw to the vehicle at spawn instead would cost nothing and would give the noise a behavioural reading.",
+      where: "admission.ts:62 · calibration.ts:364" },
+
+    { sev: "hygiene", chan: "price", node: "refprice",
+      title: "Archetypes still carry a reference price nothing reads",
+      body: "D43 moved <code>siteScore</code> onto the site's <code>referencePricePerKwh</code>. <code>ArchetypeProfile.referencePricePerKwh</code> survives at 0.75 / 0.85 / 1.00 and is now read by nothing in <code>src/</code> — only by an assertion in <code>tests/mechanics.test.ts:631</code>, which keeps it alive without giving it a job.",
+      also: "<code>types.ts</code> opens by stating the rule this breaks: no field without a reader. Two fields with the same name and different meanings, one of them dead, is also precisely the confusion D43 existed to resolve.",
+      where: "calibration.ts:72 · tests/mechanics.test.ts:631" }
+  ];
+
+  /* ======================================================================
+     Entities
+     ====================================================================== */
+  const ENTS = [
+    { name: "SimulationState", card: "root", desc: "Deep-cloned every tick. Anything in here is copied 1,440 times per run.",
+      fields: [["clock: GameClock", ""], ["scenario: ScenarioConfig", ""], ["rngState: string", "8 hex, mulberry32"],
+               ["site: Site", "singleton"], ["chargers: Record<Id, ChargerBay>", ""], ["vehicles: Record<Id, VehicleAgent>", "on site only"],
+               ["queue: QueueEntry[]", ""], ["sessions: Record<Id, ChargingSession>", "active only"],
+               ["departedVehicles: DepartedVehicle[]", "flattened"], ["tickSamples: TickSample[]", "ring, 60"],
+               ["detectors: DetectorState", ""], ["eventLog: SimEventRingEntry[]", "excluded from hash"]],
+      rel: "1 site · N bays · N vehicles · N sessions" },
+
+    { name: "Site", card: "1", desc: "The whole site. There is exactly one, so every siteId elsewhere is decorative.",
+      fields: [["maxBays / openBayIds", "derived"], ["gridPowerKw", "hard pool ceiling"], ["availablePowerKw", "derived"],
+               ["policy: SitePolicy", "lever"], ["economics: SiteEconomics", ""], ["metrics: SiteMetrics", ""]],
+      rel: "Site 1 — N ChargerBay" },
+
+    { name: "SitePolicy", card: "1", desc: "Everything the player controls, in one record.",
+      fields: [["pricePerKwh", "lever"], ["connectionFee", "lever · no demand path"], ["powerPolicy", "lever"],
+               ["maintenanceLevel", "lever"], ["partialChargeTargetSoc?", "lever"], ["manualAllocationsKw?", "manual only"]],
+      rel: "written by playerActions.ts" },
+
+    { name: "VehicleAgent", card: "N", desc: "A driver on site. Every behavioural field is drawn at spawn and never changes.",
+      fields: [["archetype · state", ""], ["batteryCapacityKwh / currentSoc", ""], ["maxChargeRateKw", "vehicle-side cap"],
+               ["detourMinutes", "own alternative"], ["urgencyScore", "never decays"], ["priceSensitivity", "0.7 / 0.4 / 0.1"],
+               ["waitSensitivity", "0.6 / 0.5 / 0.2"], ["demand: VehicleDemand", ""], ["expectedWaitSeconds?", "perceived"]],
+      rel: "VehicleAgent 1 — 0..1 ChargingSession" },
+
+    { name: "VehicleDemand", card: "1 per vehicle", desc: "What this driver wants and what they will accept.",
+      fields: [["targetSoc", "0.80 / 0.80 / 0.60"], ["requestedKwh", "driver intent"],
+               ["maxAcceptablePricePerKwh", "base + detour premium"], ["patienceSeconds", "900 / 1200 / 1800"]],
+      rel: "capped at session start by partial-charge policy" },
+
+    { name: "ChargerBay", card: "N", desc: "One physical post. Latched transitions land the moment it reaches idle.",
+      fields: [["spec: ChargerSpec", "power + reliability"], ["state", "5 states"], ["isOpen", "lever"],
+               ["allocatedPowerKw", "set by rebalance"], ["currentVehicleId? / activeSessionId?", ""],
+               ["closeRequested", "latched"], ["pendingUpgradeType?", "latched"], ["lifetimeSessions / lifetimeKwh", ""]],
+      rel: "ChargerBay 1 — 0..1 ChargingSession" },
+
+    { name: "ChargingSession", card: "N active", desc: "Deleted on conclusion — nothing reads a finished session. Its numbers go to the log.",
+      fields: [["pricePerKwh", "frozen at start"], ["connectionFee", "frozen at start"], ["targetSoc", "frozen at start"],
+               ["expectedSessionTicks", "frozen · fault divisor"], ["requestedKwh / deliveredKwh", ""],
+               ["effectivePowerKw", "= bay.allocatedPowerKw"], ["partialChargeCapped", "trust −0.1"]],
+      rel: "links 1 VehicleAgent to 1 ChargerBay" },
+
+    { name: "QueueEntry", card: "N", desc: "FCFS only. Compatibility is universal for now — this is the seam a CCS/AC split would land on.",
+      fields: [["vehicleId · queuedAtSecond", ""], ["predictedWaitSeconds", "written, never read"],
+               ["preferredChargerTypes", "universal (A5)"]],
+      rel: "QueueEntry 1 — 1 VehicleAgent" },
+
+    { name: "SiteMetrics", card: "1", desc: "Mostly derived from the sample ring each tick. Trust is the exception — it is state.",
+      fields: [["trust", "state · the loop"], ["uptimePct / utilizationPct", "derived, ROLL"],
+               ["avgWaitSeconds", "derived, ROLL"], ["cumWaitSecondsSum / cumStartedSessions", "scored basis"],
+               ["abandonmentRatePct", "derived · not scored"], ["funnel: DemandFunnel", ""],
+               ["trustClampHits", "diagnostic"], ["failureStatesActive / Observed", "detection only"]],
+      rel: "read by scoring.ts and the whole UI" },
+
+    { name: "DemandFunnel", card: "1", desc: "Nine counters. Exactly one increments per vehicle terminal state.",
+      fields: [["arrived", ""], ["rejectedSite", "soft + hard, merged"], ["siteFull", ""], ["queueJoined", ""],
+               ["abandonedQueue", ""], ["sessionsStarted", ""], ["interruptedByFault", ""], ["completed", ""],
+               ["closedAtRunEnd", "not a service failure"]],
+      rel: "invariant 7 sums these against arrived" },
+
+    { name: "ScenarioConfig", card: "1", desc: "The site brief. Fixed for the run.",
+      fields: [["demandWaves: DemandWave[]", ""], ["referencePricePerKwh", "market price"],
+               ["detourMinutes: [min,max]", "captivity"], ["patienceMultiplier? / urgencyMultiplier?", "site character"],
+               ["energyCostPerKwh / opexPerSimDay", ""], ["scriptedFaults[]", "ignores maintenance"],
+               ["goals: ScenarioGoals", "3, since D44"]],
+      rel: "one of three: roadsideHub · commuterHub · destinationSite" },
+
+    { name: "ArchetypeProfile", card: "3", desc: "Calibration, not state. Three driver types with distinct economics.",
+      fields: [["batteryKwh / maxChargeRateKw / arrivalSoc", "ranges"], ["priceSensitivity / waitSensitivity", ""],
+               ["urgency / patienceSeconds", ""], ["maxAcceptablePriceBase", "0.78 / 1.05 / 1.44"],
+               ["valueOfTimePerHour", "DfT VTT Table 5.1"], ["referencePricePerKwh", "no reader in src/"]],
+      rel: "calibration.ts — not part of SimulationState" }
+  ];
+
+  /* ======================================================================
+     Render — SVG
+     ====================================================================== */
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs) {
+    const e = document.createElementNS(SVGNS, tag);
+    if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function cx(n) { return n.g.x + n.g.w / 2; }
+  function cy(n) { return n.g.y + n.g.h / 2; }
+
+  const LANES = [1256, 1268, 1280, 1292];
+
+  /** Vertical space between y and the lowest node bottom above it. */
+  function clearAbove(y) {
+    let best = 0;
+    NODES.forEach(function (n) {
+      const bot = n.g.y + n.g.h;
+      if (bot <= y + 0.5 && bot > best) best = bot;
+    });
+    return y - best;
+  }
+
+  /** Vertical space between y and the highest node top below it. */
+  function clearBelow(y) {
+    let best = VB_H;
+    NODES.forEach(function (n) {
+      if (n.g.y >= y - 0.5 && n.g.y < best) best = n.g.y;
+    });
+    return best - y;
+  }
+
+  function pathFor(e) {
+    const a = byId[e.f], b = byId[e.t];
+    if (!a || !b) return "";
+    if (e.back) {
+      const rx = LANES[e.lane || 0];
+      const ay = cy(a), by = cy(b);
+      const ax = a.g.x + a.g.w, bx = b.g.x + b.g.w;
+      const dir = by < ay ? -1 : 1;
+      return "M" + ax + "," + ay + " H" + (rx - 10) +
+             " Q" + rx + "," + ay + " " + rx + "," + (ay + dir * 10) +
+             " V" + (by - dir * 10) +
+             " Q" + rx + "," + by + " " + (rx - 10) + "," + by +
+             " H" + bx;
+    }
+    const ax = cx(a), bx = cx(b);
+    const y1 = a.g.y + a.g.h, y2 = b.g.y;
+    if (y2 <= y1 + 2) {
+      // same band, sideways
+      const yy = cy(a);
+      return "M" + (a.g.x + a.g.w) + "," + yy + " H" + b.g.x;
+    }
+    const my = (y1 + y2) / 2;
+    return "M" + ax + "," + y1 + " C" + ax + "," + my + " " + bx + "," + my + " " + bx + "," + y2;
+  }
+
+  function buildSvg() {
+    const svg = el("svg", { viewBox: "0 0 " + VB_W + " " + VB_H, role: "img",
+                            "aria-label": "Causal map of the simulation model, six bands from scenario inputs to scored goals" });
+
+    const defs = el("defs");
+    Object.keys(CHANNELS).forEach(function (k) {
+      const m = el("marker", { id: "arw-" + k, viewBox: "0 0 10 10", refX: "9", refY: "5",
+                               markerWidth: "6", markerHeight: "6", orient: "auto-start-reverse" });
+      m.appendChild(el("path", { d: "M0,1 L9,5 L0,9 z", fill: "var(" + CHANNELS[k].cssvar + ")" }));
+      defs.appendChild(m);
+    });
+    svg.appendChild(defs);
+
+    // band rails + busbars
+    const gBands = el("g");
+    BANDS.forEach(function (b) {
+      const line = el("line", { x1: L - 34, y1: b.y, x2: R + 8, y2: b.y, class: "busbar" });
+      gBands.appendChild(line);
+      const t = el("text", { x: L - 42, y: b.y + 4, class: "band-label",
+                             fill: "var(--band-" + b.id + ")", "text-anchor": "start",
+                             transform: "rotate(90 " + (L - 42) + " " + (b.y + 4) + ")" });
+      t.textContent = b.label;
+      gBands.appendChild(t);
+    });
+    svg.appendChild(gBands);
+
+    // edges under nodes
+    const gEdges = el("g");
+    EDGES.forEach(function (e, i) {
+      const p = el("path", {
+        class: "edge", d: pathFor(e),
+        stroke: "var(" + CHANNELS[e.c].cssvar + ")",
+        "marker-end": "url(#arw-" + e.c + ")",
+        "data-ch": e.c, "data-f": e.f, "data-t": e.t, "data-i": String(i)
+      });
+      if (e.dash) p.setAttribute("stroke-dasharray", "5 3");
+      if (e.weak) p.setAttribute("stroke-width", "2");
+      gEdges.appendChild(p);
+    });
+    svg.appendChild(gEdges);
+
+    // edge labels, hidden until a node or channel is active
+    // Every label lands in one of the clear bands between node rows. Which row
+    // of that band it takes is settled in layoutLabels(), after measurement.
+    const gLabels = el("g", { id: "elabels" });
+    EDGES.forEach(function (e, i) {
+      const a = byId[e.f], b = byId[e.t];
+      if (!a || !b) return;
+      let lx, ly, slot, rows;
+      const y1 = a.g.y + a.g.h, y2 = b.g.y;
+      const sideways = !e.back && y2 <= y1 + 2;
+
+      // Horizontal placement differs by edge shape: return edges hang off their
+      // lane, sideways edges sit between the two boxes, the rest centre on the
+      // span they cross.
+      if (e.back) lx = LANES[e.lane || 0] - 8;
+      else if (sideways) lx = (a.g.x + a.g.w + b.g.x) / 2;
+      else lx = (cx(a) + cx(b)) / 2;
+
+      // Vertical placement is one rule for all three: land in the clear band
+      // next to the target, never on a node. For a return edge the lane passes
+      // through that y on its way up, so the label still sits beside its own
+      // edge; for an edge that skips a band this keeps it off the skipped band.
+      const anchor = sideways ? y1 : y2;
+      const clear = sideways ? clearBelow(y1) : clearAbove(y2);
+      const mid = sideways ? anchor + clear / 2 + 3 : anchor - clear / 2 + 3;
+
+      // Rows are bounded by the space actually available. Which row each label
+      // takes is decided in layoutLabels() once the text has been measured —
+      // counting seats blind either wraps two labels onto one row or collides
+      // labels bound for different targets in the same gap.
+      slot = (sideways ? "b" : "a") + Math.round(anchor);
+      rows = Math.max(1, Math.min(5, Math.floor(clear / 13)));
+      ly = mid;
+      const t = el("text", { class: "e-label", x: String(lx), y: String(ly),
+                             "text-anchor": e.back ? "end" : "middle",
+                             fill: "var(" + CHANNELS[e.c].cssvar + ")",
+                             "data-i": String(i), "data-mid": String(mid),
+                             "data-slot": slot, "data-rows": String(rows),
+                             opacity: "0" });
+      t.textContent = e.l;
+      gLabels.appendChild(t);
+    });
+    svg.appendChild(gLabels);
+
+    // nodes
+    const gNodes = el("g");
+    NODES.forEach(function (n) {
+      const g = el("g", { class: "node", "data-id": n.id, tabindex: "0", role: "button",
+                          "aria-label": n.label + ". " + n.sub });
+      g.appendChild(el("rect", { class: "body", x: n.g.x, y: n.g.y, width: n.g.w, height: n.g.h, rx: "3" }));
+      g.appendChild(el("rect", { x: n.g.x, y: n.g.y, width: "3", height: n.g.h,
+                                 fill: "var(" + CHANNELS[n.kind].cssvar + ")" }));
+      const lab = el("text", { class: "n-label", x: n.g.x + 14, y: n.g.y + 26 });
+      lab.textContent = n.label;
+      g.appendChild(lab);
+      const sub = el("text", { class: "n-sub", x: n.g.x + 14, y: n.g.y + 43 });
+      sub.textContent = n.sub;
+      g.appendChild(sub);
+      if (n.flag) g.appendChild(el("circle", { class: "flagdot", cx: n.g.x + n.g.w - 11, cy: n.g.y + 11, r: "3.5" }));
+      gNodes.appendChild(g);
+    });
+    svg.appendChild(gNodes);
+
+    return svg;
+  }
+
+  /**
+   * Assign each edge label a row within its band gap.
+   *
+   * Labels are only ever shown a few at a time, but which few is up to the
+   * reader, so every label has to be placed as though all of them were visible.
+   * Greedy first-fit on measured x-intervals, per gap: widest first, so the
+   * long formulas claim the middle rows and the short ones fill in around them.
+   * A gap with more labels than rows overflows onto the least-crowded row —
+   * unavoidable, and the halo behind each label keeps that case readable.
+   */
+  function layoutLabels(svg) {
+    const slots = {};
+    svg.querySelectorAll("#elabels text").forEach(function (t) {
+      const box = t.getBBox();
+      const key = t.getAttribute("data-slot");
+      (slots[key] = slots[key] || []).push({ t: t, x0: box.x - 5, x1: box.x + box.width + 5 });
+    });
+
+    Object.keys(slots).forEach(function (key) {
+      const items = slots[key].sort(function (p, q) { return (q.x1 - q.x0) - (p.x1 - p.x0); });
+      const rows = Math.max(1, parseInt(items[0].t.getAttribute("data-rows"), 10) || 1);
+      const taken = [];
+      for (let r = 0; r < rows; r++) taken.push([]);
+
+      items.forEach(function (it) {
+        let pick = -1;
+        for (let r = 0; r < rows && pick < 0; r++) {
+          const clash = taken[r].some(function (s) { return it.x0 < s.x1 && s.x0 < it.x1; });
+          if (!clash) pick = r;
+        }
+        if (pick < 0) {
+          pick = 0;
+          for (let r = 1; r < rows; r++) if (taken[r].length < taken[pick].length) pick = r;
+        }
+        taken[pick].push(it);
+        const mid = parseFloat(it.t.getAttribute("data-mid"));
+        it.t.setAttribute("y", String(mid + (pick - (rows - 1) / 2) * 11));
+      });
+    });
+  }
+
+  /* ======================================================================
+     State + interaction
+     ====================================================================== */
+  const active = {};
+  Object.keys(CHANNELS).forEach(function (k) { active[k] = true; });
+  let selected = null;
+
+  const canvas = document.getElementById("canvas");
+  const svgEl = buildSvg();
+  canvas.appendChild(svgEl);
+  // getBBox needs the text rendered, so rows are settled after the mount — and
+  // again once Plex Mono has actually loaded, since the fallback measures wider.
+  layoutLabels(svgEl);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { layoutLabels(svgEl); });
+  }
+  const rail = document.getElementById("rail");
+
+  function esc(s) {
+    return String(s).replace(/[&<>]/g, function (c) {
+      return c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;";
+    });
+  }
+
+  function apply() {
+    const chanOn = function (c) { return active[c]; };
+    const onCount = Object.keys(active).filter(function (k) { return active[k]; }).length;
+    const anyFilter = onCount < Object.keys(active).length;
+    // Only reveal every label when the filter is down to a single channel —
+    // beyond that there are too many crossing one band gap to read.
+    const soloChannel = onCount === 1;
+
+    // which edges are "hot"
+    const hot = new Set();
+    if (selected) {
+      EDGES.forEach(function (e, i) {
+        if ((e.f === selected || e.t === selected) && chanOn(e.c)) hot.add(i);
+      });
+    }
+
+    canvas.querySelectorAll("path.edge").forEach(function (p) {
+      const i = Number(p.getAttribute("data-i"));
+      const e = EDGES[i];
+      const visible = chanOn(e.c);
+      const isHot = hot.has(i);
+      p.setAttribute("data-dim", String(!visible || (selected && !isHot)));
+      p.setAttribute("data-hot", String(isHot));
+    });
+
+    canvas.querySelectorAll("#elabels text").forEach(function (t) {
+      const i = Number(t.getAttribute("data-i"));
+      const e = EDGES[i];
+      const show = chanOn(e.c) && (hot.has(i) || (!selected && soloChannel));
+      t.setAttribute("opacity", show ? "1" : "0");
+    });
+
+    const touched = new Set();
+    if (selected) {
+      touched.add(selected);
+      EDGES.forEach(function (e, i) { if (hot.has(i)) { touched.add(e.f); touched.add(e.t); } });
+    }
+
+    canvas.querySelectorAll("g.node").forEach(function (g) {
+      const id = g.getAttribute("data-id");
+      g.setAttribute("data-sel", String(id === selected));
+      if (selected) g.setAttribute("data-dim", String(!touched.has(id)));
+      else if (anyFilter) g.setAttribute("data-dim", String(!active[byId[id].kind]));
+      else g.setAttribute("data-dim", "false");
+    });
+  }
+
+  function renderRail(n) {
+    if (!n) {
+      rail.innerHTML = '<span class="eyebrow">Detail</span>' +
+        '<p class="empty" style="margin-top:12px">Select any block on the map for its formula, its committed constants and its source location. Blocks marked with a red dot appear in the findings below. Narrow the channel filter to a single channel to label every edge on that path.</p>' +
+        '<div style="margin-top:22px"><span class="eyebrow">Channels</span><dl style="margin-top:10px">' +
+        Object.keys(CHANNELS).map(function (k) {
+          return '<dt style="color:var(' + CHANNELS[k].cssvar + ')">' + CHANNELS[k].label + '</dt>' +
+                 '<dd style="font-family:\'IBM Plex Sans\',sans-serif;text-align:right;color:var(--muted);font-size:12px">' + CHANNELS[k].desc + '</dd>';
+        }).join("") + '</dl></div>';
+      return;
+    }
+    const c = CHANNELS[n.kind];
+    let h = '<span class="eyebrow">' + esc(BANDS.filter(function (b) { return b.id === n.band; })[0].label) + '</span>';
+    h += '<h2>' + esc(n.label) + '</h2>';
+    h += '<div class="kindline"><span class="dot" style="background:var(' + c.cssvar + ')"></span>' +
+         '<span class="mono" style="font-size:11.5px;color:var(--muted)">' + esc(n.sub) + '</span></div>';
+    if (n.flag) h += '<div class="weakflag">appears in findings</div>';
+    h += '<p>' + esc(n.blurb) + '</p>';
+    if (n.formula) h += '<div class="formula">' + esc(n.formula) + '</div>';
+    if (n.consts && n.consts.length) {
+      h += '<span class="eyebrow">Constants</span><dl>' + n.consts.map(function (kv) {
+        return '<dt>' + esc(kv[0]) + '</dt><dd>' + esc(kv[1]) + '</dd>';
+      }).join("") + '</dl>';
+    }
+    if (n.notes && n.notes.length) {
+      h += '<span class="eyebrow">Notes</span><ul style="margin-top:8px">' +
+           n.notes.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul>';
+    }
+    h += '<div class="src" style="margin-top:16px">' + esc(n.src) + '</div>';
+    rail.innerHTML = h;
+  }
+
+  function select(id) {
+    selected = (selected === id) ? null : id;
+    renderRail(selected ? byId[selected] : null);
+    apply();
+  }
+
+  canvas.addEventListener("click", function (ev) {
+    const g = ev.target.closest("g.node");
+    if (g) select(g.getAttribute("data-id"));
+  });
+  canvas.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const g = ev.target.closest ? ev.target.closest("g.node") : null;
+    if (g) { ev.preventDefault(); select(g.getAttribute("data-id")); }
+  });
+
+  /* chips */
+  const chips = document.getElementById("chips");
+  Object.keys(CHANNELS).forEach(function (k) {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.type = "button";
+    b.setAttribute("data-on", "true");
+    b.setAttribute("aria-pressed", "true");
+    b.style.setProperty("--c", "var(" + CHANNELS[k].cssvar + ")");
+    b.innerHTML = '<span class="swatch"></span>' + CHANNELS[k].label;
+    b.addEventListener("click", function () {
+      active[k] = !active[k];
+      b.setAttribute("data-on", String(active[k]));
+      b.setAttribute("aria-pressed", String(active[k]));
+      apply();
+    });
+    chips.appendChild(b);
+  });
+
+  /* findings */
+  const fWrap = document.getElementById("findings");
+  FINDINGS.forEach(function (f) {
+    const b = document.createElement("button");
+    b.className = "finding";
+    b.type = "button";
+    b.innerHTML =
+      '<div class="tagcol"><span class="sev ' + f.sev + '">' + f.sev + '</span>' +
+      '<span class="chan">' + esc(f.chan) + '</span></div>' +
+      '<div><h3>' + esc(f.title) + '</h3><p>' + f.body + '</p><p>' + f.also + '</p>' +
+      '<div class="where">' + esc(f.where) + '</div></div>';
+    b.addEventListener("click", function () {
+      selected = f.node;
+      renderRail(byId[f.node]);
+      apply();
+      canvas.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    fWrap.appendChild(b);
+  });
+
+  /* entities */
+  const eWrap = document.getElementById("ents");
+  ENTS.forEach(function (e) {
+    const d = document.createElement("article");
+    d.className = "ent";
+    const rows = e.fields.map(function (f) {
+      let note = f[1];
+      let cls = "";
+      if (/no reader|never read/.test(note)) cls = "dead";
+      else if (/^lever/.test(note)) cls = "lever";
+      else if (/^derived/.test(note)) cls = "derived";
+      else if (/loop/.test(note)) cls = "loop";
+      const cell = note ? (cls ? '<span class="tag ' + cls + '">' + esc(note) + '</span>' : esc(note)) : "";
+      return '<tr><td class="f">' + esc(f[0]) + '</td><td class="n">' + cell + '</td></tr>';
+    }).join("");
+    d.innerHTML = '<header><h3>' + esc(e.name) + '</h3><span class="card">' + esc(e.card) + '</span></header>' +
+                  '<p>' + esc(e.desc) + '</p><table><tbody>' + rows + '</tbody></table>' +
+                  '<div class="rel">' + esc(e.rel) + '</div>';
+    eWrap.appendChild(d);
+  });
+
+  /* tabs */
+  const tabC = document.getElementById("tab-causal");
+  const tabE = document.getElementById("tab-ents");
+  const viewC = document.getElementById("view-causal");
+  const viewE = document.getElementById("view-ents");
+  function setTab(which) {
+    const causal = which === "causal";
+    tabC.setAttribute("aria-selected", String(causal));
+    tabE.setAttribute("aria-selected", String(!causal));
+    viewC.hidden = !causal;
+    viewE.hidden = causal;
+    chips.style.visibility = causal ? "visible" : "hidden";
+  }
+  tabC.addEventListener("click", function () { setTab("causal"); });
+  tabE.addEventListener("click", function () { setTab("ents"); });
+
+  renderRail(null);
+  apply();
+})();
+</script>
+</body>
+</html>
