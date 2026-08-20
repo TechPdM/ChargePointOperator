@@ -1,6 +1,6 @@
 # ChargePointOperator — Calibration Sheet & Assumptions Register
 
-**Version:** 3.3 · **Date:** 2026-08-18 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites**)*
+**Version:** 3.4 · **Date:** 2026-08-20 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites** · **v3.4: D42–D45 — §3 gains the detour-derived ceiling, per-archetype value of time and the per-site detour ranges; §5's worked example re-computed and made site-specific; §7 re-measured (and barely moved, which is itself the finding); §8's price gradient becomes `up-then-down`; §9 gains A8 (2014 prices, not uprated) and A9 (detour is a range, not a road network); goals are three, not four**)*
 **Companions:** `ChargePointOperator_Plan.md` (C9, O7), `ChargePointOperator_Architecture.md` (§6, §9.3), `ChargePointOperator_Decision_Log.md` (D8–D26)
 **Status of every number: FIRST GUESS** — chosen for plausible ratios and gradients so Phase 1 has something to assert against and Phase 3 something to tune. When a value proves wrong, change it here first, then in code. Currency £ (realistic magnitudes — D10).
 
@@ -45,10 +45,26 @@ All `*Seconds` fields are sim-seconds at real-world magnitude (a 10-minute wait 
 | `priceSensitivity` (0–1) | 0.7 | 0.4 | 0.1 |
 | `waitSensitivity` (0–1) | 0.6 | 0.5 | 0.2 |
 | `urgencyScore` (0–1) | 0.3–0.5 | 0.5–0.7 | 0.9–1.0 |
-| **`referencePricePerKwh`** *(new — D21)* | **£0.75** | **£0.85** | **£1.00** |
-| `maxAcceptablePricePerKwh` (hard reject) | £0.95 | £1.10 | £1.50 |
+| **`referencePricePerKwh`** *(D21; **no longer read by `siteScore` — D43**)* | £0.75 | £0.85 | £1.00 |
+| **`maxAcceptablePriceBase`** *(D42, was `maxAcceptablePricePerKwh`)* | **£0.78** | **£1.05** | **£1.44** |
+| **`valueOfTimePerHour`** *(new — D42)* | **£11.21** | **£5.12** | **£5.12** |
 
-**The archetype reference price is new because it was missing.** v2.1's `siteScore` said `c = 0.4 per £0.10 above archetype reference` and then defined no reference anywhere — the coefficient had nothing to multiply. It sits below each archetype's hard-reject ceiling: the reference is where they start grumbling, the ceiling is where they leave regardless.
+**The ceiling is no longer a constant (D42).** `maxAcceptablePriceBase` is what this archetype would pay **with a competing charger right there** — no detour, no captivity. Each driver adds a premium on top, drawn from their own detour to the nearest alternative:
+
+```
+premium = (detourMinutes / 60 × valueOfTimePerHour) / requestedKwh     [clamped to ≤ £0.40]
+ceiling = maxAcceptablePriceBase + premium
+```
+
+The bases are **derived, not chosen**: each is the old ceiling (0.95 / 1.10 / 1.50) minus the premium a Junction-42-typical detour of 19 sim-min buys for that archetype at its mean session energy. The corridor therefore keeps the tolerance it had, and differentiation comes from the other two sites being less captive.
+
+**Value of time** is from the DfT VTT study (Arup / ITS Leeds / Accent for DfT, Aug 2015), Table 5.1, **2014 perceived prices**: commute £11.21/hr, other non-work £5.12/hr. Perceived rather than market prices is the correct basis — this stands in for what a driver believes their own time is worth while deciding to drive on. Per archetype rather than one global constant because TAG publishes two figures and the archetypes map onto both. **Not uprated from 2014** — see §9.
+
+*Counterintuitive and left in:* commuters get the **larger** premium — higher value of time, spread over a smaller top-up — while en-route drivers get the smaller one. Site differentiation comes from detour minutes, not from who turns up.
+
+**The archetype reference price** is still where each archetype starts grumbling, but **D43 removed it from `siteScore`**, which now uses the *site's* reference. It survives only as the anchor the bases were sanity-checked against.
+
+**Detour ranges, per scenario (D42):** Junction 42 `[8, 30]` · Kesteven `[5, 18]` · Eastgate `[2, 7]` sim-minutes, justified against real UK rapid-charger spacing. The range's *width* is direction of approach — the next rapid is ahead of you or behind you — which is what makes refusal a curve rather than a step.
 
 **Effective charging power (D14, D15):** `effectivePowerKw = min(bayAllocatedKw, vehicle.maxChargeRateKw) × taper(soc)` where **taper = 1.0 below 0.80 SOC, 0.4 at/above 0.80 SOC** (two-segment first guess). This is what makes the partial-charge policy a real trade: charging past 80% is slow, so a site-imposed 80% cap frees bays dramatically at peaks.
 
@@ -110,7 +126,7 @@ siteScore = a × urgencyScore
 | :-- | :-- |
 | `a` (urgency) | 2.0 |
 | `b` (wait, per 600 s) | 1.0 |
-| `c` (price, per £0.10 over archetype reference) | 0.8 |
+| `c` (price, per £0.10 over **site** reference — D43, was archetype) | 0.8 |
 | `d` (trust, per 25 points over 50) | 0.3 |
 | `ACCEPT_THRESHOLD` | 0.15 |
 
@@ -118,9 +134,15 @@ siteScore = a × urgencyScore
 
 | Archetype | siteScore | Rejects above |
 | :-- | :-- | :-- |
-| Commuter | `0.696 − 0.00100 × wait` | **≈ 9 sim-min** |
-| En-route | `1.512 − 0.00083 × wait` | ≈ 27 sim-min |
-| Panic | `2.188 − 0.00033 × wait` | ≈ 102 sim-min (effectively never) |
+| Commuter | `0.920 − 0.00100 × wait` | **≈ 13 sim-min** |
+| En-route | `1.320 − 0.00083 × wait` | ≈ 23 sim-min |
+| Panic | `2.020 − 0.00033 × wait` | ≈ 94 sim-min (effectively never) |
+
+**Re-computed for D43**, at Junction 42 and £0.79 — which **is** the corridor's reference price, so the price term is exactly zero here and these intercepts are urgency and trust alone. They previously carried a per-archetype price offset (+0.224 / +0.192 / +0.168) that had no business being site-independent, which is why commuters were shown shedding at ~9 sim-min and now hold out to ~13.
+
+**These intercepts are now site-specific.** The same table at Eastgate (reference £0.72) or Kesteven (£0.62) has different numbers at the same £0.79, which is the entire point of D43. A commuter at £0.85 scores 0.46 at the corridor, 0.07 at Eastgate and −0.49 at Kesteven, against a threshold of 0.15 — accepted at one site, refused at the other two.
+
+**Price and patience are now coupled.** Walk-away time used to be fixed per archetype; a commuter now holds out ~13 sim-min at the going rate, ~7 at 6p over, and will not queue at all 16p over.
 
 That ordering is the design intent made checkable: commuters shed first — right around the 8-minute `maxAvgWaitSeconds` goal — en-route tolerate a real queue, panic arrivals take whatever they can get. **Recompute this table whenever a coefficient moves**; it is the fastest way to see whether an admission tweak has quietly emptied the queue. Raising price to £1.10 drops the commuter score below threshold at any wait (and trips their hard reject at £0.95), which is the demand-shaping lever working as designed.
 
@@ -129,7 +151,8 @@ That ordering is the design intent made checkable: commuters shed first — righ
 | Fault model | Per-tick `P(fault) = (1 − reliabilityBase) / expectedSessionTicks × maintenanceMultiplier`, evaluated only on `charging` bays, where `expectedSessionTicks = max(1, round(session.estimatedDurationSeconds / 60))` — **that session's own** estimate, taken at start. Integrates to ≈ `1 − reliabilityBase` per session, which is what `reliabilityBase` is supposed to mean. Plus the scripted fault (scenario spec §4), which no maintenance level prevents |
 | Abandonment | 0 while `waited < patience`; then ramps linearly to 0.5/tick over the next 600 s |
 | Trust — start / bounds | 60 / clamp 0–100, max ±5 over a **rolling** 3,600 sim-second window |
-| Trust deltas *(rebalanced — **D30**)* | abandon −1.5 · fault mid-session −2.0 · fault idle −0.5 · **completion 0** · **wait < 300 s: +0.1 · wait ≥ 300 s: −0.05** (exclusive, not cumulative) · uptime (ROLL) > **98%** sustained +0.5/sim-hr · price-rejection **−0.15** · partial-charge-capped session −0.1 (D14) |
+| Trust deltas *(rebalanced — **D30**)* | abandon −1.5 · fault mid-session −2.0 · fault idle −0.5 · **completion 0** · **wait < 300 s: +0.1 · wait ≥ 300 s: −0.05** (exclusive, not cumulative) · uptime (ROLL) > **98%** sustained +0.5/sim-hr · **drive-on −0.15, plus a further −0.2 when the price was above what that driver would pay (D45)** · partial-charge-capped session −0.1 (D14) |
+| **Detour premium clamp** *(D42)* | `DETOUR_PREMIUM_MAX` **£0.40**. Measured: binds on 0.60% of corridor drivers (13 of 2,174 over 5 seeds) and on nobody at the other two sites, where the largest premium reached is £0.266 and £0.117. It catches the extreme tail — a 10 kWh top-up after a 30-minute detour — without collapsing anyone onto a shared ceiling |
 | Perceived-wait noise *(new — **D31**)* | `perceivedWait = trueWait × U(0.65, 1.35)` — each arrival judges the wait it can see, and misjudges it (A4) |
 
 **Why these changed (D30).** The v2.2 set was net **+42/day** under baseline play, so trust ran to the 0–100 ceiling on every competent run and stopped being a resource at all. The measured event volumes explain it: a day carries **183 completions against ~10 failures**, so any per-completion reward swamps every penalty. The structure now is *serving someone is the job* — reputation moves on the exceptional (a plug free on arrival) and on the things that actually annoy people. The **slow-completion penalty is new**, and it closes a real gap: before it, wait touched trust only when someone gave up, so a site with 20-minute queues that everyone tolerated lost no reputation at all.
@@ -144,31 +167,36 @@ Wave table lives in `ChargePointOperator_Scenario_RoadsideHub.md` §3 (single so
 
 Baseline (D22) = £0.79 flat, **`standard`** maintenance, `equal_share` power, all bays open, partial-charge **off**, no upgrades, and **`schedule_repair` issued on the tick a fault is detected**.
 
-**These are no longer guesses.** Measured over 20 seeds (`s1`–`s20`) on **2026-08-18**, after the D35–D37 re-rating — `npm run baseline`. `ChargePointOperator_Phase1_Findings.md` §2 is the write-up of the *original* Phase 1 measurement and describes the pre-re-rating sim; what the re-rating moved and why is D35–D37 in the decision log. Re-measure whenever anything in §1–§5 changes; it takes **about 110 seconds** for the 20 seeds, so there is still no excuse for stale numbers here — though the loop is no longer the 23 seconds this line used to claim. D36's demand is nearly all of the difference; `batch`'s full `info` log collection accounts for only about 20 s of it (the same 20 runs with `collectLog: false` take ~89 s). **This table was stale for a day after the re-rating** — the archived batch in `runs/` still held the pre-re-rating figures, which is how a doc and its own evidence drift apart.
+**These are no longer guesses.** Measured over 20 seeds (`s1`–`s20`) on **2026-08-20**, after D42–D45 — `npm run baseline`. `ChargePointOperator_Phase1_Findings.md` §2 is the write-up of the *original* Phase 1 measurement and describes the pre-re-rating sim; what the re-rating moved and why is D35–D37 in the decision log. Re-measure whenever anything in §1–§5 changes; it takes **about 110 seconds** for the 20 seeds, so there is still no excuse for stale numbers here — though the loop is no longer the 23 seconds this line used to claim. D36's demand is nearly all of the difference; `batch`'s full `info` log collection accounts for only about 20 s of it (the same 20 runs with `collectLog: false` take ~89 s). **This table was stale for a day after the re-rating** — the archived batch in `runs/` still held the pre-re-rating figures, which is how a doc and its own evidence drift apart.
 
-The middle column is the **previous measurement** (v3.2, pre-re-rating), not the v2.2 paper guess it used to hold. That guess was answered once, in v3.0, and §7a keeps the verdict; what matters now is what D35–D37 moved, and by how much.
+The middle column is the **previous measurement** (v3.3, pre-D42), not the v2.2 paper guess it used to hold. That guess was answered once, in v3.0, and §7a keeps the verdict; what matters now is what D42–D45 moved, and by how much.
 
-| KPI | **Measured** mean [p10 · p90] | v3.2 (pre-re-rating) | If a change moves it, suspect (in order) |
+**Almost nothing moved, and that is the finding.** D42 and D43 rewrote what a driver will pay and what they measure it against, and the corridor's baseline day is within noise of where it was. That is expected once stated: baseline play prices at £0.79, which **is** the corridor's reference price, so D43's price term is exactly zero and D45's penalty never fires. **These changes are invisible until the player reaches for the price lever** — which is precisely what they were built to make matter.
+
+| KPI | **Measured** mean [p10 · p90] | v3.3 (pre-D42) | If a change moves it, suspect (in order) |
 | :-- | :-- | :-- | :-- |
-| Arrivals/day | **428** [407 · 454] | 235 | `DEMAND_SCALE` (D36) first, then wave rates and elasticity |
-| Utilization | **62.9%** [61.4 · 64.5] | 64.5% | siteScore; bays that are faster per car offset more cars |
-| Avg wait | **6.2 sim-min** [5.4 · 7.3] | 5.5 sim-min | peaks vs cap-bound capacity |
-| Abandonment rate | **1.4%** [0.6 · 2.6] | 1.8% | **the gate sheds it, not the queue — see below** |
-| Uptime | **95.70%** [93.56 · 97.40] | 97.15% | fault model; falls because more sessions mean more fault exposure |
-| Sessions completed | **316** [304 · 328] | 178 | downstream of everything above |
-| Session success rate | **97.8%** | 97.6% | fault model |
-| Cumulative operating margin | **£3,535** [£2,690 · £4,355] | £1,815 | price/energy gap, maintenance, opex |
-| End cash (no upgrade) | **£103,535** — reconciles exactly | £51,815 | invariant 6 if this doesn't reconcile; `initialCash` is £100,000 since D37 |
-| End trust | **48.9** [42.2 · 56.8] | 56.4 | D30's deltas under D36's demand — the busier site spends more goodwill than it earns |
-| Faults/day | **7.0** [3.9 · 10.1] | 4.35 | fault model is well-formed; scales with sessions, not with wall-clock |
+| Arrivals/day | **432** [408 · 459] | 428 | `DEMAND_SCALE` (D36) first, then wave rates and elasticity |
+| Utilization | **63.9%** [61.3 · 67.3] | 62.9% | siteScore; bays that are faster per car offset more cars |
+| Avg wait | **6.6 sim-min** [5.5 · 7.5] | 6.2 sim-min | peaks vs cap-bound capacity |
+| Abandonment rate | **1.3%** [0.9 · 1.9] | 1.4% | **the gate sheds it, not the queue — see below** |
+| Uptime | **95.92%** [94.80 · 97.57] | 95.70% | fault model; falls because more sessions mean more fault exposure |
+| Sessions completed | **324** [312 · 343] | 316 | downstream of everything above |
+| Session success rate | **98.0%** | 97.8% | fault model |
+| Cumulative operating margin | **£3,701** [£3,169 · £4,445] | £3,535 | price/energy gap, maintenance, opex |
+| End cash (no upgrade) | **£103,701** — reconciles exactly | £103,535 | invariant 6 if this doesn't reconcile; `initialCash` is £100,000 since D37 |
+| End trust | **49.7** [41.4 · 57.6] | 48.9 | D30's deltas under D36's demand — the busier site spends more goodwill than it earns |
+| Faults/day | **6.55** [3.90 · 8.10] | 7.0 | fault model is well-formed; scales with sessions, not with wall-clock |
+| Rejected at gate | **97** [75 · 120] | 101 | siteScore, and after D43 the **site's** reference price |
+
+**What D42–D45 did move is off this table**, because this table measures one site playing one price. The per-site margin optimum is now **£0.90 corridor · £0.75 commuter · £0.70 destination** where it was £0.85 on all three; +15% on list is worth +£197 at the corridor and −£364 at the commuter hub. Those live in `ChargePointOperator_PricingModel_Design.md` §11 and §14.
 
 **On abandonment (D31).** The 8–25% expectation predates D21, which gave each archetype its own wait sensitivity. With drivers who can see a queue and leave, a competently-run six-bay site does not generate mass abandonment — the demand goes **at the gate** instead (101 rejections/day, 24% of arrivals), and the funnel accounts for it there. **The re-rating is the evidence for this, not a complication of it:** D36 nearly doubled arrivals, and the drive-past *share* moved 23% → 24% while the abandonment rate went 1.8% → 1.4%. The gate scales with demand; the queue does not have to. Adding perceived-wait noise (D31) was the right fix for *reachability* and it did not move this number much, because the admission gate is doing the shedding by design. **Treat 8–25% as a superseded guess.** The figure to watch is the funnel split, not this rate on its own.
 
 The p10–p90 spread on margin is £1,665 wide. **Any goal set inside that band is a coin flip** — which is what the difficulty-floor result below reflects.
 
-**Difficulty floor check (D13): measured 80% — PASSES, with no headroom.** The baseline fails ≥1 goal on **16 of 20 seeds** against D13's ≥80%. Goals are D36's: `minOperatingMargin` £2,800, `maxAvgWaitSeconds` 420 s, `minTrust` 55, `minSessionsCompleted` 300.
+**Difficulty floor check (D13): measured 80% — PASSES, with no headroom.** The baseline fails ≥1 goal on **16 of 20 seeds** against D13's ≥80%. Goals are **three** since D44 — `minOperatingMargin` £3,200, `maxAvgWaitSeconds` 420 s, `minTrust` 55. Commuter is at 85% and destination at 80%.
 
-**`minTrust` is now the goal that bites, and the margin goal is not.** Met across the batch: trust **4/20**, margin **16/20**, wait **15/20**, sessions **19/20**. That is the reverse of the pre-re-rating position, where margin bit at 4/20 and trust supported at 12/20 — and it is the outcome D36 reasoned its way to when it re-fitted every goal from the measured spread *except* `minTrust`, on the grounds that the re-rating changed the hardware but not what a good reputation is worth. The floor now rests on that single unchanged number.
+**`minTrust` is still the goal that bites.** Met across the batch: trust **4/20**, margin **17/20**, wait **14/20**. The margin goal moved £2,800 → £3,200 under D44's re-fit because it had gone free at 20/20 — site-aware pricing lets the corridor earn more for the same traffic. That is the reverse of the pre-re-rating position, where margin bit at 4/20 and trust supported at 12/20 — and it is the outcome D36 reasoned its way to when it re-fitted every goal from the measured spread *except* `minTrust`, on the grounds that the re-rating changed the hardware but not what a good reputation is worth. The floor now rests on that single unchanged number.
 
 Two consequences worth stating plainly. **Roadside sits exactly on the bar** where commuter and destination are at 85%, so one seed flipping puts it under — re-measure before trusting it after any change, which is D36's own warning and not a new one. And **the correlation the old text relied on has inverted**: trust and margin no longer fail together, because the busier site earns money while spending goodwill. A goal set from this table's p80 for margin (£4,087) would bite; £2,800 does not, and is carried by trust instead.
 
@@ -208,7 +236,7 @@ So ≈21 sessions are lost to the energy wall outright, and the queueing that pr
 
 | Input ↑ | Must produce |
 | :-- | :-- |
-| `pricePerKwh` | arrivals ↓, wait ↓, margin/session ↑, trust ↘ mild |
+| `pricePerKwh` | arrivals ↓, wait ↓, **margin/session rises to an interior peak then falls** *(D43 — see below)*, trust ↘ mild |
 | Arrival rate | queue ↑, abandonment ↑, utilization ↑ then plateau |
 | Fault probability | uptime ↓, session success ↓, trust ↓ |
 | `patienceSeconds` | abandonment ↓, avg wait ↑ |
@@ -216,6 +244,8 @@ So ≈21 sessions are lost to the energy wall outright, and the queueing that pr
 | Grid cap | throughput ↑ until bay-limited, then flat |
 | Partial-charge target ↓ (D14) | kWh/session ↓, sessions/hr ↑ **at peaks**, wait ↓, trust ↘ mild; **negligible effect off-peak** (the signature that the taper is working) |
 | Power policy `equal_share` → `queue_relief` (D23) | avg wait ↓, sessions/hr ↑ at peaks, kWh unchanged — it reorders service, it doesn't create power |
+
+**The price gradient changed shape under D42/D43, and the axis changed with it.** "margin/session ↑" was only ever true because the shipped sweep stopped at £0.89, below the price at which drivers refuse. Across the full £0.45–£1.20 range at £0.05 steps there is a peak, and **where that peak sits now differs by site** — £0.90 at the corridor, £0.75 at the commuter hub, £0.70 at the destination. The axis asserts `up-then-down`: that an interior optimum *exists*. That is a stronger claim about the model than monotonicity was, and it is the one the pricing decision rests on.
 
 Flat or inverted gradient = finding-killer: stop and fix before believing anything.
 
@@ -232,6 +262,8 @@ Flat or inverted gradient = finding-killer: stop and fix before believing anythi
 | A5 | **Universal connector compatibility** | Ignores CCS/AC split | Accept; `preferredChargerTypes` exists if needed. *Note: the tick pseudocode still calls `findCompatibleFreeCharger`/`dequeueCompatibleEV` — under A5 these are identity filters, kept as the seam where compatibility would land* |
 | A6 | **Independent random faults** | Understates correlated failures | Accept; scripted faults partially compensate; Phase 5 events |
 | A7 | **Trust is within-run only** | No reputation carry-over | Deliberate; Phase 5 campaign |
+| A8 | **Value of time is 2014 perceived prices, not uprated** (D42) — DfT VTT study Table 5.1, commute £11.21/hr, other non-work £5.12/hr | Understates every detour premium by roughly a decade of inflation, so drivers are modelled as *less* tolerant of price than they would be at current prices | Accept — the distortion is in the conservative direction. Replace when an uprating factor can be sourced from the TAG databook rather than assumed |
+| A9 | **Detour minutes are a per-site range, not a real road network** (D42) | A driver's alternative really depends on where they are going, not a draw from a distribution; direction of approach is the justification for the range's width rather than a modelled entity | Accept; the range is checkable against real charger spacing, which a free multiplier would not be |
 | A8 | **Realistic absolute economics; capex payback exceeds one scenario** *(rewritten under D10)* | An upgrade can never "pay for itself" inside a run; naive players may read it as always-bad | Handled by design: margin excludes capex (D12), upgrades judged operationally, dashboard shows the upgrade's throughput/wait effect — never an in-run ROI figure. Do not add a payback readout; it would always say "don't". **See scenario spec §5a — under a binding grid cap the upgrade's value is genuinely narrow, and that needs testing, not assertion** |
 | A9 | **288× compression with real-magnitude constants** | UI pacing must be tuned in real seconds, separately from sim constants | Accept (per D8) |
 | A10 | **Flat energy price** — no ToU/demand charges | Removes real peak-shaving dynamics; slightly flatters night charging under D8's 24h day | Deliberate MVP cut; ToU is the natural Phase 5 grid mechanic and pairs well with the 24h clock. *(Also why `reservePowerKw` was cut — D23: with no ToU there is nothing to reserve power **for**)* |
