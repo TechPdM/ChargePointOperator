@@ -549,3 +549,100 @@ Two things follow, and neither is about pricing:
 `preventive` sitting one point either side of the bar at two of three sites is
 also a standing fragility in its own right, and predates this work: it is the
 D33 / OPEN-2 maintenance-dominance question, still close to the surface.
+
+---
+
+## 13. The session goal is still load-bearing — the hypothesis is falsified
+
+**Measured, 40 seeds, three goals** (`minSessionsCompleted` removed, model
+otherwise byte-identical to §12.6):
+
+| Site | Winner | Not measurably behind |
+| :-- | :-- | :-- |
+| Junction 42 | `premium+preventive` | — best |
+| Eastgate | `preventive` | **`premium+preventive` (*t*=1.27)** · `as-shipped` (*t*=1.36) |
+| Kesteven | `premium+preventive` | `premium` (*t*=1.84) |
+
+`premium+preventive` is credible everywhere. **Criterion 2: FAIL.**
+
+With the goal restored and nothing else changed, it passes (§12.6). So this is
+the goal removal, and only the goal removal.
+
+### 13.1 What was expected, and what happened
+
+Discovery §2.5 measured that the session goal's one structural job was ruling
+`premium+preventive` out, and predicted criterion 2 would break without it. The
+working hypothesis of this whole design was that D42 and D43 would take that job
+over: once the model can make premium pricing *wrong* somewhere, a volume goal
+should not be needed to punish it.
+
+**The model can now make premium wrong — and it is still not enough.** Premium
+pricing loses £364/day at Eastgate (§11.1), and `premium+preventive` still
+cannot be separated from the winner there once volume stops being scored,
+because `preventive` lifts trust and wait enough to cover the margin it loses.
+
+The stand-in is still holding something up.
+
+### 13.2 The awkward part
+
+This finding argues for keeping a goal that is **not a measure a real charge
+point operator manages to** — which is the substantive objection, and it has not
+been answered by anything measured here.
+
+It also rests on a criterion that §12.7 showed **flips on a single £50 goal
+threshold** with the simulation model unchanged. `premium+preventive` sits at
+*t*=1.27 at Eastgate; a modest re-fit of Eastgate's three remaining goals could
+plausibly move it either side of the bar without touching a line of model code.
+
+So the choice is between a design conviction and a fragile criterion, and it
+should be made as that rather than as a measurement result. What the measurement
+settles is narrow and worth stating precisely: **the pricing model alone does
+not carry criterion 2.** It does not settle whether criterion 2 is the right
+bar, or whether driver count is an acceptable way to clear it.
+
+---
+
+## 14. Final state — all criteria pass
+
+**Date:** 2026-08-20. Model: D42 (detour ceiling) + D43 (site reference) + D44
+(session goal removed) + D45 (split trust penalty). Three scored goals.
+
+### 14.1 Against §6's acceptance criteria
+
+| | Criterion | Result |
+| :-- | :-- | :-- |
+| 1 | Margin peaks at materially different prices per site — ≥ £0.10 spread | **PASS** — £0.90 · £0.75 · £0.70, spread **£0.20**, three distinct optima. Was £0.85 on all three. |
+| 2 | Premium pricing is actively wrong somewhere | **PASS** — +15% on list is **−£364** at Eastgate (*t*=−4.86, worse on 18/20) and **+£197** at Junction 42. |
+| 3 | Criterion 2 passes under D38's separation test | **PASS at 40 seeds**, with three goals. `premium+preventive` is best at two sites and not a contender at Eastgate. |
+| 4 | D13 floor ≥ 80% on all three scenarios | **PASS** — 80% / 85% / 80%. |
+| 5 | Criterion 4 (decisions matter) still passes | Verified by `gate`. |
+
+The §8.3 question — whether the session goal comes out — is answered **yes, but
+not for the reason expected.** It came out, and D42/D43 did *not* make it
+redundant: removing it failed criterion 2 on its own. D45 is what replaced its
+structural job, by making the thing the session goal was standing in for —
+driving customers away — cost something directly.
+
+### 14.2 What each change was actually for
+
+- **D42** made refusal a curve and moved Eastgate's optimum. It did not move the
+  corridor's, because the hard ceiling does not bind in its profitable range.
+- **D43** moved the corridor's, because the soft test is what sets the optimum
+  there. Criterion 1 needed both.
+- **D44** removed a goal that was doing structural work under a false name.
+- **D45** replaced that work with a mechanism that names what it does.
+
+### 14.3 Standing weaknesses, carried forward
+
+1. **`preventive` is close to the separation bar** at two of three sites. The
+   D33 / OPEN-2 maintenance-dominance question is unresolved and nearer the
+   surface than before, because pricing no longer beats it everywhere.
+2. **Criterion 2 flips on a single goal threshold** (§12.7) with the model
+   unchanged. A PASS is a claim about the goal fit at least as much as about
+   the mechanics.
+3. **Two mechanisms now differentiate by site** — the detour ceiling and the
+   site reference — and they compound at Eastgate (§11.3). Nothing has gone
+   wrong, but it is the first thing to suspect if Eastgate proves hard to
+   balance later.
+4. **The value of time is 2014 prices, not uprated.** Conservative direction;
+   in the assumptions register.
