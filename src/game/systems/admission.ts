@@ -76,7 +76,9 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
 
     if (!accepted) {
       state.site.metrics.funnel.rejectedSite += 1;
-      ctx.trustDeltaRaw += TRUST.priceRejection;
+      // D45: every drive-on costs reputation; being too dear costs extra.
+      ctx.trustDeltaRaw += TRUST.siteRejection;
+      if (priceRejected) ctx.trustDeltaRaw += TRUST.priceRejectionExtra;
       emit(ctx, "debug", "vehicle.site_rejected", `${archetypeName(vehicle.archetype)} drove on`, {
         entity_type: "vehicle",
         entity_id: vehicle.id,

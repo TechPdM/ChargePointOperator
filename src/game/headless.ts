@@ -144,12 +144,19 @@ function parseArgs(argv: string[]): Args {
   return args;
 }
 
+/** D44 removed the fourth. Derive the count so the next change cannot desync it. */
 const GOAL_LABELS: Record<keyof ScenarioGoals, string> = {
   minOperatingMargin: "margin",
   maxAvgWaitSeconds: "avg wait",
   minTrust: "trust",
-  minSessionsCompleted: "sessions",
 };
+
+/**
+ * Derived, not written down. D44 removed the fourth goal and three call sites
+ * were comparing against a hardcoded 4 — which would have silently reported the
+ * D13 floor as 100% on every seed.
+ */
+const GOAL_COUNT = Object.keys(GOAL_LABELS).length;
 
 function money(value: number): string {
   return `£${value.toFixed(2)}`;
@@ -161,7 +168,7 @@ function printSummary(s: RunSummary): void {
     .join(" ");
   console.log(`
   seed ................ ${s.seed}  (${s.policyLabel})
-  outcome ............. ${s.outcome}   goals ${s.goalsMetCount}/4   ${goals}
+  outcome ............. ${s.outcome}   goals ${s.goalsMetCount}/${GOAL_COUNT}   ${goals}
   arrivals ............ ${s.arrivals}  (rejected ${s.rejectedSite}, site-full ${s.siteFull})
   sessions completed .. ${s.sessionsCompleted}
   cum margin .......... ${money(s.cumMargin)}
@@ -226,7 +233,7 @@ function commandBatch(args: Args): void {
   const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
   const pick = (f: (s: RunSummary) => number): Stat => stat(summaries.map(f));
 
-  const failsAGoal = summaries.filter((s) => s.goalsMetCount < 4).length;
+  const failsAGoal = summaries.filter((s) => s.goalsMetCount < GOAL_COUNT).length;
   const floorPct = (failsAGoal / summaries.length) * 100;
 
   console.log(`\n  BASELINE BATCH — ${args.seeds} seeds, ${scenario.name} (${elapsedMs.toFixed(0)} ms)`);
@@ -370,7 +377,7 @@ function commandArchetypes(args: Args): void {
     }
     const mean = (f: (s: RunSummary) => number): number =>
       summaries.reduce((a, s) => a + f(s), 0) / summaries.length;
-    const fails = summaries.filter((s) => s.goalsMetCount < 4).length;
+    const fails = summaries.filter((s) => s.goalsMetCount < GOAL_COUNT).length;
     const observed = new Set(summaries.flatMap((s) => s.failureStatesObserved));
 
     console.log(`  ${scenario.name}  (${scenario.archetype})`);

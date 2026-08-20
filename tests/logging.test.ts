@@ -129,10 +129,12 @@ describe("run manifest", () => {
 
   it("records goal outcomes and observed failure states (D24)", () => {
     const { manifest } = baselineRun();
+    // Three since D44 — minSessionsCompleted came out of scoring. The manifest
+    // is what a replay is judged against, so this list is the record of what
+    // the run was actually scored on and is deliberately exhaustive.
     expect(Object.keys(manifest.goals_met ?? {}).sort()).toEqual([
       "maxAvgWaitSeconds",
       "minOperatingMargin",
-      "minSessionsCompleted",
       "minTrust",
     ]);
     expect(Array.isArray(manifest.failure_states_observed)).toBe(true);

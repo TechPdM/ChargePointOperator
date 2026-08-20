@@ -148,7 +148,6 @@ export function evaluateGoals(state: SimulationState): GoalOutcome {
     minTrust: m.trust >= goals.minTrust,
     minOperatingMargin: cumMargin >= goals.minOperatingMargin,
     maxAvgWaitSeconds: cumAvgWait <= goals.maxAvgWaitSeconds,
-    minSessionsCompleted: m.sessionsCompleted >= goals.minSessionsCompleted,
   };
 
   return {

@@ -127,11 +127,17 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
       />
       </div>
 
+      {/*
+        D44: no goal, no tone. Driver count is worth seeing and not worth
+        scoring, so this card reports and stops short of judging — a tone here
+        would be the scorecard telling the player that serving more people is
+        better, which is the belief D44 removed.
+      */}
       <Kpi
         label="Served"
         value={String(m.sessionsCompleted)}
-        unit={`of ${goals.minSessionsCompleted} goal`}
-        tone={toneFor(onPace(m.sessionsCompleted, goals.minSessionsCompleted), 1, 0.7)}
+        unit="drivers today"
+        tone="idle"
         detail={`${m.kwhDelivered.toFixed(0)} kWh delivered. ${pct(m.sessionSuccessRatePct, 0)}% of started sessions finished without a fault.`}
       />
     </div>

@@ -243,7 +243,5 @@ export const roadsideHub: ScenarioConfig = {
     // does not change what a good reputation is worth, and that holds here too.
     minTrust: 55,
     // 310 sits below the measured p10 of 312, so it was met on 20/20 — still
-    // free. 320 is the median.
-    minSessionsCompleted: 320,
   },
 };

@@ -504,7 +504,17 @@ describe("trust (Calibration §5, rebalanced by D30)", () => {
   it("treats driving past as a reputation event, not a rounding error", () => {
     // ~18% of the day's demand leaves at the gate; at −0.05 that was −2 trust
     // a day against +60 of completion bonuses.
-    expect(Math.abs(TRUST.priceRejection)).toBeGreaterThanOrEqual(0.15);
+    expect(Math.abs(TRUST.siteRejection)).toBeGreaterThanOrEqual(0.15);
+  });
+
+  it("charges extra reputation for being too dear, not for being busy (D45)", () => {
+    // The split is the point: a queue is bad luck, a price is a decision. A
+    // blanket penalty taxed both and made trust unreachable at the site whose
+    // drive-ons are mostly people declining to queue.
+    expect(Math.abs(TRUST.priceRejectionExtra)).toBeGreaterThan(0);
+    expect(Math.abs(TRUST.siteRejection + TRUST.priceRejectionExtra)).toBeGreaterThan(
+      Math.abs(TRUST.siteRejection),
+    );
   });
 
   it("keeps the baseline's trust inside the calibrated band", () => {

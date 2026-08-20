@@ -411,11 +411,24 @@ export type PlayerAction =
 // Scenario and root state — §5.7
 // ---------------------------------------------------------------------------
 
+/**
+ * The scored goals. **Three, since D44** — `minSessionsCompleted` was removed.
+ *
+ * Driver count is not a measure a charge point operator manages to, and it was
+ * never doing the job it appeared to. D13's difficulty floor was unaffected by
+ * it (16/20 with four goals, 16/20 with three, and no seed ever failed on
+ * sessions alone); its only structural job was ruling out premium pricing,
+ * which it did by standing in for a demand model that could not make premium
+ * wrong anywhere. D42 and D43 gave the model that ability directly, so the
+ * stand-in is no longer load-bearing.
+ *
+ * `sessionsCompleted` remains as a measured KPI. It is worth seeing; it is not
+ * worth scoring.
+ */
 export interface ScenarioGoals {
   minTrust: number;
   minOperatingMargin: number;
   maxAvgWaitSeconds: number;
-  minSessionsCompleted: number;
 }
 
 export interface BayRosterEntry {

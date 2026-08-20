@@ -199,7 +199,5 @@ export const destinationSite: ScenarioConfig = {
     // Trust ran 59.3–65.4 (p50 62.1), so 58 was met on 19/20 — free. 61 sits
     // just under the median and makes a bad day on trust cost something.
     minTrust: 61,
-    // 90 left the D13 floor at 70%. 94 is the measured median.
-    minSessionsCompleted: 94,
   },
 };

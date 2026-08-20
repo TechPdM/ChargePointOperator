@@ -205,12 +205,14 @@ export const commuterHub: ScenarioConfig = {
     // should be a margin problem — but at a figure inside the measured spread
     // rather than above the top of it.
     minOperatingMargin: 1_000,
-    maxAvgWaitSeconds: 270,
+    // 270 s was met on 80%, which left the D13 floor at 75% once D44 removed
+    // the fourth goal — three goals means one fewer way for a day to go wrong,
+    // so the survivors have to carry it. 250 s is just under the measured
+    // median of 252 s (4.2 sim-min).
+    maxAvgWaitSeconds: 250,
     minTrust: 61,
     // 140 left the D13 floor at 75%, under the ≥80% bar: four goals that are
     // each individually reachable still have to combine into a day the baseline
     // loses. 147 is the measured median, which is the same lever D36 pulled to
-    // put the floor back on the corridor.
-    minSessionsCompleted: 147,
   },
 };

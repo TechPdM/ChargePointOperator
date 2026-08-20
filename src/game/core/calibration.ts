@@ -307,7 +307,48 @@ export const TRUST = {
    * D30: was −0.05. A driver who sees the queue and drives on is a reputation
    * event, not a rounding error — and it is where 18% of the day's demand goes.
    */
-  priceRejection: -0.15,
+  /**
+   * Any driver who looks at the site and drives on, whatever the reason —
+   * a queue they will not join, a price they will not pay, a day when they are
+   * simply not desperate enough. Reputation is what people say about you, and
+   * "I pulled in and pulled straight back out" is a thing people say.
+   *
+   * Renamed from `priceRejection` (D45): it always fired on every rejection,
+   * not just price ones, and the old name hid that. The price-specific part is
+   * now a separate, additional penalty below.
+   */
+  siteRejection: -0.15,
+  /**
+   * **On top of `siteRejection`, and only when the price exceeded what that
+   * driver would pay (D45).** Being too dear is a different reputational injury
+   * from being busy: a queue is bad luck, a price is a decision you made.
+   *
+   * This exists because criterion 2 needs a site where premium pricing is
+   * punished, and margin alone could not do it — `premium+preventive` fails
+   * Eastgate's margin goal on 40/40 seeds and still nearly wins, because
+   * serving half as many drivers wins the wait goal outright.
+   *
+   * An earlier attempt simply doubled the old blanket penalty. It worked at
+   * Eastgate and wrecked the other two sites — trust fell to a 5%-met wall on
+   * both, because it also taxed drivers leaving long queues, which is what
+   * Kesteven's drive-ons mostly are. Splitting the two is what makes the
+   * penalty land on the behaviour it is meant to be about.
+   *
+   * **MEASURED at -0.2, -0.4 and -0.7** (20 seeds × 3 scenarios). The effect at
+   * Eastgate is a step, not a curve: the separation is +1.15 goals at -0.2 and
+   * identical at -0.4 and -0.7. So this is the smallest value that does the
+   * job, not the value that maximised anything — which matters, because the
+   * last constant chosen by looking for a maximum is what broke criterion 2
+   * three commits ago.
+   *
+   * Two further measurements decided it. Baseline trust is **unchanged** at
+   * every value tested (49.7 / 62.8 / 62.2), because baseline play prices below
+   * what drivers will pay and so never triggers this at all — the penalty is
+   * invisible until you reach for premium pricing, which is the point. And at
+   * -0.7 the corridor's ordering flips, which risks handing dominance to a
+   * different strategy; at -0.2 it is untouched.
+   */
+  priceRejectionExtra: -0.2,
   partialChargeCapped: -0.1,
 } as const;
 

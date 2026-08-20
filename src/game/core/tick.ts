@@ -193,7 +193,6 @@ export function closeOutRun(ctx: TickContext): void {
         goal_min_trust_met: outcome.goalsMet.minTrust,
         goal_min_operating_margin_met: outcome.goalsMet.minOperatingMargin,
         goal_max_avg_wait_met: outcome.goalsMet.maxAvgWaitSeconds,
-        goal_min_sessions_met: outcome.goalsMet.minSessionsCompleted,
       }),
     },
   );

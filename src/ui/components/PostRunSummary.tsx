@@ -19,8 +19,10 @@ const GOAL_COPY: Record<keyof ScenarioGoals, { label: string; format: (v: number
   minOperatingMargin: { label: "Operating margin", format: (v) => money(v) },
   maxAvgWaitSeconds: { label: "Average wait", format: (v) => `${minutes(v)} min` },
   minTrust: { label: "Trust", format: (v) => v.toFixed(1) },
-  minSessionsCompleted: { label: "Drivers served", format: (v) => String(v) },
 };
+
+/** Derived so the copy cannot drift from the goal set (D44). */
+const GOAL_COUNT = Object.keys(GOAL_COPY).length;
 
 export function PostRunSummary({
   state,
@@ -41,7 +43,6 @@ export function PostRunSummary({
     minOperatingMargin: cumulativeMargin(state),
     maxAvgWaitSeconds: outcome.cumAvgWaitSeconds,
     minTrust: m.trust,
-    minSessionsCompleted: m.sessionsCompleted,
   };
   const shareOfArrivals = (value: number): string =>
     m.funnel.arrived > 0 ? `${Math.round((value / m.funnel.arrived) * 100)}% of arrivals` : "";
@@ -100,7 +101,7 @@ export function PostRunSummary({
               </ul>
               <p className="note">
                 The same day, same seed, run by an operator who changed nothing and only called out
-                repairs. It met {comparison.baseline.goalsMetCount} of 4 goals.
+                repairs. It met {comparison.baseline.goalsMetCount} of {GOAL_COUNT} goals.
               </p>
               {comparison.marginTrap ? (
                 <div className="survivorship">
