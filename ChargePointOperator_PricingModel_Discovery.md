@@ -1,5 +1,34 @@
 # ChargePointOperator — Pricing Model: Problem Discovery
 
+> **CLOSED 2026-08-20.** Every question in §8 is answered and the work is
+> implemented as **D42–D45**. The design and all measurements are in
+> `ChargePointOperator_PricingModel_Design.md`; this document is kept as the
+> record of the problem, not of the solution.
+>
+> **The answers, briefly, because two of them contradict what this document expected:**
+>
+> 1. **Approach A *and* B, not A or B.** A1+A2 (the detour-derived ceiling, D42)
+>    moved Eastgate's optimum and left the corridor's exactly where it was — the
+>    hard ceiling does not bind in the corridor's profitable range. B's site-aware
+>    soft reference (D43) is what moved it. Criterion 1 needed both. The half of B
+>    this document proposed — *deleting* the hard ceiling — was **not** done: by
+>    then the ceiling had been measured making premium pricing lose money at
+>    Eastgate, which is criterion 2's whole basis.
+> 2. **The site multiplier is derived from detour**, as §4 argued it should be —
+>    but per *driver* rather than per site, drawn from a per-scenario range whose
+>    width is direction of approach. That collapses A1 and A2 into one mechanism
+>    and removes the stacking risk §4 flagged.
+> 3. **The session goal came out — and §2.5's prediction was right.** It was still
+>    load-bearing even after D42 and D43: removing it failed criterion 2 on its
+>    own, because two of the three remaining goals get *easier* as you shed
+>    customers. An empty forecourt has a perfect average wait. What replaced its
+>    structural job is D45, which makes turning a driver away *on price*
+>    cost reputation directly, rather than proxying it through a volume count.
+>
+> §7's caution about unsourced claims held up: the value of time used by D42 is
+> the DfT VTT study's published figure, read from the source and recorded with
+> its price basis, and its un-uprated 2014 basis is in the assumptions register.
+
 **Status:** discovery complete, **nothing decided, nothing changed.** No code in this document has been written.
 **Date:** 2026-08-19
 **Prompted by:** a question about how the drivers-served goal works, which turned into a question about whether it should exist, which turned into this.
