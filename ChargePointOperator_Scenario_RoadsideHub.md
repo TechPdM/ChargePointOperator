@@ -30,7 +30,8 @@ Field names below are the `ScenarioConfig` fields from Architecture §5.7. **v2.
 | `initialCash` | £50,000 (investment float — D10) | Calibration §4 |
 | `initialPricePerKwh` | £0.79 | Calibration §4 |
 | `initialConnectionFee` | £0.99 | Calibration §4 |
-| `referencePricePerKwh` | £0.79 (elasticity pivot — D21) | Calibration §4 |
+| `referencePricePerKwh` | £0.79 (elasticity pivot — D21; **and since D43 what drivers judge your price against**) | Calibration §4 |
+| **`detourMinutes`** | **`[8, 30]` sim-min to the nearest alternative rapid (D42)** | Calibration §3 |
 | `energyCostPerKwh` | £0.28 | Calibration §4 |
 | `opexPerSimDay` | £150 | Calibration §4 |
 | `upgradeCosts` | `rapid_dc → ultrarapid_dc`: £40,000 | Calibration §2 (D20) |
@@ -75,26 +76,31 @@ Whole-day energy is *not* the constraint — 350 kW over 24h is 8,400 kWh agains
 
 Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. **v2.0 change (D10):** the cash-floor goal is replaced by an operating-margin goal; with a £50k float, "end richer than you started" measured nothing.
 
-**Win (all four at end of run):**
+**Win (all three at end of run)** — *three, not four, since **D44** removed `minSessionsCompleted`. Values re-fitted for the D42/D43 demand model; the figures below supersede the £2,200 / 480 s / 110 set this section carried through D36.*
 
 | Goal | Value |
 | :-- | :-- |
-| `minOperatingMargin` | ≥ **£2,200** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *set by Mark from the post-D30/D31 measured baseline distribution (p80 £2,196); the lowest round value that closes the D13 floor* |
-| `maxAvgWaitSeconds` | ≤ 480 (8 sim-min, CUM) |
-| `minTrust` | ≥ 55 |
-| `minSessionsCompleted` | ≥ 110 |
+| `minOperatingMargin` | ≥ **£3,200** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *from the measured 20-seed baseline spread £3,169–£4,445, p50 £3,453. Raised from £2,800 because site-aware pricing let the corridor earn more for the same traffic and the old goal had gone free at 20/20* |
+| `maxAvgWaitSeconds` | ≤ **420** (7 sim-min, CUM) |
+| `minTrust` | ≥ **55** — *unchanged through four re-fits, and still the goal that bites (met on 4/20)* |
+
+**`minSessionsCompleted` is gone (D44).** Driver count is not a measure an operator manages to. `sessionsCompleted` is still reported on the dashboard — without a tone, because a colour there would be the scorecard claiming that serving more people is better.
 
 **Fail (immediately, any)** — **none. Removed by D41 (2026-08-19).** The day ends at 24:00 and nowhere else; there is no game-over. The two rules that used to live here were `bankruptcyCashBelow: 0` and `trustBelow: 30` sustained for 2 sim-hours. The first never fired — D37 refuses unaffordable upgrades, so nothing can spend past zero. The second fired on reputation, around 20:00, on a site the player had been losing since 18:00. Both are now outcomes scored at close-out rather than reasons to stop. **Margin-trap observability note (v2.1, still true and now the general case):** the *margin trap* failure state manifests as capex producing no goal improvement — visible in the played-vs-baseline comparison and the post-run summary, never as a game-over screen. D24 makes that detectable rather than merely narratable, and since D41 that is how every failure presents.
 
-**Design intent:** the goals still pull against each other — price up helps margin but bleeds sessions/trust; partial-charge helps wait/sessions but trims kWh (and mildly trust); preventive maintenance helps trust/uptime but *should* eat margin (**it currently doesn't — Calibration §4a, OPEN-2**). The £40k upgrade is deliberately *not* goal-scored: it's a bet that better hardware makes the other four goals reachable, judged operationally (A8).
+**Design intent:** the goals still pull against each other — but **how** price pulls is now this site's own business (D42/D43), and that is the point of the change. Partial-charge helps wait but trims kWh; preventive maintenance helps trust and uptime but *should* eat margin (**Calibration §4a, OPEN-2 — still not fully resolved**). The £75k upgrade is deliberately *not* goal-scored: it's a bet that better hardware makes the other goals reachable, judged operationally (A8).
+
+**This site has real pricing power, and that is a fact about its geography.** The nearest alternative rapid is 8–30 sim-minutes away depending on which way you are heading, so a driver here will pay a premium rather than detour — and the local going rate is £0.79, which is what they measure your price against. Measured over 20 seeds, **margin peaks at £0.90**, and putting the list price up 15% is worth **+£197**.
+
+**That answer does not transfer.** The same measurement puts the optimum at £0.75 at Eastgate, where the chargers on the next street mean a 15% rise *loses* £364 a day, and at £0.70 at Kesteven. Before D42/D43 all three sites peaked at £0.85 and "put the price up" was correct everywhere on day one — pricing was a lookup, not a decision.
 
 **Failure states** are defined in the KPI dictionary (D24) and detected every tick. They don't end the run; they're recorded so gate criterion 3 is a count rather than an opinion.
 
-**Difficulty floor (D13, ratified): measured 80% — PASSES.** The passive baseline fails ≥1 goal on 16 of 20 seeds, meeting the ≥80% requirement for the first time. `minOperatingMargin` at £2,200 is the goal doing the work (met on 4/20); `minTrust` contributes (12/20) but is **correlated with it** — every seed that misses on trust also misses on margin, because the same broken charger costs both takings and reputation.
+**Difficulty floor (D13, ratified): measured 80% — PASSES, with no headroom.** The passive baseline fails ≥1 goal on 16 of 20 seeds. **`minTrust` is the goal doing the work** (met on 4/20); margin (17/20) and wait (14/20) are achievable but no longer free.
 
-**Why £2,200 and not £2,100.** The six seeds the baseline used to win outright sit at margins of £2,154, £2,190, £2,220, £2,312, £2,506 and £2,772. Any goal below £2,190 catches none of them; £2,200 catches two, which is exactly what the floor needed. Goals are scored only at close-out and do not affect the simulation, so this was computed against the existing seed batch rather than re-run.
+**The correlation this section used to rely on has inverted.** It once read that every seed missing on trust also missed on margin, because a broken charger costs both takings and reputation. That stopped being true at D36: the busier site earns money while spending goodwill, so trust and margin now fail independently. The floor rests on `minTrust` alone, and that single unchanged number has survived four re-fits.
 
-**Known consequence, accepted at the time:** `maxAvgWaitSeconds` (20/20) and `minSessionsCompleted` (20/20) still score nothing, so the four-goal scorecard is effectively one number. That is a deliberate choice — this is a business game and the business number is margin — but it is worth re-examining at Phase 4 if playtesters read the other three as noise. The alternative measured at the time was `minSessionsCompleted` 110 → 180, which reaches the same 80% by spreading the pressure across two uncorrelated goals.
+**Known consequence, still worth watching:** with three goals there is one fewer way for a day to go wrong, so the survivors carry more. That is why Eastgate's wait goal had to tighten when D44 landed — its floor fell to 75% on the goal removal alone.
 
 Standing instruction unchanged: raise a goal, never the economy constants, for difficulty reasons.
 
