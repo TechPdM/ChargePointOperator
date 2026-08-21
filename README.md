@@ -2,24 +2,25 @@
 
 A dashboard-first simulation game about running one EV charging site under pressure. You set price, power policy, charging limits, maintenance level and which bays are open; the queue, the grid cap and the faults do the rest.
 
-**Status: Phase 4 — the gate, blocked on people.** Criteria 2, 3 and 4 are scored and pass; criteria 1 and 5 need three external testers and cannot be measured any other way. See `ChargePointOperator_Gate_Scorecard.md`.
+**Status: Phase 4 — the gate, blocked on people.** Criteria 2, 3 and 4 are scored and pass; criteria 1 and 5 need three external testers and cannot be measured any other way. See `docs/ChargePointOperator_Gate_Scorecard.md`.
 
 The design documents are canonical and come first:
 
 | Document | Canonical for |
 | :-- | :-- |
-| `ChargePointOperator_Plan.md` | what and why — scope, phases, the gate |
-| `ChargePointOperator_Architecture.md` | how — data model, tick pipeline, logging, invariants |
-| `ChargePointOperator_KPI_Dictionary.md` | **meaning** — one precise definition per KPI |
-| `ChargePointOperator_Calibration.md` | constants and assumptions |
-| `ChargePointOperator_Scenario_RoadsideHub.md` | the MVP scenario |
-| `ChargePointOperator_Decision_Log.md` | decisions taken, and the sole home of open items |
-| `ChargePointOperator_Playtest_Protocol.md` | the Phase 4 script, frozen before the build |
-| `ChargePointOperator_Session_Pack.md` | the observer's sheet — one 30-minute session, start to finish |
-| `ChargePointOperator_Gate_Scorecard.md` | the gate, 3 of 5 criteria scored |
-| `ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
-| `ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
-| `ChargePointOperator_PricingModel_Discovery.md` | why profit alone cannot be the objective yet — measured, nothing decided |
+| `docs/ChargePointOperator_Plan.md` | what and why — scope, phases, the gate |
+| `docs/ChargePointOperator_Architecture.md` | how — data model, tick pipeline, logging, invariants |
+| `docs/ChargePointOperator_Frontend_Stack.md` | the dashboard's stack — dependencies, conventions, and measured performance |
+| `docs/ChargePointOperator_KPI_Dictionary.md` | **meaning** — one precise definition per KPI |
+| `docs/ChargePointOperator_Calibration.md` | constants and assumptions |
+| `docs/ChargePointOperator_Scenario_RoadsideHub.md` | the MVP scenario |
+| `docs/ChargePointOperator_Decision_Log.md` | decisions taken, and the sole home of open items |
+| `docs/ChargePointOperator_Playtest_Protocol.md` | the Phase 4 script, frozen before the build |
+| `docs/ChargePointOperator_Session_Pack.md` | the observer's sheet — one 30-minute session, start to finish |
+| `docs/ChargePointOperator_Gate_Scorecard.md` | the gate, 3 of 5 criteria scored |
+| `docs/ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
+| `docs/ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
+| `docs/ChargePointOperator_PricingModel_Discovery.md` | why profit alone cannot be the objective yet — measured, nothing decided |
 
 Where code and documents disagree, the documents win — fix the document first, then the code.
 
