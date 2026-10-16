@@ -1562,3 +1562,47 @@ input[type="number"] {
   outline: 2px solid var(--tier-ultra);
   outline-offset: 1px;
 }
+
+/* --------------------------------------------------------- about banner */
+
+.about-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--tier-ultra);
+  border-radius: var(--radius);
+}
+
+.about-banner p {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.about-banner strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.about-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-3);
+}
+
+.about-close:hover {
+  color: var(--ink);
+  border-color: var(--rule-bright);
+}

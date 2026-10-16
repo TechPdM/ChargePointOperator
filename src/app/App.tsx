@@ -11,6 +11,7 @@ import { useGameLoop } from "../ui/hooks/useGameLoop.ts";
 import { useSimulation } from "../ui/hooks/useSimulation.ts";
 import { roadsideHub } from "../game/scenarios/roadsideHub.ts";
 
+import { AboutBanner } from "../ui/components/AboutBanner.tsx";
 import { ScenarioHeader } from "../ui/components/ScenarioHeader.tsx";
 import { RunControls } from "../ui/components/RunControls.tsx";
 import { KpiCardGrid } from "../ui/components/KpiCardGrid.tsx";
@@ -36,6 +37,8 @@ export function App(): ReactElement {
 
   return (
     <div className="shell">
+      <AboutBanner />
+
       <div className="top-bar">
         <ScenarioHeader state={state} />
         <RunControls sim={sim} />
