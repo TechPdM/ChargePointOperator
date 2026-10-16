@@ -44,7 +44,7 @@ Every code/structure artifact proposed in the discussion, and what happened to i
 
 **Stack (D7):** TypeScript sim core · React dashboard UI · no backend · local serialisable state · light store (`useReducer` or Zustand — build-time choice, D17) · chart library for trends. Everything runs in the browser; the sim core also runs headless (Node/tests) for Phase 1.
 
-**Tooling — `NEW` (readiness review).** D17 defers the *store* and *chart* choices to Phase 2, which is right; but Phase 1 needs a toolchain on day one and none was named. Pinned: **Vite** (dev server + build), **Vitest** (test runner — invariants and the replay-determinism test are Phase 1 deliverables, so this cannot wait), **TypeScript `strict: true`**, ESLint + Prettier. `headless.ts` runs under `tsx`/`vite-node` for CLI batches. None of this is load-bearing on the design; it's here so the first commit isn't a tooling decision.
+**Tooling — `NEW` (readiness review).** D17 defers the *store* and *chart* choices to Phase 2, which is right; but Phase 1 needs a toolchain on day one and none was named. Pinned: **Vite** (dev server + build), **Vitest** (test runner — invariants and the replay-determinism test are Phase 1 deliverables, so this cannot wait), **TypeScript `strict: true`**. *(ESLint + Prettier were pinned here too and never installed; dropped 2026-10-16 — `tsc` under `strict` with the unused-code checks is the only static gate.)* `headless.ts` runs under `tsx`/`vite-node` for CLI batches. None of this is load-bearing on the design; it's here so the first commit isn't a tooling decision.
 
 ### 2.1 System layers — `AMENDED (C2)`
 
