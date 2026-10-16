@@ -1526,3 +1526,24 @@ input[type="number"] {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.site-footer {
+  padding: 4px 0 2px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.site-footer a {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.site-footer a:focus-visible {
+  outline: 2px solid var(--tier-ultra);
+  outline-offset: 1px;
+}

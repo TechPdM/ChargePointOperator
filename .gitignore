@@ -14,3 +14,6 @@ runs/*.txt
 
 # Source discussion the design docs were extracted from — kept locally, not in the repo.
 docs/original_perplexity_discussion.md
+
+# Local Netlify folder
+.netlify

@@ -106,6 +106,10 @@ export function App(): ReactElement {
       </div>
 
       <EventLogPanel events={sim.state.events} actions={sim.state.actions} />
+
+      <footer className="site-footer">
+        <a href="https://www.thisliquidspace.com">thisliquidspace.com</a>
+      </footer>
     </div>
   );
 }
