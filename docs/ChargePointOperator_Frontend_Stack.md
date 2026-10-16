@@ -93,7 +93,7 @@ Only plain data crosses the boundary (the scenario goes over as an id and is loo
 
 ## 6. Components
 
-24 files under `src/ui/components/`, plus `src/ui/format.ts` and the two hooks. Conventions visible throughout:
+18 files under `src/ui/components/` — the 15-component MVP cut, `PostRunSummary`, and the shared `Panel` and `chart` modules — plus `src/ui/format.ts` and the two hooks. Conventions visible throughout:
 
 - **One frame component.** `Panel` (title, optional hint, optional tone, `wide`) wraps almost every box on screen; `Empty` is the shared empty state. Twelve of the components import it.
 - **Props are explicit and inline.** Components take a destructured object literal type and return `ReactElement`; there are no exported `Props` interfaces.
@@ -182,8 +182,8 @@ Recorded here as measured options, not as decisions taken.
 1. **Keep the append-only histories out of the cloned draft.** Biggest win by a distance, and the front end simply stops paying for it. Guard rails exist — `tests/determinism.test.ts` and the `departedVehicles` assertions in `tests/invariants.test.ts` — but `hashState` reads the state, so check whether the D26 same-seed-same-hash contract survives the restructure or needs re-baselining. `departedVehicles` alone buys two-thirds of it.
 2. **Make the invariant sweep incremental** — check the vehicle that just departed, not all 454, every tick.
 3. **Spend a time budget rather than a tick count in `useGameLoop`.** Stop the catch-up loop at ~8 ms elapsed instead of at 12 ticks; the debt-clamp semantics are unchanged and it adapts to slow hardware instead of assuming a tick is cheap. `spendDebt` is already pure and tested, so the change is contained.
-4. **React Compiler** (`babel-plugin-react-compiler`) — not installed. The one stack *addition* worth considering: it auto-memoises a tree that re-renders 5–19× per second, without hand-placing `memo` on eighteen more components. Low risk on React 19.
-5. **`useSyncExternalStore` with per-panel selectors** — the structural ceiling, and what D17 was weighing before D28 deferred it. Every tick replaces the root state and re-renders all ~21 panels. Hold off: at 714 DOM nodes React is comfortable, and this is the largest change for the least measured benefit. Revisit if 1–4 are not enough.
+4. **React Compiler** (`babel-plugin-react-compiler`) — not installed. The one stack *addition* worth considering: it auto-memoises a tree that re-renders 5–19× per second, without hand-placing `memo` on the thirteen components that lack it. Low risk on React 19.
+5. **`useSyncExternalStore` with per-panel selectors** — the structural ceiling, and what D17 was weighing before D28 deferred it. Every tick replaces the root state and re-renders all 16 panels. Hold off: at 714 DOM nodes React is comfortable, and this is the largest change for the least measured benefit. Revisit if 1–4 are not enough.
 
 ### 9.5 A note on profiling this app
 
@@ -210,7 +210,7 @@ src/styles/app.css               the entire stylesheet
 src/ui/hooks/useSimulation.ts    the store (useReducer over SimulationState)
 src/ui/hooks/useGameLoop.ts      rAF → ticks, D26 + D40
 src/ui/workers/baseline.worker.ts end-of-day baseline, off-thread
-src/ui/components/               24 components; Panel.tsx and chart.tsx are shared
+src/ui/components/               18 files; Panel.tsx and chart.tsx are shared
 src/ui/format.ts                 number/unit/clock formatting
 ```
 

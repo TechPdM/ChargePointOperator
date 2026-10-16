@@ -113,10 +113,10 @@ src/game/
   experiment/  baseline actor · summaries · comparison · sweeps · strategy test
   headless.ts  CLI entry point
 src/ui/
-  components/  the 15-component MVP cut, one file each
+  components/  the 15-component MVP cut plus PostRunSummary, one file each; Panel and chart are shared
   hooks/       useSimulation (store) · useGameLoop (fixed timestep)
 src/app/       App.tsx — the §8.1 layout
-tests/         87 tests, each pinned to the document that defines the rule
+tests/         131 tests, each pinned to the document that defines the rule
 ```
 
 ## Three rules the code is held to
