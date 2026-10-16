@@ -162,7 +162,7 @@ body {
   border: none;
   min-inline-size: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: var(--gap);
   align-items: start;
 }
@@ -174,7 +174,7 @@ body {
   border: none;
   min-inline-size: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
   gap: var(--gap);
   align-items: start;
 }
@@ -285,8 +285,9 @@ body {
 
 .scenario-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 22px;
+  gap: 8px 22px;
   min-width: 0;
 }
 
@@ -882,9 +883,11 @@ input[type="number"] {
      The 400px floor is measured, not chosen: a bay row needs 311px for its
      content (lamp, name, tier, state, draw, two buttons) and overflows below
      that. 400 gives three across on a desktop — six bays as a tidy 3×2 — and
-     drops to two, then one, as the window narrows. */
+     drops to two, then one, as the window narrows. The min() caps the floor at
+     the panel's own width — on a phone the panel is under 400px, and a bare
+     400px track pushed the buttons off the right edge. */
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
   gap: 4px 10px;
 }
 
@@ -971,6 +974,18 @@ input[type="number"] {
 .bay-actions {
   display: flex;
   gap: 3px;
+}
+
+/* Below ~380px the panel is narrower than the 311px a bay row needs, so the
+   buttons drop to their own line under the row instead of running off it. */
+@media (max-width: 380px) {
+  .bay {
+    grid-template-columns: 8px 46px 52px 1fr auto;
+  }
+  .bay-actions {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
 }
 
 .mini {
