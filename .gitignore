@@ -17,3 +17,6 @@ docs/original_perplexity_discussion.md
 
 # Local Netlify folder
 .netlify
+
+# Screenshots shared for bug reports — local only.
+screenshots/
