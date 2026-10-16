@@ -11,3 +11,6 @@ runs/*.txt
 
 .DS_Store
 *.log
+
+# Source discussion the design docs were extracted from — kept locally, not in the repo.
+docs/original_perplexity_discussion.md
