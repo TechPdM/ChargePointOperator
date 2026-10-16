@@ -64,7 +64,7 @@ About 13.6k lines of TypeScript/TSX/CSS, measured at this commit:
 
 **Runtime dependencies: two** — `react` and `react-dom`. Everything else is a dev dependency.
 
-There is **no linter or formatter configured** (the design spec names ESLint + Prettier; neither is installed), **no CI pipeline** and **no deployment target**. `dist/` is a local build artefact and is gitignored.
+There is **no linter or formatter** (by design: the strict type check is the only static gate), **no CI pipeline** and **no deployment target**. `dist/` is a local build artefact and is gitignored.
 
 ### Scripts
 
