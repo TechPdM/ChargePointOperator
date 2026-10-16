@@ -1565,33 +1565,57 @@ input[type="number"] {
 
 /* --------------------------------------------------------- about banner */
 
+/* The one solid amber surface in the app, on purpose: everything else is dark
+   panels with status colour only on lamps and rules, so this reads as "read me
+   first" rather than as another panel. Dark ink on amber is ~11:1. */
 .about-banner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background: var(--panel);
-  border: 1px solid var(--rule);
-  border-left: 2px solid var(--tier-ultra);
+  background: var(--warn);
+  color: var(--bg);
   border-radius: var(--radius);
+}
+
+.about-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--bg);
 }
 
 .about-banner p {
   margin: 0;
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
-  color: var(--ink-2);
 }
 
 .about-banner strong {
-  color: var(--ink);
+  font-weight: 700;
+}
+
+.about-banner a {
+  color: inherit;
   font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.about-banner a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.about-banner a:focus-visible {
+  outline: 2px solid var(--bg);
+  outline-offset: 1px;
 }
 
 .about-close {
   flex: none;
+  align-self: flex-start;
   width: 28px;
   height: 28px;
   padding: 0;
@@ -1599,10 +1623,15 @@ input[type="number"] {
   line-height: 1;
   background: transparent;
   border-color: transparent;
-  color: var(--ink-3);
+  color: var(--bg);
 }
 
 .about-close:hover {
-  color: var(--ink);
-  border-color: var(--rule-bright);
+  background: color-mix(in srgb, var(--bg) 12%, transparent);
+  border-color: transparent;
+}
+
+.about-close:focus-visible {
+  outline: 2px solid var(--bg);
+  outline-offset: 1px;
 }
