@@ -11,12 +11,17 @@
  */
 
 import { MAINTENANCE } from "../core/calibration.ts";
-import type { TickContext } from "../core/context.ts";
+import { bayList, type TickContext } from "../core/context.ts";
 import type { SimulationState } from "../core/types.ts";
 
 export function applyOperatingCosts(ctx: TickContext): void {
   const { state } = ctx;
-  const dayFraction = ctx.delta / 86_400;
+  // D54: a closed bay costs nothing to keep. Running costs and the standing
+  // maintenance charge scale with the share of bays open; a bay latched to
+  // close is still open until it actually closes.
+  const bays = bayList(state);
+  const openShare = bays.length > 0 ? bays.filter((b) => b.isOpen).length / bays.length : 1;
+  const dayFraction = (ctx.delta / 86_400) * openShare;
 
   const standing = MAINTENANCE[state.site.policy.maintenanceLevel].standingCostPerSimDay * dayFraction;
   const opex = state.scenario.opexPerSimDay * dayFraction;

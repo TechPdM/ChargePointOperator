@@ -282,12 +282,15 @@ describe("policy choice is visible in outcomes — but only when the cap binds",
     return seeds.reduce((sum, seed) => sum + play(policy, cap, seed)[key], 0) / seeds.length;
   };
 
-  it("queue_relief clears more sessions than equal_share under a hard cap", () => {
-    // Calibration §8 sanity gradient: equal_share → queue_relief must lift
-    // sessions/hr at peaks. At the scenario's own 650 kW the cap only binds in
-    // three windows, so the effect is small; squeeze it to make it legible.
-    expect(mean("queue_relief", SQUEEZED_KW, "sessions")).toBeGreaterThan(
-      mean("equal_share", SQUEEZED_KW, "sessions"),
+  it("queue_relief loses fewer drivers from the queue than equal_share under a hard cap", () => {
+    // Calibration §8 sanity gradient, re-stated for D48. Phase 3 measured
+    // queue_relief at +12% sessions when the cap binds. Since drivers stopped
+    // joining long queues, sessions are capped at the entrance and the policies
+    // serve the same number (10 seeds at 200 kW: 126.4 vs 127.5). What finishing
+    // the nearest-done car first still buys is fewer people giving up in the
+    // queue (3.7 vs 5.0 a day), so that is what this now defends.
+    expect(mean("queue_relief", SQUEEZED_KW, "abandons")).toBeLessThan(
+      mean("equal_share", SQUEEZED_KW, "abandons"),
     );
   });
 

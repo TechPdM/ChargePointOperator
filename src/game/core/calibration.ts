@@ -1,6 +1,6 @@
 /**
  * Calibration constants — the code-side mirror of
- * `ChargePointOperator_Calibration.md` v2.2.
+ * `ChargePointOperator_Calibration.md` v4.0.
  *
  * STATUS OF EVERY NUMBER: FIRST GUESS. When one proves wrong, change it in the
  * calibration sheet first, then here. Architecture deliberately holds no tuning
@@ -47,23 +47,33 @@ export const EVENT_RING_SIZE = 400;
  * posts really do sit at 7/11/22 kW.
  */
 export const CHARGER_SPECS: Record<ChargerType, ChargerSpec> = {
-  slow_ac: { type: "slow_ac", maxPowerKw: 22, reliabilityBase: 0.99, repairSecondsMean: 1_800 },
-  rapid_dc: { type: "rapid_dc", maxPowerKw: 150, reliabilityBase: 0.985, repairSecondsMean: 2_700 },
+  slow_ac: { type: "slow_ac", maxPowerKw: 22, reliabilityBase: 0.995, repairSecondsMean: 1_800 },
+  rapid_dc: { type: "rapid_dc", maxPowerKw: 150, reliabilityBase: 0.9925, repairSecondsMean: 2_700 },
   ultrarapid_dc: {
     type: "ultrarapid_dc",
     maxPowerKw: 350,
-    reliabilityBase: 0.975,
+    // D51: unreliability halved on every type (was 0.99 / 0.985 / 0.975).
+    // Measured before: 5.3 faults/day at Junction 42, ~1.3% of sessions.
+    reliabilityBase: 0.9875,
     repairSecondsMean: 3_600,
   },
 };
 
 // --- §3 Vehicles & demand behaviour ----------------------------------------
 
+/**
+ * D46: a car is not a personality. Battery size and the car's own charging
+ * ceiling are drawn from one range for every driver type. They used to be per
+ * archetype, which made every en-route driver own a fast car and every
+ * commuter a slow one.
+ */
+export const VEHICLE_BATTERY_KWH: [number, number] = [40, 80];
+export const VEHICLE_MAX_CHARGE_RATE_KW: [number, number] = [50, 250];
+
 export interface ArchetypeProfile {
-  batteryKwh: [number, number];
-  maxChargeRateKw: [number, number];
   arrivalSoc: [number, number];
-  targetSoc: number;
+  /** D47: each driver draws their own target from this range. */
+  targetSoc: [number, number];
   patienceSeconds: number;
   priceSensitivity: number;
   waitSensitivity: number;
@@ -100,54 +110,63 @@ export interface ArchetypeProfile {
 
 export const ARCHETYPES: Record<VehicleArchetype, ArchetypeProfile> = {
   commuter: {
-    batteryKwh: [40, 80],
-    maxChargeRateKw: [60, 120],
     arrivalSoc: [0.35, 0.55],
-    targetSoc: 0.8,
-    patienceSeconds: 900,
+    targetSoc: [0.8, 0.9],
+    // D49: was 900. A little above the 5-min join tolerance below.
+    patienceSeconds: 480,
     priceSensitivity: 0.7,
-    waitSensitivity: 0.6,
+    // D48: solved from siteScore so a mid-urgency commuter at the reference
+    // price and trust 50 joins a queue of up to 5 min (was 0.6, ~11 min).
+    waitSensitivity: 1.3,
     urgency: [0.3, 0.5],
     referencePricePerKwh: 0.75,
-    // Was 0.95. 0.95 − premium(19 min, £11.21/hr, 21.0 kWh mid demand) = 0.78.
-    maxAcceptablePriceBase: 0.78,
+    // D42 method, re-derived for D46/D47:
+    // 0.95 − premium(19 min, £11.21/hr, 24.0 kWh mean demand) = 0.80.
+    maxAcceptablePriceBase: 0.8,
     // DfT VTT Table 5.1, commute.
     valueOfTimePerHour: 11.21,
   },
   enroute: {
-    batteryKwh: [50, 80],
-    maxChargeRateKw: [120, 250],
     arrivalSoc: [0.15, 0.35],
-    targetSoc: 0.8,
-    patienceSeconds: 1_200,
+    targetSoc: [0.8, 1.0],
+    // D49: was 1,200.
+    patienceSeconds: 720,
     priceSensitivity: 0.4,
-    waitSensitivity: 0.5,
+    // D48: 10-min join tolerance (was 0.5, ~21 min).
+    waitSensitivity: 1.05,
     urgency: [0.5, 0.7],
     referencePricePerKwh: 0.85,
-    // Was 1.10. 1.10 − premium(19 min, £5.12/hr, 35.8 kWh mid demand) = 1.05.
-    maxAcceptablePriceBase: 1.05,
+    // D42 method, re-derived for D46/D47:
+    // 1.10 − premium(19 min, £5.12/hr, 39.0 kWh mean demand) = 1.06.
+    maxAcceptablePriceBase: 1.06,
     // DfT VTT Table 5.1, other non-work.
     valueOfTimePerHour: 5.12,
   },
   panic_low_soc: {
-    batteryKwh: [40, 70],
-    maxChargeRateKw: [50, 150],
     arrivalSoc: [0.03, 0.12],
-    targetSoc: 0.6,
-    patienceSeconds: 1_800,
+    targetSoc: [0.6, 0.8],
+    // D49: was 1,800.
+    patienceSeconds: 1_200,
     priceSensitivity: 0.1,
-    waitSensitivity: 0.2,
+    // D48: 20-min join tolerance (was 0.2, ~87 min). Urgency still makes them
+    // the most tolerant of the three.
+    waitSensitivity: 0.875,
     urgency: [0.9, 1.0],
     referencePricePerKwh: 1.0,
-    // Was 1.50. 1.50 − premium(19 min, £5.12/hr, 28.9 kWh mid demand) = 1.44.
+    // D42 method, re-derived for D46/D47:
+    // 1.50 − premium(19 min, £5.12/hr, 37.5 kWh mean demand) = 1.46.
     // Still by far the highest base: their alternative may not be reachable at
     // all, and that is what the base carries rather than the detour premium.
-    maxAcceptablePriceBase: 1.44,
+    maxAcceptablePriceBase: 1.46,
     valueOfTimePerHour: 5.12,
   },
 };
 
-/** Two-segment taper (A1/D14): full power below 0.80 SOC, 40 % at or above. */
+/**
+ * Two-segment taper (A1/D14): full power below 0.80 SOC, 40 % at or above.
+ * Since D47 it applies: drivers who target above 0.80 charge the last stretch
+ * slowly. Before D47 every target was 0.80 or below and nobody reached it.
+ */
 export const TAPER_KNEE_SOC = 0.8;
 export const TAPER_ABOVE_KNEE = 0.4;
 export function taper(soc: number): number {
@@ -155,17 +174,15 @@ export function taper(soc: number): number {
 }
 
 /**
- * Options offered by ChargingPolicyPanel (D14), **re-scoped under OPEN-2/OPEN-6**
- * (Mark, 2026-08-16) from off/0.90/0.80/0.70.
+ * Options offered by ChargingPolicyPanel (D14), **re-scoped by D49** to
+ * off / 90% / 75% / 50% (was off / 70% / 60% / 50%, itself a D33 re-scope).
  *
- * Every driver already targets 0.80 or less, so the old 0.90 and 0.80 settings
- * were exact no-ops — measured identical to "off" across 20 seeds, to the last
- * decimal. Three dead settings on a live control is a legibility bug in a build
- * whose gate criterion is legibility. The range below 0.80 is where the
- * mechanic actually lives: at ×1.6 demand, off/70/60/50% gives 203/215/265/330
- * sessions at 30.4/24.9/19.5/12.6 kWh each.
+ * 0.90 is only a live setting because D47 gave drivers targets above 0.80;
+ * before that it would have been the exact no-op OPEN-6 removed. Each option
+ * now cuts someone: 0.90 the en-route drivers filling up, 0.75 every commuter
+ * and en-route driver, 0.50 everyone.
  */
-export const PARTIAL_CHARGE_OPTIONS = [null, 0.7, 0.6, 0.5] as const;
+export const PARTIAL_CHARGE_OPTIONS = [null, 0.9, 0.75, 0.5] as const;
 
 // --- §4 Pricing & economics -------------------------------------------------
 
@@ -196,6 +213,11 @@ export interface MaintenanceProfile {
   costPerRepair: number;
   faultProbabilityMultiplier: number;
   repairTimeMultiplier: number;
+  /**
+   * D53: how long a fault stands before the maintenance contractor starts the
+   * repair unasked. Undefined means no contract: the player must call it out.
+   */
+  contractResponseSeconds?: number;
 }
 
 /**
@@ -223,6 +245,7 @@ export const MAINTENANCE: Record<MaintenanceLevel, MaintenanceProfile> = {
     costPerRepair: REPAIR_CALL_OUT_COST,
     faultProbabilityMultiplier: 1.0,
     repairTimeMultiplier: 1.0,
+    contractResponseSeconds: 1_800,
   },
   preventive: {
     /**
@@ -242,6 +265,7 @@ export const MAINTENANCE: Record<MaintenanceLevel, MaintenanceProfile> = {
     costPerRepair: REPAIR_CALL_OUT_COST,
     faultProbabilityMultiplier: 0.5,
     repairTimeMultiplier: 0.7,
+    contractResponseSeconds: 900,
   },
 };
 

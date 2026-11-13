@@ -7,8 +7,9 @@
  */
 
 import { archetypeName } from "../core/labels.ts";
-import { taper, TRUST } from "../core/calibration.ts";
+import { TAPER_ABOVE_KNEE, TAPER_KNEE_SOC, taper, TRUST } from "../core/calibration.ts";
 import { dataOf, emit, round, type TickContext } from "../core/context.ts";
+import { chargeSeconds } from "../core/selectors.ts";
 import type { ChargerBay, ChargingSession, SimulationState, VehicleAgent } from "../core/types.ts";
 import { departVehicle } from "./vehicles.ts";
 
@@ -23,12 +24,15 @@ export function startSession(ctx: TickContext, vehicle: VehicleAgent, bay: Charg
   const target = effectiveTargetSoc(state, vehicle);
   const requestedKwh = Math.max(0, (target - vehicle.currentSoc) * vehicle.batteryCapacityKwh);
   // Optimistic estimate: what this bay/vehicle pair could do with the whole
-  // ceiling to itself. Used for the fault divisor and queue_relief ordering.
-  const nominalPowerKw = Math.max(
-    1,
-    Math.min(bay.spec.maxPowerKw, vehicle.maxChargeRateKw) * taper(vehicle.currentSoc),
+  // ceiling to itself, through the taper (D47). Used for the fault divisor and
+  // the projected wait.
+  const nominalPowerKw = Math.max(1, Math.min(bay.spec.maxPowerKw, vehicle.maxChargeRateKw));
+  const estimatedDurationSeconds = chargeSeconds(
+    nominalPowerKw,
+    vehicle.batteryCapacityKwh,
+    vehicle.currentSoc,
+    target,
   );
-  const estimatedDurationSeconds = (requestedKwh / nominalPowerKw) * 3_600;
 
   const id = `s-${state.nextSessionSeq}`;
   state.nextSessionSeq += 1;
@@ -113,13 +117,18 @@ export function advanceActiveSessions(ctx: TickContext): void {
     session.updatedAtSecond = state.clock.secondsElapsed;
 
     const remainingKwh = Math.max(0, session.requestedKwh - session.deliveredKwh);
-    const deliverable = (powerKw * ctx.delta) / 3_600;
+    const deliverable = deliverableKwh(powerKw, bay.spec.maxPowerKw, vehicle, ctx.delta);
     const delivered = Math.min(deliverable, remainingKwh);
 
     if (delivered > 0) {
       session.deliveredKwh += delivered;
       vehicle.currentSoc = Math.min(1, vehicle.currentSoc + delivered / vehicle.batteryCapacityKwh);
       bay.lifetimeKwh += delivered;
+      // D47: a car that crossed the taper knee this tick now draws less. Its
+      // allocation drops to the tapered ceiling at once; the freed power is
+      // shared out at the next rebalance.
+      const ceiling = Math.min(bay.spec.maxPowerKw, vehicle.maxChargeRateKw) * taper(vehicle.currentSoc);
+      if (bay.allocatedPowerKw > ceiling) bay.allocatedPowerKw = ceiling;
 
       const revenue = delivered * session.pricePerKwh;
       const energyCost = delivered * scenario.energyCostPerKwh;
@@ -135,6 +144,30 @@ export function advanceActiveSessions(ctx: TickContext): void {
       completeSession(ctx, session, "completed");
     }
   }
+}
+
+/**
+ * Energy a car takes in one tick at its allocated power, split at the taper
+ * knee (D47). Before D47 no session ever reached the knee, so a tick could be
+ * charged at one rate; now a car can cross 80% part-way through a minute, and
+ * the rest of that minute runs at the tapered rate.
+ */
+export function deliverableKwh(
+  allocatedKw: number,
+  bayMaxKw: number,
+  vehicle: VehicleAgent,
+  seconds: number,
+): number {
+  if (allocatedKw <= 0) return 0;
+  if (vehicle.currentSoc >= TAPER_KNEE_SOC) return (allocatedKw * seconds) / 3_600;
+  const kwhToKnee = (TAPER_KNEE_SOC - vehicle.currentSoc) * vehicle.batteryCapacityKwh;
+  const secondsToKnee = (kwhToKnee / allocatedKw) * 3_600;
+  if (secondsToKnee >= seconds) return (allocatedKw * seconds) / 3_600;
+  const taperedKw = Math.min(
+    allocatedKw,
+    Math.min(bayMaxKw, vehicle.maxChargeRateKw) * TAPER_ABOVE_KNEE,
+  );
+  return kwhToKnee + (taperedKw * (seconds - secondsToKnee)) / 3_600;
 }
 
 export function completeSession(

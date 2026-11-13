@@ -10,6 +10,7 @@ import {
   ARCHETYPES,
   DETOUR_PREMIUM_MAX,
   MAINTENANCE,
+  PARTIAL_CHARGE_OPTIONS,
   taper,
   TRUST,
   WAIT_PERCEPTION_NOISE,
@@ -23,6 +24,8 @@ import { siteScore } from "../src/game/systems/admission.ts";
 import { detourPremiumPerKwh, priceMultiplier } from "../src/game/systems/arrivals.ts";
 import { abandonProbability } from "../src/game/systems/queue.ts";
 import { faultProbabilityPerTick } from "../src/game/systems/faults.ts";
+import { deliverableKwh } from "../src/game/systems/charging.ts";
+import { chargeSeconds, chooseBay } from "../src/game/core/selectors.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
 import { commuterHub } from "../src/game/scenarios/commuterHub.ts";
 import { destinationSite } from "../src/game/scenarios/destinationSite.ts";
@@ -46,7 +49,7 @@ function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
     priceSensitivity: p.priceSensitivity,
     waitSensitivity: p.waitSensitivity,
     demand: {
-      targetSoc: p.targetSoc,
+      targetSoc: p.targetSoc[0],
       requestedKwh: 30,
       maxAcceptablePricePerKwh: p.maxAcceptablePriceBase,
       patienceSeconds: p.patienceSeconds,
@@ -88,16 +91,12 @@ describe("admission — Calibration §5 worked example (D21)", () => {
     const enroute = walkAwayWaitSeconds("enroute", 0.6) / 60;
     const panic = walkAwayWaitSeconds("panic_low_soc", 0.95) / 60;
 
-    // D43 re-baselined all three. £0.79 is the corridor's own reference, so the
-    // price term is zero and these are urgency, wait-sensitivity and trust
-    // alone. They used to carry a per-archetype price offset — which is why
-    // commuters were shown shedding at ~9 sim-min and now hold out to ~13.
+    // D48 set these: 5 / 10 / 20 min at trust 50, which is 5.9 / 11.1 / 21.4 at
+    // the trust 60 used here (each 25 points of trust buys 0.3 of score).
     // The ORDERING is the claim this test exists to defend, and it is intact.
-    expect(commuter).toBeGreaterThan(11);
-    expect(commuter).toBeLessThan(15);
-    expect(enroute).toBeGreaterThan(21);
-    expect(enroute).toBeLessThan(26);
-    expect(panic).toBeGreaterThan(80);
+    expect(commuter).toBeCloseTo(5.9, 1);
+    expect(enroute).toBeCloseTo(11.1, 1);
+    expect(panic).toBeCloseTo(21.4, 1);
     expect(commuter).toBeLessThan(enroute);
     expect(enroute).toBeLessThan(panic);
   });
@@ -382,8 +381,10 @@ describe("D19 — interruption and deferred bay transitions", () => {
 });
 
 describe("repair rules — Architecture §4.4", () => {
-  it("a faulted bay waits indefinitely until schedule_repair is issued", () => {
-    let s = createInitialState(roadsideHub, "s1");
+  it("on reactive maintenance a faulted bay waits until schedule_repair is issued", () => {
+    // D53: with no contract nobody comes. On standard or preventive the
+    // contractor would start the repair (next test).
+    let s = createInitialState({ ...roadsideHub, initialMaintenanceLevel: "reactive" }, "s1");
     const bay = s.chargers["bay-3"];
     if (!bay) throw new Error("no bay-3");
     bay.state = "faulted";
@@ -651,7 +652,8 @@ describe("archetype bases and detour ranges (D42)", () => {
     const mid = (roadsideHub.detourMinutes[0] + roadsideHub.detourMinutes[1]) / 2;
     const c = ARCHETYPES.commuter;
     expect(
-      c.maxAcceptablePriceBase + detourPremiumPerKwh(mid, c.valueOfTimePerHour, 21),
+      // 24 kWh is the commuter's mean demand since D46/D47 (was 21).
+      c.maxAcceptablePriceBase + detourPremiumPerKwh(mid, c.valueOfTimePerHour, 24),
     ).toBeCloseTo(0.95, 2);
   });
 });
@@ -717,5 +719,128 @@ describe("the reference price belongs to the market, not the driver (D43)", () =
       siteScore(vehicle(a, urgency), 0.85, roadsideHub.referencePricePerKwh, 0, 50) -
       siteScore(vehicle(a, urgency), 0.85, destinationSite.referencePricePerKwh, 0, 50);
     expect(spread("panic_low_soc", 0.95)).toBeLessThan(spread("commuter", 0.4) / 3);
+  });
+});
+
+// --- D46–D55 -----------------------------------------------------------------
+
+describe("maintenance contracts dispatch repairs (D53)", () => {
+  function faultAndRun(level: "reactive" | "standard" | "preventive", ticks: number) {
+    let s = createInitialState({ ...roadsideHub, initialMaintenanceLevel: level }, "s1");
+    const bay = s.chargers["bay-3"];
+    if (!bay) throw new Error("no bay-3");
+    bay.state = "faulted";
+    bay.faultedAtSecond = 0;
+    const events: string[] = [];
+    for (let i = 0; i < ticks; i++) {
+      const r = tick(s);
+      s = r.state;
+      for (const e of r.events) {
+        if (e.entity_id === "bay-3" && e.event_name.startsWith("charger.repair")) {
+          events.push(`${e.event_name}:${String(e.data?.["dispatched_by"] ?? "")}`);
+        }
+      }
+    }
+    return { s, events };
+  }
+
+  it("standard sends the contractor after 30 min, preventive after 15", () => {
+    expect(MAINTENANCE.standard.contractResponseSeconds).toBe(1_800);
+    expect(MAINTENANCE.preventive.contractResponseSeconds).toBe(900);
+    expect(faultAndRun("standard", 29).s.chargers["bay-3"]?.state).toBe("faulted");
+    expect(faultAndRun("standard", 31).s.chargers["bay-3"]?.state).toBe("repairing");
+    expect(faultAndRun("preventive", 14).s.chargers["bay-3"]?.state).toBe("faulted");
+    expect(faultAndRun("preventive", 16).s.chargers["bay-3"]?.state).toBe("repairing");
+  });
+
+  it("reactive has no contract: nobody comes", () => {
+    expect(MAINTENANCE.reactive.contractResponseSeconds).toBeUndefined();
+    expect(faultAndRun("reactive", 120).s.chargers["bay-3"]?.state).toBe("faulted");
+  });
+
+  it("logs a contract repair as a sim consequence, never as the player's decision", () => {
+    // repair_scheduled is schedule_repair's decision marker; replay rebuilds
+    // player actions from it, so a contract repair must not emit one.
+    const { events, s } = faultAndRun("standard", 31);
+    expect(events).toEqual(["charger.repair_started:contract"]);
+    expect(s.site.economics.maintenanceCostToday).toBeGreaterThanOrEqual(200);
+  });
+});
+
+describe("drivers take the bay that suits their car (D50)", () => {
+  const car = (maxChargeRateKw: number) =>
+    ({ maxChargeRateKw }) as SimulationState["vehicles"][string];
+
+  it("a car that can use the rapid gets it, not the first AC post", () => {
+    // Kesteven: seven 22 kW posts, then the one 150 kW rapid as post 8. Bay
+    // order used to put a nearly empty car on post 1 with the rapid idle.
+    const bays = Object.values(createInitialState(destinationSite, "s1").chargers);
+    expect(chooseBay(car(100), bays)?.id).toBe("bay-8");
+  });
+
+  it("on a tie it takes the smallest bay, leaving 350 kW for cars that can use it", () => {
+    const bays = Object.values(createInitialState(roadsideHub, "s1").chargers);
+    // A 100 kW car charges at 100 kW on either a rapid or an ultra.
+    expect(chooseBay(car(100), bays)?.spec.type).toBe("rapid_dc");
+    // A 250 kW car is faster on the ultra, so it takes that.
+    expect(chooseBay(car(250), bays)?.spec.type).toBe("ultrarapid_dc");
+  });
+
+  it("falls back to bay order when nothing separates the bays", () => {
+    const bays = Object.values(createInitialState(roadsideHub, "s1").chargers);
+    expect(chooseBay(car(100), bays)?.id).toBe("bay-1");
+  });
+});
+
+describe("charging past 80% is slow (D47)", () => {
+  it("drivers' own targets come from per-type ranges, some above the knee", () => {
+    expect(ARCHETYPES.commuter.targetSoc).toEqual([0.8, 0.9]);
+    expect(ARCHETYPES.enroute.targetSoc).toEqual([0.8, 1.0]);
+    expect(ARCHETYPES.panic_low_soc.targetSoc).toEqual([0.6, 0.8]);
+  });
+
+  it("a minute that crosses 80% is split at the knee", () => {
+    const car = {
+      currentSoc: 0.79,
+      batteryCapacityKwh: 60,
+      maxChargeRateKw: 150,
+    } as Parameters<typeof deliverableKwh>[2];
+    // 0.6 kWh to the knee at 150 kW takes 14.4 s; the other 45.6 s run at 60 kW.
+    expect(deliverableKwh(150, 150, car, 60)).toBeCloseTo(0.6 + (60 * 45.6) / 3_600, 6);
+    // Wholly below the knee: unchanged.
+    expect(deliverableKwh(150, 150, { ...car, currentSoc: 0.5 }, 60)).toBeCloseTo(2.5, 6);
+  });
+
+  it("estimates a session through the taper", () => {
+    // 60 kWh car, 0.5 → 1.0 at 100 kW: 18 kWh at 100 kW, 12 kWh at 40 kW.
+    expect(chargeSeconds(100, 60, 0.5, 1.0)).toBeCloseTo((18 / 100 + 12 / 40) * 3_600, 6);
+  });
+
+  it("offers off / 90% / 75% / 50% as the charging limit (D49)", () => {
+    expect(PARTIAL_CHARGE_OPTIONS).toEqual([null, 0.9, 0.75, 0.5]);
+  });
+});
+
+describe("a closed bay costs nothing to keep (D54)", () => {
+  it("running costs scale with the share of bays open", () => {
+    const open = advance(createInitialState(roadsideHub, "s1"), 60);
+    let shut = createInitialState(roadsideHub, "s1");
+    shut = queueAction(shut, {
+      type: "toggle_bay_group",
+      bayIds: ["bay-1", "bay-2", "bay-3"],
+      open: false,
+    });
+    shut = advance(shut, 60);
+    // Overnight with nobody plugged in, half the bays closed ⇒ ~half the opex.
+    expect(shut.site.economics.opexAccruedToday).toBeLessThan(
+      open.site.economics.opexAccruedToday * 0.6,
+    );
+  });
+
+  it("the scripted fault skips a closed bay", () => {
+    let s = createInitialState(roadsideHub, "s1");
+    s = queueAction(s, { type: "toggle_bay_group", bayIds: ["bay-5"], open: false });
+    s = advance(s, 12.5 * 60 + 2);
+    expect(s.chargers["bay-5"]?.state).not.toBe("faulted");
   });
 });

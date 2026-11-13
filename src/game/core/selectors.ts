@@ -6,11 +6,18 @@
  * cannot drift.
  */
 
-import { FALLBACK_SESSION_SECONDS, ROLL_WINDOW_SECONDS, taper } from "./calibration.ts";
+import {
+  FALLBACK_SESSION_SECONDS,
+  ROLL_WINDOW_SECONDS,
+  TAPER_ABOVE_KNEE,
+  TAPER_KNEE_SOC,
+  taper,
+} from "./calibration.ts";
 import { bayList } from "./context.ts";
 import type {
   ChargerBay,
   ChargerType,
+  ChargingSession,
   DemandWave,
   DerivedSiteState,
   SimulationState,
@@ -88,6 +95,53 @@ export function getCompatibleIdleBays(vehicle: VehicleAgent, state: SimulationSt
   return bayList(state).filter((b) => isAssignable(b) && isCompatible(vehicle, b));
 }
 
+/**
+ * D50: the bay a driver takes, from those free to them.
+ *
+ * The one that charges their car fastest, `min(bay kW, car kW)`. On a tie the
+ * smallest such bay, so a 90 kW car takes a 150 kW rapid and leaves the 350 kW
+ * bay for a car that can use it. Then bay order, which keeps it deterministic.
+ * Nameplate power, not the grid share: the driver sees the charger, not the
+ * site's load management.
+ */
+export function chooseBay(
+  vehicle: VehicleAgent,
+  candidates: readonly ChargerBay[],
+): ChargerBay | undefined {
+  let best: ChargerBay | undefined;
+  let bestRate = -1;
+  for (const bay of candidates) {
+    const rate = Math.min(bay.spec.maxPowerKw, vehicle.maxChargeRateKw);
+    if (
+      best === undefined ||
+      rate > bestRate ||
+      (rate === bestRate && bay.spec.maxPowerKw < best.spec.maxPowerKw)
+    ) {
+      best = bay;
+      bestRate = rate;
+    }
+  }
+  return best;
+}
+
+/**
+ * Seconds to charge from `fromSoc` to `toSoc` at an untapered power, with the
+ * two-segment taper applied (A1/D14). Since D47 drivers can target above the
+ * knee, so any estimate of a session's length has to go through this rather
+ * than divide kWh by the current power.
+ */
+export function chargeSeconds(
+  untaperedKw: number,
+  batteryKwh: number,
+  fromSoc: number,
+  toSoc: number,
+): number {
+  if (untaperedKw <= 0 || toSoc <= fromSoc) return 0;
+  const belowKwh = Math.max(0, Math.min(toSoc, TAPER_KNEE_SOC) - fromSoc) * batteryKwh;
+  const aboveKwh = Math.max(0, toSoc - Math.max(fromSoc, TAPER_KNEE_SOC)) * batteryKwh;
+  return (belowKwh / untaperedKw + aboveKwh / (untaperedKw * TAPER_ABOVE_KNEE)) * 3_600;
+}
+
 /** Power a bay could draw for its current vehicle, before the pool is split. */
 export function bayCeilingKw(state: SimulationState, bay: ChargerBay): number {
   if (!bay.activeSessionId || !bay.currentVehicleId) return 0;
@@ -127,10 +181,12 @@ export function getProjectedWait(state: SimulationState, queueAhead: number): nu
   for (const bay of bays) {
     if (isBusy(bay) && bay.activeSessionId) {
       const session = state.sessions[bay.activeSessionId];
-      if (session) {
-        const remainingKwh = Math.max(0, session.requestedKwh - session.deliveredKwh);
+      const vehicle = session ? state.vehicles[session.vehicleId] : undefined;
+      if (session && vehicle) {
+        // Current power, un-tapered, then re-tapered across what is left (D47).
         const power = Math.max(1, bay.allocatedPowerKw || bayCeilingKw(state, bay));
-        const remaining = (remainingKwh / power) * 3_600;
+        const untapered = power / taper(vehicle.currentSoc);
+        const remaining = remainingChargeSeconds(untapered, vehicle, session);
         freeAt.push(remaining);
         knownSum += session.estimatedDurationSeconds;
         knownDurations += 1;
@@ -170,10 +226,21 @@ export function estimatedRemainingSeconds(state: SimulationState, bay: ChargerBa
   if (!bay.activeSessionId) return Number.POSITIVE_INFINITY;
   const session = state.sessions[bay.activeSessionId];
   if (!session) return Number.POSITIVE_INFINITY;
+  const vehicle = state.vehicles[session.vehicleId];
+  if (!vehicle) return Number.POSITIVE_INFINITY;
+  const untapered = Math.max(1, Math.min(bay.spec.maxPowerKw, vehicle.maxChargeRateKw));
+  return remainingChargeSeconds(untapered, vehicle, session);
+}
+
+/** Time to deliver what this session still owes, from where the car is now. */
+function remainingChargeSeconds(
+  untaperedKw: number,
+  vehicle: VehicleAgent,
+  session: ChargingSession,
+): number {
   const remainingKwh = Math.max(0, session.requestedKwh - session.deliveredKwh);
-  const ceiling = bayCeilingKw(state, bay);
-  const power = Math.max(1, ceiling);
-  return (remainingKwh / power) * 3_600;
+  const toSoc = vehicle.currentSoc + remainingKwh / vehicle.batteryCapacityKwh;
+  return chargeSeconds(untaperedKw, vehicle.batteryCapacityKwh, vehicle.currentSoc, toSoc);
 }
 
 // --- aggregate derived state ------------------------------------------------

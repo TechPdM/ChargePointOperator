@@ -154,7 +154,7 @@ export const commuterHub: ScenarioConfig = {
   // Cheaper than the corridor: this is a competitive urban site and the
   // customers are the price-sensitive archetype.
   initialPricePerKwh: 0.72,
-  initialConnectionFee: 0.5,
+  initialConnectionFee: 0, // D52: was £0.50; the fee is hidden and starts at zero
   initialTrust: 60,
   initialPowerPolicy: "equal_share",
   initialMaintenanceLevel: "standard",

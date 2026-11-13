@@ -191,7 +191,7 @@ export const roadsideHub: ScenarioConfig = {
    */
   initialCash: 100_000,
   initialPricePerKwh: 0.79,
-  initialConnectionFee: 0.99,
+  initialConnectionFee: 0, // D52: was £0.99; the fee is hidden and starts at zero
   initialTrust: 60,
   initialPowerPolicy: "equal_share",
   initialMaintenanceLevel: "standard",

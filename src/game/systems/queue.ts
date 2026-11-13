@@ -8,8 +8,12 @@ import {
   ABANDON_RAMP_SECONDS,
   TRUST,
 } from "../core/calibration.ts";
-import { bayList, dataOf, emit, round, type TickContext } from "../core/context.ts";
-import { getCompatibleIdleBays, getProjectedWait, isAssignable, isCompatible } from "../core/selectors.ts";
+import { dataOf, emit, round, type TickContext } from "../core/context.ts";
+import {
+  chooseBay,
+  getCompatibleIdleBays,
+  getProjectedWait,
+} from "../core/selectors.ts";
 import type { VehicleAgent } from "../core/types.ts";
 import { acceptedVehicles } from "./admission.ts";
 import { startSession } from "./charging.ts";
@@ -20,8 +24,8 @@ export function assignToIdleBaysOrQueue(ctx: TickContext): void {
   const { state } = ctx;
 
   for (const vehicle of acceptedVehicles(state)) {
-    const free = getCompatibleIdleBays(vehicle, state);
-    const bay = free[0];
+    // D50: the free bay that suits this car, not the first in bay order.
+    const bay = chooseBay(vehicle, getCompatibleIdleBays(vehicle, state));
     if (bay) {
       startSession(ctx, vehicle, bay);
       continue;
@@ -105,20 +109,25 @@ export function processQueueAbandonment(ctx: TickContext): void {
 }
 
 /** FCFS: the front of the queue takes the first bay it can use. */
+/**
+ * First come, first served, and the driver at the front takes the free bay
+ * that suits their car (D50) — not whichever bay happens to come first in bay
+ * order. Nobody holds out for a better bay type; that variant was considered
+ * and declined as too hard to read from the dashboard.
+ */
 export function refillIdleBaysFromQueue(ctx: TickContext): void {
   const { state } = ctx;
-  for (const bay of bayList(state)) {
-    if (!isAssignable(bay)) continue;
-    const index = state.queue.findIndex((entry) => {
-      const vehicle = state.vehicles[entry.vehicleId];
-      return vehicle !== undefined && isCompatible(vehicle, bay);
-    });
-    if (index === -1) break;
-    const entry = state.queue[index];
+  while (state.queue.length > 0) {
+    const entry = state.queue[0];
     if (!entry) break;
     const vehicle = state.vehicles[entry.vehicleId];
-    if (!vehicle) break;
-    state.queue.splice(index, 1);
+    if (!vehicle) {
+      state.queue.shift();
+      continue;
+    }
+    const bay = chooseBay(vehicle, getCompatibleIdleBays(vehicle, state));
+    if (!bay) break;
+    state.queue.shift();
     startSession(ctx, vehicle, bay);
   }
 }

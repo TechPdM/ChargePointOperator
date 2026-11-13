@@ -134,9 +134,10 @@ export const destinationSite: ScenarioConfig = {
   initialPartialChargeTargetSoc: undefined,
 
   // The whole character of the site: people are somewhere else, doing
-  // something else. They will wait an hour without noticing, and nobody
-  // arrives in a panic during opening hours.
-  patienceMultiplier: 3.0,
+  // something else, and nobody arrives in a panic during opening hours.
+  // D49: was 3.0. A panic driver waiting 90 minutes at a garden centre was the
+  // absurdity D48/D49 removed; ×1.5 keeps the site the most patient of three.
+  patienceMultiplier: 1.5,
   urgencyMultiplier: 0.7,
 
   energyCostPerKwh: 0.28,

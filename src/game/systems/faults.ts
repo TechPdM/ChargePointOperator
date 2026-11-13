@@ -12,6 +12,7 @@ import { bayList, dataOf, emit, round, type TickContext } from "../core/context.
 import type { ChargerBay, FaultCategory } from "../core/types.ts";
 import { applyUpgrade, syncOpenBayIds } from "../actions/playerActions.ts";
 import { interruptSession } from "./charging.ts";
+import { beginRepair } from "./repairs.ts";
 
 /** Per-tick hazard that integrates to ≈ (1 − reliabilityBase) over a session. */
 export function faultProbabilityPerTick(
@@ -43,15 +44,27 @@ export function resolveFaultsAndRepairs(ctx: TickContext): void {
     }
   }
 
-  // 2. Scripted faults — designed story beats, unaffected by maintenance level.
+  // 2. D53: the maintenance contractor turns up once a fault has stood for the
+  // contract's response time. No contract (reactive) means nobody comes.
+  const response = maintenance.contractResponseSeconds;
+  if (response !== undefined) {
+    for (const bay of bayList(state)) {
+      if (bay.state !== "faulted" || bay.faultedAtSecond === undefined) continue;
+      if (now - bay.faultedAtSecond >= response) beginRepair(ctx, bay, "contract");
+    }
+  }
+
+  // 3. Scripted faults — designed story beats, unaffected by maintenance level.
+  // D54: a closed bay cannot fault, the scripted beat included. Closing the bay
+  // the story was going to break is the player's call, and it costs capacity.
   for (const scripted of state.scenario.scriptedFaults) {
     if (scripted.atSecond < now || scripted.atSecond >= now + ctx.delta) continue;
     const bay = state.chargers[scripted.bayId];
-    if (!bay || bay.state === "faulted" || bay.state === "repairing") continue;
+    if (!bay || !bay.isOpen || bay.state === "faulted" || bay.state === "repairing") continue;
     faultBay(ctx, bay, scripted.category, true);
   }
 
-  // 3. Random faults, only on bays actually delivering power.
+  // 4. Random faults, only on bays actually delivering power.
   for (const bay of bayList(state)) {
     if (bay.state !== "charging" || !bay.activeSessionId) continue;
     const session = state.sessions[bay.activeSessionId];

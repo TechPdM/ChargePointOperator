@@ -111,9 +111,13 @@ describe("power_choke", () => {
     expect(FAILURE_THRESHOLDS.powerChokeQueueLength).toBeGreaterThan(0);
   });
 
-  it("is reached by the baseline on the scenario's own grid cap", () => {
+  it("is reached on the scenario's own grid cap when the price is cut", () => {
+    // Before D48 the baseline reached it on every seed: drivers would join a
+    // three-car queue at a saturated site. With a 5-min commuter tolerance they
+    // drive on instead, so it now takes a mistake that floods the forecourt.
+    // Measured: 10/10 seeds at £0.45, 0/10 under the baseline.
     const result = runScenario({
-      scenario: roadsideHub,
+      scenario: { ...roadsideHub, initialPricePerKwh: 0.45 },
       seed: "s1",
       policy: baselinePolicy,
       collectLog: false,
@@ -190,7 +194,11 @@ describe("queue_collapse — reachable by play, not by competence (D31)", () => 
     // Measured before the thresholds were set: across 5 seeds the longest
     // window where pressure and sustained abandonment both held was 0 ticks
     // under baseline at every combination tried, and 44 ticks here.
-    const seen = ["s1", "s2", "s3"].map((seed) =>
+    //
+    // D48 made it rare. Drivers no longer join a queue as long as the bays, so
+    // the cut now shows mostly as drive-ons and trust_crash: queue_collapse on
+    // 2 of 20 seeds (s5, s10) where it was every seed. Those two are pinned.
+    const seen = ["s5", "s10", "s3"].map((seed) =>
       play(roadsideHub, seed, [[2, { type: "set_price", pricePerKwh: 0.45 }]], true)
         .site.metrics.failureStatesObserved,
     );
@@ -226,7 +234,7 @@ describe("all five failure states are reachable (gate criterion 3)", () => {
     for (const s of [
       play(roadsideHub, "s1", [], true),
       play(roadsideHub, "s1", [], false),
-      ...["s1", "s2", "s3", "s4"].map((seed) => play(roadsideHub, seed, cut, true)),
+      ...["s1", "s2", "s5", "s10"].map((seed) => play(roadsideHub, seed, cut, true)),
     ]) {
       for (const f of s.site.metrics.failureStatesObserved) observed.add(f);
     }
@@ -343,8 +351,14 @@ describe("nothing ends a day but the clock (D41)", () => {
   it("a site nobody repairs trades all the way to close-out", () => {
     // No policy at all: faults are never called out, so trust falls and stays
     // down. This is the shape that used to trip trust_collapse.
+    // D53: on `standard` the contractor would repair them, so the site is put
+    // on `reactive`, where nobody comes unless called.
     const ruined = ["s2", "s3", "s6", "s8"].map((seed) =>
-      runScenario({ scenario: roadsideHub, seed, collectLog: false }),
+      runScenario({
+        scenario: { ...roadsideHub, initialMaintenanceLevel: "reactive" },
+        seed,
+        collectLog: false,
+      }),
     );
     for (const r of ruined) {
       expect(r.ticks).toBe(1_440);

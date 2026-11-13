@@ -9,6 +9,8 @@ import { archetypeName } from "../core/labels.ts";
 import {
   ARCHETYPES,
   DETOUR_PREMIUM_MAX,
+  VEHICLE_BATTERY_KWH,
+  VEHICLE_MAX_CHARGE_RATE_KW,
   PRICE_MULTIPLIER_MAX,
   PRICE_MULTIPLIER_MIN,
 } from "../core/calibration.ts";
@@ -100,9 +102,15 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
   const archetype = pickArchetype(ctx, wave);
   const p = ARCHETYPES[archetype];
 
-  const batteryCapacityKwh = ctx.rng.range(p.batteryKwh[0], p.batteryKwh[1]);
-  const maxChargeRateKw = ctx.rng.range(p.maxChargeRateKw[0], p.maxChargeRateKw[1]);
+  // D46: the car is drawn from one range whatever the driver type.
+  const batteryCapacityKwh = ctx.rng.range(VEHICLE_BATTERY_KWH[0], VEHICLE_BATTERY_KWH[1]);
+  const maxChargeRateKw = ctx.rng.range(
+    VEHICLE_MAX_CHARGE_RATE_KW[0],
+    VEHICLE_MAX_CHARGE_RATE_KW[1],
+  );
   const currentSoc = ctx.rng.range(p.arrivalSoc[0], p.arrivalSoc[1]);
+  // D47: how full this driver wants to leave, from their type's range.
+  const targetSoc = ctx.rng.range(p.targetSoc[0], p.targetSoc[1]);
   // D42: this driver's own alternative. Drawn per vehicle rather than fixed per
   // site, because direction of approach decides whether the next rapid is ahead
   // of you or behind you — which is what makes the refusal a curve and not the
@@ -120,7 +128,7 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
 
   // Driver-intent demand. The site's partial-charge policy may reduce this at
   // session start (D14); this figure is what they wanted.
-  const requestedKwh = Math.max(0, (p.targetSoc - currentSoc) * batteryCapacityKwh);
+  const requestedKwh = Math.max(0, (targetSoc - currentSoc) * batteryCapacityKwh);
   // D42: the base is what they would pay with a competitor right there; the
   // detour is what buys the premium on top.
   const maxAcceptablePricePerKwh =
@@ -143,7 +151,7 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
     priceSensitivity: p.priceSensitivity,
     waitSensitivity: p.waitSensitivity,
     demand: {
-      targetSoc: p.targetSoc,
+      targetSoc,
       requestedKwh,
       maxAcceptablePricePerKwh,
       patienceSeconds,

@@ -9,6 +9,7 @@
 import { CHARGER_SPECS, MAINTENANCE, PRICE_MAX, PRICE_MIN } from "../core/calibration.ts";
 import { dataOf, emit, mustBay, round, type TickContext } from "../core/context.ts";
 import { canAffordUpgrade, upgradePathBetween } from "../core/selectors.ts";
+import { beginRepair } from "../systems/repairs.ts";
 import type {
   ChargerType,
   Id,
@@ -153,15 +154,10 @@ function applyOne(ctx: TickContext, action: PlayerAction): void {
         });
         break;
       }
+      // Cost is debited immediately, on the tick the player acted. The decision
+      // marker comes first, then the repair itself (shared with D53 contracts).
       const profile = MAINTENANCE[policy.maintenanceLevel];
       const durationSeconds = Math.round(bay.spec.repairSecondsMean * profile.repairTimeMultiplier);
-      bay.state = "repairing";
-      bay.repairScheduledAtSecond = state.clock.secondsElapsed;
-      bay.repairDueAtSecond = state.clock.secondsElapsed + durationSeconds;
-      // Cost is debited immediately, on the tick the player acted.
-      state.site.economics.maintenanceCostToday += profile.costPerRepair;
-      ctx.sample.maintenanceCost += profile.costPerRepair;
-
       emit(ctx, "info", "charger.repair_scheduled", `Repair scheduled for ${bay.label}`, {
         entity_type: "charger",
         entity_id: bay.id,
@@ -169,18 +165,11 @@ function applyOne(ctx: TickContext, action: PlayerAction): void {
           action_id: action.id,
           applied: true,
           repair_cost_amount: profile.costPerRepair,
-          repair_due_at_second: bay.repairDueAtSecond,
+          repair_due_at_second: state.clock.secondsElapsed + durationSeconds,
           maintenance_level: policy.maintenanceLevel,
         }),
       });
-      emit(ctx, "info", "charger.repair_started", `${bay.label} under repair`, {
-        entity_type: "charger",
-        entity_id: bay.id,
-        data: dataOf({
-          repair_seconds: durationSeconds,
-          fault_category: bay.faultCategory ?? null,
-        }),
-      });
+      beginRepair(ctx, bay, "player");
       break;
     }
 
