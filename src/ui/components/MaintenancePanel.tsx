@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { MAINTENANCE } from "../../game/core/calibration.ts";
+import { repairCost } from "../../game/systems/repairs.ts";
 import { Panel } from "./Panel.tsx";
 import type { Simulation } from "../hooks/useSimulation.ts";
 import type { MaintenanceLevel } from "../../game/core/types.ts";
@@ -46,7 +47,11 @@ export function MaintenancePanel({ sim }: { sim: Simulation }): ReactElement {
   return (
     <Panel
       title="Maintenance"
-      hint={`£${profile.standingCostPerSimDay}/day · £${profile.costPerRepair} a repair`}
+      hint={
+        profile.contractResponseSeconds === undefined
+          ? `£${profile.standingCostPerSimDay}/day · £${profile.costPerRepair} a repair`
+          : `£${profile.standingCostPerSimDay}/day · £${profile.costPerRepair} a repair, £${repairCost(level, "player")} if you call it out`
+      }
     >
       <div className="level-list" role="radiogroup" aria-label="Maintenance level">
         {LEVELS.map((l) => (

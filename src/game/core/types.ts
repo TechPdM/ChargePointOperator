@@ -149,6 +149,13 @@ export interface SiteEconomics {
 export interface DemandFunnel {
   arrived: number;
   rejectedSite: number;
+  /**
+   * D60: why they drove on. Splits `rejectedSite` exactly: over their price
+   * ceiling, or the price term outweighed the wait term in their score…
+   */
+  rejectedOnPrice: number;
+  /** …or the wait they saw outweighed the price. */
+  rejectedOnWait: number;
   siteFull: number;
   queueJoined: number;
   abandonedQueue: number;
@@ -175,6 +182,9 @@ export interface TickSample {
   sessionsCompletedWithoutFault: number;
   queueAbandons: number;
   startedWaitSecondsSum: number;
+  /** D60: arrivals this tick, and how many of them drove on or found it full. */
+  arrivals: number;
+  turnedAway: number;
   kwhDelivered: number;
   revenue: number;
   energyCost: number;

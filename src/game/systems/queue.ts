@@ -33,6 +33,7 @@ export function assignToIdleBaysOrQueue(ctx: TickContext): void {
 
     if (state.queue.length >= state.scenario.maxQueueLength) {
       state.site.metrics.funnel.siteFull += 1;
+      ctx.sample.turnedAway += 1;
       departVehicle(ctx, vehicle, "site_full");
       continue;
     }

@@ -35,6 +35,8 @@ export function emptySample(atSecond: number): TickSample {
     sessionsCompletedWithoutFault: 0,
     queueAbandons: 0,
     startedWaitSecondsSum: 0,
+    arrivals: 0,
+    turnedAway: 0,
     kwhDelivered: 0,
     revenue: 0,
     energyCost: 0,

@@ -233,6 +233,18 @@ export interface MaintenanceProfile {
  */
 export const REPAIR_CALL_OUT_COST = 200;
 
+/**
+ * D59: what it costs to jump the contractor's queue. On `standard` or
+ * `preventive` the contractor comes anyway (D53) at the ordinary £200; calling
+ * one out yourself adds this. Without it the call-out button had no trade in
+ * it — same price, bay back sooner — so it was always right to press.
+ *
+ * £100 against a corridor bay's ~£30/hour of margin: waiting 15–30 min is
+ * usually the better deal, and calling out pays at a peak or with several bays
+ * down. On `reactive` there is no contractor to jump, so no premium.
+ */
+export const CALL_OUT_PREMIUM = 100;
+
 export const MAINTENANCE: Record<MaintenanceLevel, MaintenanceProfile> = {
   reactive: {
     standingCostPerSimDay: 0,

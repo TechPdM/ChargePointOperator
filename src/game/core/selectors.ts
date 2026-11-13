@@ -289,6 +289,8 @@ export interface RollWindow {
   sessionsCompletedWithoutFault: number;
   queueAbandons: number;
   startedWaitSecondsSum: number;
+  arrivals: number;
+  turnedAway: number;
   kwhDelivered: number;
   margin: number;
   meanAllocatedPowerKw: number;
@@ -311,6 +313,8 @@ export function rollWindow(
     sessionsCompletedWithoutFault: 0,
     queueAbandons: 0,
     startedWaitSecondsSum: 0,
+    arrivals: 0,
+    turnedAway: 0,
     kwhDelivered: 0,
     margin: 0,
     meanAllocatedPowerKw: 0,
@@ -329,6 +333,8 @@ export function rollWindow(
     acc.sessionsCompletedWithoutFault += s.sessionsCompletedWithoutFault;
     acc.queueAbandons += s.queueAbandons;
     acc.startedWaitSecondsSum += s.startedWaitSecondsSum;
+    acc.arrivals += s.arrivals;
+    acc.turnedAway += s.turnedAway;
     acc.kwhDelivered += s.kwhDelivered;
     acc.margin += s.revenue - s.energyCost - s.maintenanceCost - s.opexAccrued;
     allocatedSum += s.allocatedPowerKw;

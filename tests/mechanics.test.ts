@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACCEPT_THRESHOLD,
   ARCHETYPES,
+  CALL_OUT_PREMIUM,
   DETOUR_PREMIUM_MAX,
   MAINTENANCE,
   PARTIAL_CHARGE_OPTIONS,
@@ -25,6 +26,7 @@ import { detourPremiumPerKwh, priceMultiplier } from "../src/game/systems/arriva
 import { abandonProbability } from "../src/game/systems/queue.ts";
 import { faultProbabilityPerTick } from "../src/game/systems/faults.ts";
 import { deliverableKwh } from "../src/game/systems/charging.ts";
+import { repairCost } from "../src/game/systems/repairs.ts";
 import { chargeSeconds, chooseBay } from "../src/game/core/selectors.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
 import { commuterHub } from "../src/game/scenarios/commuterHub.ts";
@@ -842,5 +844,63 @@ describe("a closed bay costs nothing to keep (D54)", () => {
     s = queueAction(s, { type: "toggle_bay_group", bayIds: ["bay-5"], open: false });
     s = advance(s, 12.5 * 60 + 2);
     expect(s.chargers["bay-5"]?.state).not.toBe("faulted");
+  });
+});
+
+describe("calling out a repair on a contract costs a premium (D59)", () => {
+  function callOut(level: "reactive" | "standard" | "preventive"): number {
+    let s = createInitialState({ ...roadsideHub, initialMaintenanceLevel: level }, "s1");
+    const bay = s.chargers["bay-3"];
+    if (!bay) throw new Error("no bay-3");
+    bay.state = "faulted";
+    bay.faultedAtSecond = 0;
+    const before = s.site.economics.maintenanceCostToday;
+    s = queueAction(s, { type: "schedule_repair", chargerBayId: "bay-3" });
+    s = tick(s).state;
+    // Strip the standing charge accrued in that one tick.
+    const standing = MAINTENANCE[level].standingCostPerSimDay / 1_440;
+    return s.site.economics.maintenanceCostToday - before - standing;
+  }
+
+  it("a player call-out on standard or preventive is £300; on reactive £200", () => {
+    expect(callOut("standard")).toBeCloseTo(300, 6);
+    expect(callOut("preventive")).toBeCloseTo(300, 6);
+    expect(callOut("reactive")).toBeCloseTo(200, 6);
+  });
+
+  it("the contractor's own repair stays at £200", () => {
+    expect(repairCost("standard", "contract")).toBe(200);
+    expect(repairCost("standard", "player")).toBe(200 + CALL_OUT_PREMIUM);
+  });
+
+  it("the baseline leaves a contract repair to the contractor", () => {
+    const s = createInitialState(roadsideHub, "s1");
+    const bay = s.chargers["bay-3"];
+    if (!bay) throw new Error("no bay-3");
+    bay.state = "faulted";
+    expect(baselinePolicy(s)).toEqual([]);
+    const reactive = createInitialState(
+      { ...roadsideHub, initialMaintenanceLevel: "reactive" },
+      "s1",
+    );
+    const r3 = reactive.chargers["bay-3"];
+    if (!r3) throw new Error("no bay-3");
+    r3.state = "faulted";
+    expect(baselinePolicy(reactive)).toEqual([{ type: "schedule_repair", chargerBayId: "bay-3" }]);
+  });
+});
+
+describe("drive-ons are counted by reason (D60)", () => {
+  it("price and wait reasons split the site rejections exactly", () => {
+    for (const price of [0.79, 1.05]) {
+      const f = runScenario({
+        scenario: { ...roadsideHub, initialPricePerKwh: price },
+        seed: "s1",
+        policy: baselinePolicy,
+        collectLog: false,
+      }).finalState.site.metrics.funnel;
+      expect(f.rejectedOnPrice + f.rejectedOnWait).toBe(f.rejectedSite);
+      if (price > 1) expect(f.rejectedOnPrice).toBeGreaterThan(f.rejectedOnWait);
+    }
   });
 });

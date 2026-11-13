@@ -199,6 +199,8 @@ describe("invariant 7 still bites after the D39 prune", () => {
       arrived,
       completed: arrived,
       rejectedSite: 0,
+      rejectedOnPrice: 0,
+      rejectedOnWait: 0,
       siteFull: 0,
       abandonedQueue: 0,
       interruptedByFault: 0,

@@ -38,6 +38,19 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
   // produces, so the fallback flatters precisely when it must not.
   const roll = rollWindow(state);
   const waitSeconds = rollAvgWaitSeconds(roll);
+
+  // D60: drivers who looked at the site and left without queueing.
+  const f = m.funnel;
+  const turnedAwayToday = f.rejectedSite + f.siteFull;
+  const turnedAwayRoll = roll.arrivals > 0 ? roll.turnedAway / roll.arrivals : null;
+  const turnedAwayDetail =
+    `${turnedAwayToday} of ${f.arrived} arrivals today drove on` +
+    (f.arrived > 0 ? ` (${Math.round((turnedAwayToday / f.arrived) * 100)}%)` : "") +
+    `: ${f.rejectedOnPrice} put off by the price, ${f.rejectedOnWait} by the wait, ${f.siteFull} found the queue full.` +
+    (turnedAwayRoll === null
+      ? ""
+      : ` Last 15 min: ${Math.round(turnedAwayRoll * 100)}% of arrivals.`) +
+    ` Every one costs trust. ${m.kwhDelivered.toFixed(0)} kWh delivered; ${pct(m.sessionSuccessRatePct, 0)}% of sessions finished without a fault.`;
   const uptimeFraction = rollUptimeFraction(roll);
 
   // Cumulative goals are scored at midnight, so judging them against the full
@@ -128,17 +141,20 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
       </div>
 
       {/*
-        D44: no goal, no tone. Driver count is worth seeing and not worth
-        scoring, so this card reports and stops short of judging — a tone here
-        would be the scorecard telling the player that serving more people is
-        better, which is the belief D44 removed.
+        D44: no goal. Driver count is worth seeing and not worth scoring.
+
+        D60: since D48 overload leaves at the entrance rather than in the queue,
+        so this card carries the drive-ons too. The tone judges the share
+        turning away in the last 15 minutes — a reputation event (D45), not a
+        volume target — never the served count. Folded into this card rather
+        than added as a tenth, which would break the strip's 3×3 contract.
       */}
       <Kpi
-        label="Served"
+        label="Served · turned away"
         value={String(m.sessionsCompleted)}
-        unit="drivers today"
-        tone="idle"
-        detail={`${m.kwhDelivered.toFixed(0)} kWh delivered. ${pct(m.sessionSuccessRatePct, 0)}% of started sessions finished without a fault.`}
+        unit={`served · ${turnedAwayToday} turned away`}
+        tone={turnedAwayRoll === null ? "idle" : toneFor(turnedAwayRoll * 100, 35, 55)}
+        detail={turnedAwayDetail}
       />
     </div>
   );

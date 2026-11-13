@@ -3,11 +3,23 @@
  * contractor (D53), so the two cannot drift on duration or cost.
  */
 
-import { MAINTENANCE } from "../core/calibration.ts";
+import { CALL_OUT_PREMIUM, MAINTENANCE } from "../core/calibration.ts";
 import { dataOf, emit, type TickContext } from "../core/context.ts";
-import type { ChargerBay } from "../core/types.ts";
+import type { ChargerBay, MaintenanceLevel } from "../core/types.ts";
 
 export type RepairDispatcher = "player" | "contract";
+
+/**
+ * What a repair costs. The contractor's own visit is the flat call-out (D33);
+ * a player call-out on a contract tier pays the D59 premium on top, because it
+ * jumps the contractor's queue. On `reactive` a player call-out is the only
+ * kind there is, so it pays the flat rate.
+ */
+export function repairCost(level: MaintenanceLevel, dispatchedBy: RepairDispatcher): number {
+  const profile = MAINTENANCE[level];
+  const jumpsContract = dispatchedBy === "player" && profile.contractResponseSeconds !== undefined;
+  return profile.costPerRepair + (jumpsContract ? CALL_OUT_PREMIUM : 0);
+}
 
 /**
  * Put a faulted bay under repair and debit the call-out on this tick.
@@ -23,13 +35,15 @@ export function beginRepair(
   dispatchedBy: RepairDispatcher,
 ): { durationSeconds: number; cost: number } {
   const { state } = ctx;
-  const profile = MAINTENANCE[state.site.policy.maintenanceLevel];
+  const level = state.site.policy.maintenanceLevel;
+  const profile = MAINTENANCE[level];
   const durationSeconds = Math.round(bay.spec.repairSecondsMean * profile.repairTimeMultiplier);
+  const cost = repairCost(level, dispatchedBy);
   bay.state = "repairing";
   bay.repairScheduledAtSecond = state.clock.secondsElapsed;
   bay.repairDueAtSecond = state.clock.secondsElapsed + durationSeconds;
-  state.site.economics.maintenanceCostToday += profile.costPerRepair;
-  ctx.sample.maintenanceCost += profile.costPerRepair;
+  state.site.economics.maintenanceCostToday += cost;
+  ctx.sample.maintenanceCost += cost;
 
   emit(ctx, "info", "charger.repair_started", `${bay.label} under repair`, {
     entity_type: "charger",
@@ -38,7 +52,8 @@ export function beginRepair(
       repair_seconds: durationSeconds,
       fault_category: bay.faultCategory ?? null,
       dispatched_by: dispatchedBy,
+      repair_cost_amount: cost,
     }),
   });
-  return { durationSeconds, cost: profile.costPerRepair };
+  return { durationSeconds, cost };
 }

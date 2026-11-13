@@ -168,7 +168,9 @@ export const destinationSite: ScenarioConfig = {
     // D57 (2026-11-13, ratified by Mark): re-fitted after D46–D55. Baseline
     // spread: margin £35–£513 (p50 £429) · wait 90–264 s (p50 180) · trust
     // 57.3–71.8 (p50 63.2). Met 50% / 60% / 50%; D13 floor 80%.
-    minOperatingMargin: 400,
+    // D59 (2026-11-13): £400 → £450, for the same reason as Eastgate; floor
+    // back to 80% (margin met 30%, wait 65%, trust 50%).
+    minOperatingMargin: 450,
     maxAvgWaitSeconds: 200,
     minTrust: 63,
   },

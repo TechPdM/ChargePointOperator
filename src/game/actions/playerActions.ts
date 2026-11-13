@@ -9,7 +9,7 @@
 import { CHARGER_SPECS, MAINTENANCE, PRICE_MAX, PRICE_MIN } from "../core/calibration.ts";
 import { dataOf, emit, mustBay, round, type TickContext } from "../core/context.ts";
 import { canAffordUpgrade, upgradePathBetween } from "../core/selectors.ts";
-import { beginRepair } from "../systems/repairs.ts";
+import { beginRepair, repairCost } from "../systems/repairs.ts";
 import type {
   ChargerType,
   Id,
@@ -164,7 +164,7 @@ function applyOne(ctx: TickContext, action: PlayerAction): void {
         data: dataOf({
           action_id: action.id,
           applied: true,
-          repair_cost_amount: profile.costPerRepair,
+          repair_cost_amount: repairCost(policy.maintenanceLevel, "player"),
           repair_due_at_second: state.clock.secondsElapsed + durationSeconds,
           maintenance_level: policy.maintenanceLevel,
         }),

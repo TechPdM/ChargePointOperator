@@ -70,6 +70,7 @@ export function spawnArrivals(ctx: TickContext): void {
     const vehicle = createVehicle(ctx, wave);
     state.vehicles[vehicle.id] = vehicle;
     state.site.metrics.funnel.arrived += 1;
+    ctx.sample.arrivals += 1;
     emit(ctx, "debug", "vehicle.arrived", `${archetypeName(vehicle.archetype)} arrived`, {
       entity_type: "vehicle",
       entity_id: vehicle.id,

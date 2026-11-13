@@ -204,7 +204,10 @@ export const commuterHub: ScenarioConfig = {
     // (met 20/20) and margin and trust carry the floor (each met 30%), as they
     // did before D46. That is a goal chosen after seeing a fail, and is
     // recorded as such in D57.
-    minOperatingMargin: 1_400,
+    // D59 (2026-11-13): £1,400 → £1,450. The baseline now leaves contract
+    // repairs to the contractor, which moved the floor to 75%; one £50 step
+    // restores 80% (margin met 30%, wait 95%, trust 35%).
+    minOperatingMargin: 1_450,
     maxAvgWaitSeconds: 120,
     minTrust: 70,
   },

@@ -18,6 +18,8 @@ function emptyFunnel(): DemandFunnel {
   return {
     arrived: 0,
     rejectedSite: 0,
+    rejectedOnPrice: 0,
+    rejectedOnWait: 0,
     siteFull: 0,
     queueJoined: 0,
     abandonedQueue: 0,

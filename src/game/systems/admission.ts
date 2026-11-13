@@ -75,7 +75,18 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
     const accepted = score >= ACCEPT_THRESHOLD && !priceRejected;
 
     if (!accepted) {
-      state.site.metrics.funnel.rejectedSite += 1;
+      const funnel = state.site.metrics.funnel;
+      funnel.rejectedSite += 1;
+      ctx.sample.turnedAway += 1;
+      // D60: the main reason, for the dashboard. Over their ceiling is price;
+      // otherwise whichever of the two penalty terms in their score was larger.
+      const pricePenalty =
+        SITE_SCORE.c *
+        vehicle.priceSensitivity *
+        ((state.site.policy.pricePerKwh - state.scenario.referencePricePerKwh) / 0.1);
+      const waitPenalty = SITE_SCORE.b * vehicle.waitSensitivity * (perceivedWait / 600);
+      if (priceRejected || pricePenalty > waitPenalty) funnel.rejectedOnPrice += 1;
+      else funnel.rejectedOnWait += 1;
       // D45: every drive-on costs reputation; being too dear costs extra.
       ctx.trustDeltaRaw += TRUST.siteRejection;
       if (priceRejected) ctx.trustDeltaRaw += TRUST.priceRejectionExtra;
@@ -90,6 +101,7 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
           price_per_kwh: round(state.site.policy.pricePerKwh, 2),
           reference_price_per_kwh: round(state.scenario.referencePricePerKwh, 2),
           hard_price_reject: priceRejected,
+          main_reason: priceRejected || pricePenalty > waitPenalty ? "price" : "wait",
           archetype: vehicle.archetype,
         }),
       });

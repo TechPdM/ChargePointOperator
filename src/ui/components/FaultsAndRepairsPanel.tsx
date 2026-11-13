@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { bayList } from "../../game/core/context.ts";
 import { MAINTENANCE } from "../../game/core/calibration.ts";
+import { repairCost } from "../../game/systems/repairs.ts";
 import { minutes, money } from "../format.ts";
 import { Empty, Panel } from "./Panel.tsx";
 import type { Simulation } from "../hooks/useSimulation.ts";
@@ -27,7 +28,8 @@ export function FaultsAndRepairsPanel({ sim }: { sim: Simulation }): ReactElemen
   const down = bayList(state).filter((b) => b.state === "faulted" || b.state === "repairing");
   const waiting = down.filter((b) => b.state === "faulted");
   const profile = MAINTENANCE[state.site.policy.maintenanceLevel];
-  const cost = profile.costPerRepair;
+  // D59: on a contract, calling out jumps the contractor and costs more.
+  const cost = repairCost(state.site.policy.maintenanceLevel, "player");
   const response = profile.contractResponseSeconds;
 
   return (
