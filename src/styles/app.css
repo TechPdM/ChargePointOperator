@@ -272,10 +272,15 @@ body {
 /* --------------------------------------------------------------- top bar */
 
 .top-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: space-between;
+  /*
+   * Header left, the app title pinned top right on the same row, and the run
+   * controls between them while there is room. When there is not, the controls
+   * drop to a row of their own and the title stays beside the header.
+   */
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  grid-template-areas: "header controls title";
+  align-items: center;
   gap: var(--gap);
   background: var(--panel);
   border: 1px solid var(--rule);
@@ -308,6 +313,7 @@ body {
   text-transform: uppercase;
   color: var(--ink-3);
 }
+
 
 .clock-block {
   display: flex;
@@ -389,6 +395,57 @@ body {
 }
 
 /* ---------------------------------------------------------- run controls */
+
+.top-bar > .scenario-header {
+  grid-area: header;
+}
+
+.top-bar > .run-controls {
+  grid-area: controls;
+  justify-self: end;
+}
+
+/* The app's own name and version, pinned to the top-right corner. */
+.app-title {
+  grid-area: title;
+  align-self: start;
+  justify-self: end;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.app-version {
+  font-weight: 400;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1700px) {
+  .top-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header title"
+      "controls controls";
+  }
+
+  .top-bar > .run-controls {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .top-bar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "header"
+      "controls";
+  }
+}
 
 .run-controls {
   display: flex;
@@ -1546,6 +1603,7 @@ input[type="number"] {
   padding: 4px 0 2px;
   text-align: center;
   font-size: 12px;
+  color: var(--ink-3);
 }
 
 .site-footer a {

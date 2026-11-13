@@ -11,6 +11,7 @@ import { useGameLoop } from "../ui/hooks/useGameLoop.ts";
 import { useSimulation } from "../ui/hooks/useSimulation.ts";
 import { roadsideHub } from "../game/scenarios/roadsideHub.ts";
 
+import { APP_COMMIT, APP_VERSION } from "../ui/buildInfo.ts";
 import { AboutBanner } from "../ui/components/AboutBanner.tsx";
 import { ScenarioHeader } from "../ui/components/ScenarioHeader.tsx";
 import { RunControls } from "../ui/components/RunControls.tsx";
@@ -42,6 +43,9 @@ export function App(): ReactElement {
       <div className="top-bar">
         <ScenarioHeader state={state} />
         <RunControls sim={sim} />
+        <h1 className="app-title" title={APP_COMMIT ? `Build ${APP_COMMIT}` : undefined}>
+          Charge Point Operator <span className="app-version">v{APP_VERSION}</span>
+        </h1>
       </div>
 
       {/* The board: what the site IS right now. The KPI strip answers "how is
@@ -111,7 +115,11 @@ export function App(): ReactElement {
       <EventLogPanel events={sim.state.events} actions={sim.state.actions} />
 
       <footer className="site-footer">
+        <span title={APP_COMMIT ? `Build ${APP_COMMIT}` : undefined}>v{APP_VERSION}</span>
+        <span aria-hidden="true"> · </span>
         <a href="https://www.thisliquidspace.com">thisliquidspace.com</a>
+        <span aria-hidden="true"> · </span>
+        <a href="https://github.com/TechPdM/ChargePointOperator">Source on GitHub</a>
       </footer>
     </div>
   );
