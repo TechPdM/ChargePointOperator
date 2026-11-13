@@ -41,8 +41,9 @@ export function BayAvailabilityPanel({ sim }: { sim: Simulation }): ReactElement
         ))}
       </ul>
       <p className="note">
-        Closing a bay that's in use waits for the car to finish — nobody gets unplugged. An upgrade
-        is charged straight away and fitted when the bay next frees.
+        A closed bay costs nothing to run and can't break down. Closing one that's in use waits for
+        the car to finish — nobody gets unplugged. An upgrade is charged straight away and fitted
+        when the bay next frees.
       </p>
     </Panel>
   );

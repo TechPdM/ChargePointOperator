@@ -9,10 +9,9 @@ import type { SimulationState } from "../../game/core/types.ts";
  * ceiling. Everything else redistributes it.
  *
  * Each option shows how many drivers on site it would actually cut short.
- * That is here because of OPEN-6: with every driver targeting 80%, the 90% and
- * 80% settings are exact no-ops on this scenario, and a control that silently
- * does nothing is a legibility bug. Until OPEN-6 is decided, the panel at
- * least tells the truth about it rather than hiding it.
+ * That came from OPEN-6, when every driver targeted 80% and two settings were
+ * exact no-ops. Since D47 drivers want 60–100% and every option (off / 90% /
+ * 75% / 50%, D49) cuts someone, but the count still tells the player who.
  */
 export function ChargingPolicyPanel({ sim }: { sim: Simulation }): ReactElement {
   const state = sim.state.sim;

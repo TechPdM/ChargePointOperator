@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { ARCHETYPES, DETOUR_PREMIUM_MAX, PRICE_MAX, PRICE_MIN } from "../../game/core/calibration.ts";
+import {
+  ARCHETYPES,
+  DETOUR_PREMIUM_MAX,
+  PRICE_MAX,
+  PRICE_MIN,
+  VEHICLE_BATTERY_KWH,
+} from "../../game/core/calibration.ts";
 import { priceMultiplier } from "../../game/systems/arrivals.ts";
 import { getActiveWave } from "../../game/core/selectors.ts";
 import { ARCHETYPE_PLURAL } from "../format.ts";
@@ -39,8 +45,9 @@ function refusingShare(
   detourMinutes: [number, number],
 ): number {
   const p = ARCHETYPES[key];
-  const midKwh = (p.targetSoc - (p.arrivalSoc[0] + p.arrivalSoc[1]) / 2) *
-    ((p.batteryKwh[0] + p.batteryKwh[1]) / 2);
+  const midKwh =
+    ((p.targetSoc[0] + p.targetSoc[1]) / 2 - (p.arrivalSoc[0] + p.arrivalSoc[1]) / 2) *
+    ((VEHICLE_BATTERY_KWH[0] + VEHICLE_BATTERY_KWH[1]) / 2);
   if (price <= p.maxAcceptablePriceBase) return 0;
   // Past base + the clamp, no amount of detour saves it: everyone refuses.
   if (price > p.maxAcceptablePriceBase + DETOUR_PREMIUM_MAX) return 1;
@@ -87,16 +94,19 @@ function hardRejectors(
  * Price. Writes `set_price` only — the dynamic-pricing toggle the wireframe
  * once had is cut, because no mechanic sits behind it (C5).
  *
- * There is no Apply step. Both controls send themselves the moment the player
- * lets go, which is how every other control on the board already behaves — the
+ * There is no Apply step. The slider sends itself the moment the player lets
+ * go, which is how every other control on the board already behaves — the
  * charging limit and the power policies all commit on the click.
+ *
+ * D52: the connection fee has no control. It starts at £0 on every scenario and
+ * `set_price` is sent without it, so whatever the fee is stays as it is. The
+ * mechanic is kept for later; only the input is gone.
  */
 export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement {
   const { policy } = sim.state.sim.site;
   const state = sim.state.sim;
   const [draft, setDraft] = useState(policy.pricePerKwh);
-  const [fee, setFee] = useState(policy.connectionFee);
-  const pushed = useRef({ price: policy.pricePerKwh, fee: policy.connectionFee });
+  const pushed = useRef(policy.pricePerKwh);
 
   const wave = getActiveWave(state.clock.secondsElapsed, state.scenario.demandWaves);
   const demand = wave
@@ -107,7 +117,7 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
     : { names: [], share: 0 };
 
   /**
-   * Send the pair to the sim — on release, deliberately not from `onChange`.
+   * Send the price to the sim — on release, deliberately not from `onChange`.
    *
    * A drag fires `onChange` on every step, and every `set_price` is one
    * decision-marker event in the run log (C6). Committing per step would write
@@ -119,15 +129,12 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
    * the queued action sits unapplied, so `policy` still reads the old price —
    * comparing against it would re-send the same price on every lost focus.
    */
-  const commit = (price: number, connectionFee: number): void => {
-    if (price === pushed.current.price && connectionFee === pushed.current.fee) return;
-    pushed.current = { price, fee: connectionFee };
+  const commit = (price: number): void => {
+    if (price === pushed.current) return;
+    pushed.current = price;
     sim.act(
-      { type: "set_price", pricePerKwh: price, connectionFee },
-      {
-        label: "Price",
-        detail: `£${price.toFixed(2)}/kWh, £${connectionFee.toFixed(2)} connection`,
-      },
+      { type: "set_price", pricePerKwh: price },
+      { label: "Price", detail: `£${price.toFixed(2)}/kWh` },
     );
   };
 
@@ -160,34 +167,18 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
         value={draft}
         aria-label="Price per kWh"
         onChange={(e) => setDraft(Number(e.target.value))}
-        onPointerUp={() => commit(draft, fee)}
-        onKeyUp={() => commit(draft, fee)}
-        onBlur={() => commit(draft, fee)}
+        onPointerUp={() => commit(draft)}
+        onKeyUp={() => commit(draft)}
+        onBlur={() => commit(draft)}
       />
       <div className="range-ends">
         <span>£{PRICE_MIN.toFixed(2)}</span>
         <span>£{PRICE_MAX.toFixed(2)}</span>
       </div>
 
-      <label className="field">
-        <span>Connection fee</span>
-        <input
-          type="number"
-          min={0}
-          step={0.25}
-          value={fee}
-          onChange={(e) => setFee(Number(e.target.value))}
-          onBlur={() => commit(draft, fee)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit(draft, fee);
-          }}
-        />
-      </label>
-
       <p className="note">
-        The slider sends itself when you let go, the fee when you leave the box. Either way it
-        applies to sessions that start from here on — anyone already plugged in keeps the price they
-        arrived on.
+        The slider sends itself when you let go. The new price applies to sessions that start from
+        here on — anyone already plugged in keeps the price they arrived on.
       </p>
     </Panel>
   );

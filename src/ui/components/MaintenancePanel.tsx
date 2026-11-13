@@ -5,9 +5,21 @@ import type { Simulation } from "../hooks/useSimulation.ts";
 import type { MaintenanceLevel } from "../../game/core/types.ts";
 
 const LEVELS: { id: MaintenanceLevel; name: string; blurb: string }[] = [
-  { id: "reactive", name: "Fix on failure", blurb: "No contract. Call-outs cost more and take longer." },
-  { id: "standard", name: "Standard contract", blurb: "The usual arrangement." },
-  { id: "preventive", name: "Preventive", blurb: "Costs more per day. Halves faults and speeds up repairs." },
+  {
+    id: "reactive",
+    name: "Fix on failure",
+    blurb: "No contract: you call out every repair yourself. More faults, slower repairs.",
+  },
+  {
+    id: "standard",
+    name: "Standard contract",
+    blurb: "A contractor comes 30 min after a fault without being asked.",
+  },
+  {
+    id: "preventive",
+    name: "Preventive",
+    blurb: "Costs more per day. Halves faults, faster repairs, contractor in 15 min.",
+  },
 ];
 
 /**

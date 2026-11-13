@@ -16,16 +16,19 @@ const FAULT_COPY: Record<string, string> = {
 /**
  * The sole owner of `schedule_repair` (Architecture §8.3).
  *
- * A faulted bay waits **indefinitely** until a repair is called in — repairs
- * are never automatic, which is the entire point of the maintenance mechanic.
- * So this panel has to make an unrepaired bay impossible to miss.
+ * On `reactive` maintenance a faulted bay waits **indefinitely** until a repair
+ * is called in. On a contract (D53) the contractor turns up after the response
+ * time, and the panel says when; the player can still call one out sooner. So
+ * this panel has to make an unattended bay impossible to miss.
  */
 export function FaultsAndRepairsPanel({ sim }: { sim: Simulation }): ReactElement {
   const state = sim.state.sim;
   const now = state.clock.secondsElapsed;
   const down = bayList(state).filter((b) => b.state === "faulted" || b.state === "repairing");
   const waiting = down.filter((b) => b.state === "faulted");
-  const cost = MAINTENANCE[state.site.policy.maintenanceLevel].costPerRepair;
+  const profile = MAINTENANCE[state.site.policy.maintenanceLevel];
+  const cost = profile.costPerRepair;
+  const response = profile.contractResponseSeconds;
 
   return (
     <Panel
@@ -51,7 +54,10 @@ export function FaultsAndRepairsPanel({ sim }: { sim: Simulation }): ReactElemen
                   {isWaiting ? (
                     <>
                       <span className="fault-age">
-                        Out of service {minutes(since)} min — nobody is fixing it
+                        Out of service {minutes(since)} min —{" "}
+                        {response === undefined
+                          ? "nobody is fixing it"
+                          : `contractor due in ${minutes(Math.max(0, response - since))} min`}
                       </span>
                       <button
                         type="button"
@@ -63,7 +69,8 @@ export function FaultsAndRepairsPanel({ sim }: { sim: Simulation }): ReactElemen
                           )
                         }
                       >
-                        Call out a repair · {money(cost)}
+                        {response === undefined ? "Call out a repair" : "Call out now"} ·{" "}
+                        {money(cost)}
                       </button>
                     </>
                   ) : (
