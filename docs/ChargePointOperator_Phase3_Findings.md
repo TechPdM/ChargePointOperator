@@ -1,5 +1,7 @@
 # ChargePointOperator — Phase 3 Findings (Experiment & Tuning Layer)
 
+> **Historical record (note added 2026-11-13).** This document describes the model as it stood on its date. The D46–D60 revision has since changed the drivers, charging, faults, repairs and goals, so its numbers are not current. For the game as it is now, read `ChargePointOperator_How_It_Plays.md`; for the measured state, the calibration sheet §7 and the gate scorecard.
+
 **Version:** 1.1 · **Date:** 2026-08-16 *(v1.1: OPEN-2 and OPEN-6 both resolved by D33 — §5 and §6 carry the outcome, and §5 records where my own recommendation was wrong)*
 **Companions:** `ChargePointOperator_Plan.md` §6.4 (Phase 3 exit criteria) · `ChargePointOperator_Calibration.md` §8 (sanity gradients) · `ChargePointOperator_Decision_Log.md` (OPEN-2, OPEN-6)
 **Status:** Phase 3 exit criteria met, and **both open decisions are now closed by D33** — see the resolution boxes in §5 and §6. Nothing blocks Phase 4.

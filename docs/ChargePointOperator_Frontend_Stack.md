@@ -13,7 +13,7 @@ The simulation core (`src/game/`) is headless and has no front-end dependencies 
 | TypeScript | ^5.7.2 | Strict, `noEmit`. Type checking is a separate step from the build. |
 | Vite | ^6.0.5 | Dev server, HMR, production bundle, worker bundling. |
 | @vitejs/plugin-react | ^4.7.0 | The React refresh + JSX transform plugin. Nothing else is configured. |
-| Vitest | ^2.1.8 | Tests, in a `node` environment — see §10. |
+| Vitest | ^5.0.5 *(upgraded 2026-10-24, security review)* | Tests, in a `node` environment — see §10. |
 
 That is the whole list. There are **two** runtime dependencies in `package.json`; everything else is a dev dependency.
 

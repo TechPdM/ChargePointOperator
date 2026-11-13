@@ -1,5 +1,7 @@
 # ChargePointOperator — Development Log, 2026-08-18
 
+> **Historical record (note added 2026-11-13).** This document describes the model as it stood on its date. The D46–D60 revision has since changed the drivers, charging, faults, repairs and goals, so its numbers are not current. For the game as it is now, read `ChargePointOperator_How_It_Plays.md`; for the measured state, the calibration sheet §7 and the gate scorecard.
+
 **Purpose:** a running record of work done *outside* the phased plan. The Plan says what we intend to build; the Decision Log says what we ruled; this says what actually happened, including the dead ends and the things found by accident.
 
 **Convention:** one file per working day, `ChargePointOperator_Dev_Log_YYYY-MM-DD.md`. The log is the series.

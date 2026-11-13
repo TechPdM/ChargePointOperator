@@ -1,6 +1,8 @@
 # ChargePointOperator — Pricing Model: Design
 
-**Status:** design agreed, **not yet implemented.** No code has been changed.
+> **Historical record (note added 2026-11-13).** This document describes the model as it stood on its date. The D46–D60 revision has since changed the drivers, charging, faults, repairs and goals, so its numbers are not current. For the game as it is now, read `ChargePointOperator_How_It_Plays.md`; for the measured state, the calibration sheet §7 and the gate scorecard.
+
+**Status:** design agreed and **implemented as D42–D45** (2026-08-20). *(This line said "not yet implemented" until 2026-11-13.)*
 **Date:** 2026-08-19
 **Supersedes the options in:** `ChargePointOperator_PricingModel_Discovery.md` §4 and §8.
 **Wants:** a D-entry (next free number: **D42**).

@@ -1,5 +1,7 @@
 # ChargePointOperator — Phase 1 Findings (Headless Sim Core)
 
+> **Historical record (note added 2026-11-13).** This document describes the model as it stood on its date. The D46–D60 revision has since changed the drivers, charging, faults, repairs and goals, so its numbers are not current. For the game as it is now, read `ChargePointOperator_How_It_Plays.md`; for the measured state, the calibration sheet §7 and the gate scorecard.
+
 **Version:** 1.1 · **Date:** 2026-08-16 *(v1.1: OPEN-4 and OPEN-5 closed by D30/D31 — §5.1, §5.2 and §5.3 annotated with the resolution and the re-measured numbers)*
 **Companions:** `ChargePointOperator_Plan.md` §6.4 (Phase 1 exit criteria) · `ChargePointOperator_Calibration.md` §7/§7a · `ChargePointOperator_Decision_Log.md` (OPEN-2, OPEN-3)
 **Status:** Phase 1 build complete. Exit criteria met. Four items needed a decision; **two are now closed** — OPEN-4 by D30 and OPEN-5 by D31, both after this note was written. The sections below are left as they were found, each with a resolution box, because the reasoning that led to the fix is worth more than a tidied-up version of it.

@@ -1,5 +1,7 @@
 # ChargePointOperator — Pricing Model: Problem Discovery
 
+> **Historical record (note added 2026-11-13).** This document describes the model as it stood on its date. The D46–D60 revision has since changed the drivers, charging, faults, repairs and goals, so its numbers are not current. For the game as it is now, read `ChargePointOperator_How_It_Plays.md`; for the measured state, the calibration sheet §7 and the gate scorecard.
+
 > **CLOSED 2026-08-20.** Every question in §8 is answered and the work is
 > implemented as **D42–D45**. The design and all measurements are in
 > `ChargePointOperator_PricingModel_Design.md`; this document is kept as the
