@@ -57,7 +57,7 @@ Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for t
 **Read with three caveats:**
 
 1. **The goals decided Eastgate.** The first D57 fit (wait ≤ 90 s) failed this criterion, because short waits made the wait goal free for any strategy that turns drivers away. The passing fit was chosen after seeing that (D57). This is the same fragility v1.2 recorded: a verdict here is a claim about the goal fit at least as much as the mechanics.
-2. **`preventive` is in every winner but Kesteven's tie.** Maintenance dominance (OPEN-2 / D33) is still near the surface, now joined by contractor repairs (D53), which make the higher tiers more convenient as well as more reliable.
+2. **`preventive` is part of every site's winner** (at Kesteven, level with plain `premium`). Maintenance dominance (OPEN-2 / D33) is still near the surface, now joined by contractor repairs (D53), which make the higher tiers more convenient as well as more reliable.
 3. **An adaptive strategy is the near-miss.** That is good news for the mechanic: playing the day is rewarded, which answers the "configuration puzzle" worry D55 was added to test. It also means a simple rule (price up at the peaks, down in the lulls) is close to being correct everywhere. Testers will likely find it.
 
 **Still outstanding:** the protocol also requires that testers **propose ≥2 different credible strategies** when asked (protocol §2, after run 2).
