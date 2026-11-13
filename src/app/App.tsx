@@ -32,8 +32,17 @@ import { EconomicsTrendChart } from "../ui/components/EconomicsTrendChart.tsx";
 import { EventLogPanel } from "../ui/components/EventLogPanel.tsx";
 import { PostRunSummary } from "../ui/components/PostRunSummary.tsx";
 
+/**
+ * First load starts on a random day. It was always `s1`, so everyone opening
+ * the page played the same day until they pressed New seed. Kept in the
+ * `s<number>` form so New seed carries on from it, and shown in the top bar so a
+ * day can still be replayed. Picked once per page load, at module scope, so
+ * React's double render in dev cannot pick two.
+ */
+const FIRST_SEED = `s${1 + Math.floor(Math.random() * 9_999)}`;
+
 export function App(): ReactElement {
-  const sim = useSimulation(roadsideHub, "s1");
+  const sim = useSimulation(roadsideHub, FIRST_SEED);
   useGameLoop(sim.state.running, sim.state.speed, sim.advance);
 
   const state = sim.state.sim;
