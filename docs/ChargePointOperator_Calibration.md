@@ -1,6 +1,6 @@
 # ChargePointOperator — Calibration Sheet & Assumptions Register
 
-**Version:** 3.4 · **Date:** 2026-08-20 *(v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites** · **v3.4: D42–D45 — §3 gains the detour-derived ceiling, per-archetype value of time and the per-site detour ranges; §5's worked example re-computed and made site-specific; §7 re-measured (and barely moved, which is itself the finding); §8's price gradient becomes `up-then-down`; §9 gains A8 (2014 prices, not uprated) and A9 (detour is a range, not a road network); goals are three, not four**)*
+**Version:** 4.0 · **Date:** 2026-11-13 *(**v4.0: D46–D55 — uniform cars, driver target spread, shorter queue tolerance and patience, charging limit off/90/75/50, bay choice, faults halved, connection fee £0, contract repairs, closed bays cost nothing. §7 measured ranges are stale until the D57 re-measure.** · v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites** · **v3.4: D42–D45 — §3 gains the detour-derived ceiling, per-archetype value of time and the per-site detour ranges; §5's worked example re-computed and made site-specific; §7 re-measured (and barely moved, which is itself the finding); §8's price gradient becomes `up-then-down`; §9 gains A8 (2014 prices, not uprated) and A9 (detour is a range, not a road network); goals are three, not four**)*
 **Companions:** `ChargePointOperator_Plan.md` (C9, O7), `ChargePointOperator_Architecture.md` (§6, §9.3), `ChargePointOperator_Decision_Log.md` (D8–D26)
 **Status of every number: FIRST GUESS** — chosen for plausible ratios and gradients so Phase 1 has something to assert against and Phase 3 something to tune. When a value proves wrong, change it here first, then in code. Currency £ (realistic magnitudes — D10).
 
@@ -26,7 +26,7 @@ All `*Seconds` fields are sim-seconds at real-world magnitude (a 10-minute wait 
 | `rapid_dc` / `ultrarapid_dc` maxPowerKw | **150 / 350** *(re-rated 2026-08-17)*. Was 50 / 150, which was 2019–2021 spec: current UK classification puts rapid at 100–150 kW (50 kW is the legacy tier) and ultra-rapid at 150 kW upwards, with corridor operators (IONITY, GRIDSERVE/Extra) running 350–400 kW. The old rapid tier throttled *every* car on site — the archetype table in §3 already allowed 60–250 kW. (`slow_ac` unchanged at 22 kW and still unused in MVP scenarios — D5) |
 | Grid cap `gridPowerKw` | **650 kW** *(re-sized 2026-08-17)*. Nameplate is now 4×150 + 2×350 = 1,300 kW, so this is 50% of nameplate — a site connected for typical peak rather than absolute peak, which is the ordinary UK position. Industry reference points: ~1.5 MVA for a 10–12 × 150 kW hub (~83%), and a dedicated 14 MVA substation for the 32-bay Moto Tamworth super hub. **Measured**: throughput rises to ~650 kW, plateaus by ~800, and is bit-identical above it — so ≥900 kW makes `power_choke` unreachable and this is the top of the useful band |
 | `maxQueueLength` | **12** *(new — D20)*. Two deep per bay. Makes the `site_full` leave reason reachable; previously it was a type value nothing could produce |
-| `reliabilityBase` — rapid / ultra | 0.985 / 0.975 per **session** (§5 fault model) |
+| `reliabilityBase` — AC / rapid / ultra | **0.995 / 0.9925 / 0.9875** per **session** (§5 fault model) *(D51: unreliability halved, was 0.99 / 0.985 / 0.975; measured 5.3 faults/day at Junction 42 before)* |
 | `repairSecondsMean` — rapid / ultra | 2,700 (45 sim-min) / 3,600 (60 sim-min) |
 | Upgrade cost rapid→ultra | **£75,000** *(re-priced 2026-08-17; was £40,000)*. This is now a 150 → 350 kW swap, not 50 → 150. IONITY's ~€700m for 5,000+ ultra-rapid chargers puts an all-in greenfield unit near €140k; an in-place swap on a bay that already has groundwork and connection is cheaper, not £40k cheap. Realism commitment is D10. Lives in `scenario.upgradeCosts` (D20), **not** on the action. Starting capital still funds at most one; judged operationally, not by in-run payback |
 
@@ -36,17 +36,18 @@ All `*Seconds` fields are sim-seconds at real-world magnitude (a 10-minute wait 
 
 | Constant | Commuter | En-route | Panic (low SOC) |
 | :-- | :-- | :-- | :-- |
-| Battery capacity kWh | 40–80 (mean 60) | 50–80 (mean 65) | 40–70 (mean 55) |
-| **`maxChargeRateKw`** *(D15)* | 60–120 | 120–250 | 50–150 |
+| Battery capacity kWh | **40–80 (mean 60), every type** *(D46; was 40–80 / 50–80 / 40–70)* | ← | ← |
+| **`maxChargeRateKw`** *(D15)* | **50–250, every type** *(D46; was 60–120 / 120–250 / 50–150)* | ← | ← |
 | Arrival SOC (fraction) | 0.35–0.55 | 0.15–0.35 | 0.03–0.12 |
-| Driver-chosen target SOC | 0.80 | 0.80 | 0.60 |
-| Mean energy per session | 21.0 kWh | 35.8 kWh | 28.9 kWh |
-| `patienceSeconds` | 900 | 1,200 | 1,800 |
+| Driver-chosen target SOC *(D47: drawn per driver)* | **0.80–0.90** | **0.80–1.00** | **0.60–0.80** |
+| Mean energy per session (requested) | 24.0 kWh | 39.0 kWh | 37.5 kWh |
+| `patienceSeconds` *(D49)* | **480** | **720** | **1,200** |
 | `priceSensitivity` (0–1) | 0.7 | 0.4 | 0.1 |
-| `waitSensitivity` (0–1) | 0.6 | 0.5 | 0.2 |
+| `waitSensitivity` *(D48)* | **1.3** | **1.05** | **0.875** |
+| Longest queue joined (mid urgency, reference price, trust 50) | 5 min | 10 min | 20 min |
 | `urgencyScore` (0–1) | 0.3–0.5 | 0.5–0.7 | 0.9–1.0 |
 | **`referencePricePerKwh`** *(D21; **no longer read by `siteScore` — D43**)* | £0.75 | £0.85 | £1.00 |
-| **`maxAcceptablePriceBase`** *(D42, was `maxAcceptablePricePerKwh`)* | **£0.78** | **£1.05** | **£1.44** |
+| **`maxAcceptablePriceBase`** *(D42; re-derived for D46/D47, was £0.78 / £1.05 / £1.44)* | **£0.80** | **£1.06** | **£1.46** |
 | **`valueOfTimePerHour`** *(new — D42)* | **£11.21** | **£5.12** | **£5.12** |
 
 **The ceiling is no longer a constant (D42).** `maxAcceptablePriceBase` is what this archetype would pay **with a competing charger right there** — no detour, no captivity. Each driver adds a premium on top, drawn from their own detour to the nearest alternative:
@@ -66,25 +67,27 @@ The bases are **derived, not chosen**: each is the old ceiling (0.95 / 1.10 / 1.
 
 **Detour ranges, per scenario (D42):** Junction 42 `[8, 30]` · Kesteven `[5, 18]` · Eastgate `[2, 7]` sim-minutes, justified against real UK rapid-charger spacing. The range's *width* is direction of approach — the next rapid is ahead of you or behind you — which is what makes refusal a curve rather than a step.
 
-**Effective charging power (D14, D15):** `effectivePowerKw = min(bayAllocatedKw, vehicle.maxChargeRateKw) × taper(soc)` where **taper = 1.0 below 0.80 SOC, 0.4 at/above 0.80 SOC** (two-segment first guess). This is what makes the partial-charge policy a real trade: charging past 80% is slow, so a site-imposed 80% cap frees bays dramatically at peaks.
+**Effective charging power (D14, D15):** `effectivePowerKw = min(bayAllocatedKw, vehicle.maxChargeRateKw) × taper(soc)` where **taper = 1.0 below 0.80 SOC, 0.4 at/above 0.80 SOC** (two-segment first guess). **Since D47 it applies:** drivers targeting above 0.80 charge their last stretch at 40% speed. Before D47 no driver targeted above 0.80, so it never did. Charging is otherwise flat (no curve), by choice (D47).
 
-**Partial-charge policy (D14 — core):** `partialChargeTargetSoc` selectable **off / 0.70 / 0.60 / 0.50** *(re-scoped from off/0.90/0.80/0.70 — D33/OPEN-6: every driver already targets 0.80 or less, so the top two settings were exact no-ops)*. When set below a driver's own target, mild trust penalty per affected session (−0.1) — you're sending people away with less than they wanted; they mostly understand at a busy site.
+**Bay choice (D50):** a driver placed on a bay takes the free bay with the highest `min(bay kW, car kW)`; on a tie, the smallest bay; then bay order. The queue is first-come, first-served.
+
+**Partial-charge policy (D14 — core):** `partialChargeTargetSoc` selectable **off / 0.90 / 0.75 / 0.50** *(D49; was off / 0.70 / 0.60 / 0.50, itself re-scoped by D33/OPEN-6 when every driver targeted 0.80 or less. D47's target spread is what makes 0.90 do something)*. When set below a driver's own target, mild trust penalty per affected session (−0.1) — you're sending people away with less than they wanted; they mostly understand at a busy site.
 
 ## 4. Pricing & economics (realistic £ — D10)
 
 | Constant | Value |
 | :-- | :-- |
 | Initial `pricePerKwh` | £0.79 (typical UK public rapid) |
-| Initial `connectionFee` | £0.99 |
+| Initial `connectionFee` | **£0, every scenario, and hidden from the UI** *(D52; was £0.99 here, £0.50 at Eastgate)*. The mechanic stays for later use. |
 | Price slider range | £0.45 – £1.20 |
 | `scenario.referencePricePerKwh` (elasticity pivot) | £0.79 |
 | `energyCostPerKwh` | £0.28 |
-| `opexPerSimDay` | £150 (rent, rates, comms) |
-| **Starting capital** | **£50,000** — an investment float, not a score; the scored economic metric is operating margin (D10) |
+| `opexPerSimDay` | £150 (rent, rates, comms). **Charged in proportion to open bays (D54)**, as is the standing maintenance charge |
+| **Starting capital** | **£100,000** *(raised 2026-08-17 with the £75k upgrade)* — an investment float, not a score; the scored economic metric is operating margin (D10) |
 | **Repair call-out cost** *(flat across tiers — D33)* | **£200**, whatever your contract |
-| Maintenance — `reactive` | £0/day standing; fault probability ×1.25; repair time ×1.2 |
-| Maintenance — `standard` (default) | £25/day contract; ×1.0 / ×1.0 |
-| Maintenance — `preventive` | **£150/day** (£55k/yr = £9.1k per bay — a normal comprehensive O&M contract); fault probability ×0.5; repair time ×0.7 |
+| Maintenance — `reactive` | £0/day standing; fault probability ×1.25; repair time ×1.2; **no contract: the player calls out every repair** |
+| Maintenance — `standard` (default) | £25/day contract; ×1.0 / ×1.0; **contractor dispatched after 30 min** *(D53)* |
+| Maintenance — `preventive` | **£150/day** (£55k/yr = £9.1k per bay — a normal comprehensive O&M contract); fault probability ×0.5; repair time ×0.7; **contractor dispatched after 15 min** *(D53)* |
 
 **Price elasticity — `AMENDED (D21)`.** v2.1 hard-coded a coefficient of 1.2 here while `DemandWave.priceElasticity` independently varied 0.7–1.2, and never said how the two combined. **The wave value *is* the coefficient.** One formula:
 
@@ -163,7 +166,7 @@ That ordering is the design intent made checkable: commuters shed first — righ
 
 Wave table lives in `ChargePointOperator_Scenario_RoadsideHub.md` §3 (single source — includes the D8 overnight hours).
 
-## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3)
+## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3) · **STALE until the D57 re-measure**
 
 Baseline (D22) = £0.79 flat, **`standard`** maintenance, `equal_share` power, all bays open, partial-charge **off**, no upgrades, and **`schedule_repair` issued on the tick a fault is detected**.
 
