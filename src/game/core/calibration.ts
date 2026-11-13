@@ -433,10 +433,20 @@ export const FAILURE_THRESHOLDS = {
    *
    * It also reads plainly: a car queued for every bay you own, and a third of
    * the people who committed walking away, for half an hour.
+   *
+   * **D58: 1.0 → 0.5, re-derived the same way after D48.** Drivers stopped
+   * joining queues as long as the bays (a commuter joins about 5 min), so 1.0
+   * became nearly unreachable: the price-cut mistake reached it on 2 of 20
+   * seeds where it had reached it on every one. Measured (10 seeds per cell):
+   * at 0.5 with abandonment ≥ 30% it fires on 0 of 210 competent runs (every
+   * criterion 2 strategy on all three sites) and on 7/10 and 9/10 price-cut
+   * runs at Junction 42 and Eastgate; at 0.67, Eastgate falls to 1/10. Only
+   * the pressure arm moved. Now: a car queued for every two bays, and a third
+   * of those who committed walking away, for half an hour.
    */
-  queueCollapsePressure: 1.0,
+  queueCollapsePressure: 0.5,
   queueCollapseAbandonmentPct: 30,
-  queueCollapseClearPressure: 0.7,
+  queueCollapseClearPressure: 0.35,
   powerChokeAllocatedPct: 95,
   powerChokeQueueLength: 3,
   powerChokeClearPct: 85,
@@ -466,8 +476,9 @@ export const ALERT_THRESHOLDS = {
   // Kept below the failure-state entry so the alert is a genuine early warning
   // of the same condition: 5 minutes of pressure here, half an hour of pressure
   // plus abandonment there.
-  queueOverloadPressure: 1.0,
-  queueOverloadClearPressure: 0.7,
+  // D58: moved with queueCollapsePressure, so the alert still warns first.
+  queueOverloadPressure: 0.5,
+  queueOverloadClearPressure: 0.35,
   lowUptimePct: 90,
   lowUptimeClearPct: 93,
   /** −£25, not £0: quiet overnight ROLL windows legitimately run slightly negative. */

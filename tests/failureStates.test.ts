@@ -195,10 +195,10 @@ describe("queue_collapse — reachable by play, not by competence (D31)", () => 
     // window where pressure and sustained abandonment both held was 0 ticks
     // under baseline at every combination tried, and 44 ticks here.
     //
-    // D48 made it rare. Drivers no longer join a queue as long as the bays, so
-    // the cut now shows mostly as drive-ons and trust_crash: queue_collapse on
-    // 2 of 20 seeds (s5, s10) where it was every seed. Those two are pinned.
-    const seen = ["s5", "s10", "s3"].map((seed) =>
+    // D48 made the old 1.0 threshold nearly unreachable (2 of 20 seeds), since
+    // drivers no longer join a queue as long as the bays. D58 re-derived it the
+    // same way, at 0.5: 7 of 10 seeds here, and 0 of 210 competent runs.
+    const seen = ["s1", "s2", "s3"].map((seed) =>
       play(roadsideHub, seed, [[2, { type: "set_price", pricePerKwh: 0.45 }]], true)
         .site.metrics.failureStatesObserved,
     );
@@ -234,7 +234,7 @@ describe("all five failure states are reachable (gate criterion 3)", () => {
     for (const s of [
       play(roadsideHub, "s1", [], true),
       play(roadsideHub, "s1", [], false),
-      ...["s1", "s2", "s5", "s10"].map((seed) => play(roadsideHub, seed, cut, true)),
+      ...["s1", "s2", "s3", "s4"].map((seed) => play(roadsideHub, seed, cut, true)),
     ]) {
       for (const f of s.site.metrics.failureStatesObserved) observed.add(f);
     }

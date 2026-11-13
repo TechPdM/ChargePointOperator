@@ -142,7 +142,7 @@ Gate criterion 3 requires "≥4 of 5 failure states observed arising naturally a
 
 | State | Enters when | Clears when | Reads as |
 | :-- | :-- | :-- | :-- |
-| `queue_collapse` *(D31)* | queue pressure ≥ **1.0** **and** abandonment ≥ 30% **measured over the 1,800 s sustain window**, both holding ≥ 1,800 sim-s | queue pressure < **0.7** for 900 sim-s | "a car queued for every bay you own, and a third of the people who committed walking away" |
+| `queue_collapse` *(D31, D58)* | queue pressure ≥ **0.5** *(D58; was 1.0)* **and** abandonment ≥ 30% **measured over the 1,800 s sustain window**, both holding ≥ 1,800 sim-s | queue pressure < **0.35** for 900 sim-s | "a car queued for every two bays you own, and a third of the people who committed walking away" |
 | `power_choke` | Σ allocated ≥ 95% of `gridPowerKw` **and** queue length ≥ 3, sustained ≥ 1,800 sim-s | allocated < 85% for 900 sim-s | "the grid cap, not the bays, is the wall" |
 | `reliability_spiral` | ROLL uptime < 85% for ≥ 3,600 sim-s, **or** ≥ 3 bays simultaneously `faulted`/`repairing` | ROLL uptime ≥ 90% for 900 sim-s | "the site is falling apart faster than it's fixed" |
 | `margin_trap` | CUM capex > 0 **and** projected end-of-run goals-met count ≤ the same-seed baseline's | never clears within a run (evaluated at close-out) | "you spent £75k and it bought nothing" |
@@ -158,7 +158,7 @@ Two deliberate choices. **The dual conditions matter**: `power_choke` without th
 
 | Alert | Trigger | Clear |
 | :-- | :-- | :-- |
-| `queue_overload` | queue pressure > **1.0** for ≥ 300 sim-s | < **0.7** |
+| `queue_overload` | queue pressure > **0.5** for ≥ 300 sim-s *(D58; was 1.0)* | < **0.35** |
 | `low_uptime` | uptime (ROLL) < 90% | ≥ 93% |
 | `negative_margin` | margin (ROLL) < **−£25** for ≥ 900 sim-s | ≥ £0 |
 | `power_saturation` | allocated ≥ 95% of `gridPowerKw` for ≥ 300 sim-s | < 85% |
