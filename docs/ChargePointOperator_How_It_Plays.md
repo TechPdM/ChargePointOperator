@@ -221,6 +221,6 @@ D56 brought the scenario spec, Architecture §6 and the KPI dictionary back in l
 
 | Document | Status |
 | :-- | :-- |
-| `docs/model-map.html` | **Stale.** It maps the model as built before D46–D58 (per-type cars, fixed targets, bay order, no contracts). Needs regenerating from `src/game`. |
+| `docs/model-map.html` | Regenerated for D46–D60 on 2026-11-13. |
 | `Phase1_Findings.md`, `Phase3_Findings.md` | Historical records of earlier models; read them as dated. |
 | `Session_Pack.md`, `Playtest_Protocol.md` | Not reviewed for D46–D58; check any numbers quoted to testers before the first session. |
