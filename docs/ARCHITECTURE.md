@@ -47,7 +47,7 @@ About 13.6k lines of TypeScript/TSX/CSS, measured at this commit:
 | `src/game/` (sim core + CLI) | 37 | ~7,000 |
 | `src/ui/`, `src/app/`, `src/main.tsx` | 24 | ~2,900 |
 | `src/styles/app.css` | 1 | ~1,530 |
-| `tests/` | 8 | ~2,200 (131 test cases) |
+| `tests/` | 8 | ~2,200 (154 test cases) |
 
 ---
 

@@ -8,6 +8,7 @@ The design documents are canonical and come first:
 
 | Document | Canonical for |
 | :-- | :-- |
+| `docs/ChargePointOperator_How_It_Plays.md` | **start here** — the game in plain language, as built: the loop, the levers, the sites, and where the mechanic is thin (descriptive, not canonical) |
 | `docs/ChargePointOperator_Plan.md` | what and why — scope, phases, the gate |
 | `docs/ChargePointOperator_Architecture.md` | how — data model, tick pipeline, logging, invariants |
 | `docs/ChargePointOperator_Frontend_Stack.md` | the dashboard's stack — dependencies, conventions, and measured performance |
@@ -116,7 +117,7 @@ src/ui/
   components/  the 15-component MVP cut plus PostRunSummary, one file each; Panel and chart are shared
   hooks/       useSimulation (store) · useGameLoop (fixed timestep)
 src/app/       App.tsx — the §8.1 layout
-tests/         131 tests, each pinned to the document that defines the rule
+tests/         154 tests, each pinned to the document that defines the rule
 ```
 
 ## Three rules the code is held to
