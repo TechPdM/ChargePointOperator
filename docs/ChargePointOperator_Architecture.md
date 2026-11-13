@@ -400,6 +400,8 @@ export interface SiteEconomics {
 export interface DemandFunnel {
   arrived: number;
   rejectedSite: number;
+  rejectedOnPrice: number;                  // NEW (D60): these two split rejectedSite
+  rejectedOnWait: number;                   // exactly — the larger penalty term decides
   siteFull: number;
   queueJoined: number;
   abandonedQueue: number;
@@ -496,7 +498,7 @@ export interface ChargerBay {
 }
 
 export interface VehicleDemand {            // SOC values are fractions 0–1 (C6)
-  targetSoc: number;
+  targetSoc: number;                        // AMENDED (D47): drawn per driver from the archetype's range
   requestedKwh: number;
   maxAcceptablePricePerKwh: number;         // hard rejection, on top of siteScore
   patienceSeconds: number;
@@ -635,7 +637,7 @@ export interface ScenarioGoals {            // AMENDED (D10): minCash → minOpe
   minTrust: number;                         // With a realistic £50k float, a cash floor
   minOperatingMargin: number;               // measures nothing; margin (capex-excluded,
   maxAvgWaitSeconds: number;                // per D12) is the scored economic goal.
-  minSessionsCompleted: number;
+  // REMOVED (D44): minSessionsCompleted. Driver count is reported, not scored.
 }
 
 // REMOVED (D41). D20 lifted the hard fail rules out of prose into this type;

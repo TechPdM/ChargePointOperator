@@ -1,6 +1,6 @@
 # ChargePointOperator — KPI Dictionary
 
-**Version:** 1.4 · **Date:** 2026-08-16 *(v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24 · **v1.4: D31 — `queue_collapse` thresholds set from the measured joint distribution, and its abandonment arm reads the sustain window**)*
+**Version:** 1.5 · **Date:** 2026-11-13 *(**v1.5: D58 `queue_collapse` and `queue_overload` at pressure 0.5; D60 turned-away KPI and its funnel split.** · v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24 · **v1.4: D31 — `queue_collapse` thresholds set from the measured joint distribution, and its abandonment arm reads the sustain window**)*
 **Companions:** Architecture doc §5.3 (`SiteMetrics`), §7 (logging), §8 (dashboard)
 **Purpose:** one precise definition per KPI — formula, denominator, window, units — shared by the sim, the logs, and the dashboard. This closes the gap the paired-schema rule (C6) doesn't cover: it checks that names *match*, not that they *mean the same thing*. Any change to a definition here is a schema change and travels with the C6 pair.
 
@@ -66,8 +66,18 @@ Window-scoped counts. **`reject_site` and `site_full` (never joined the queue) a
 
 ⚠ **Two different "share of drivers we lost" numbers appear on screen** — this one, and `1 − chargeStartSuccessRate` below. They have different denominators on purpose: abandonment rate measures *committed* demand lost (people who joined the queue, plus everyone who got served), while charge-start success measures the whole accepted funnel. They will not match, and a tester noticing that is a legitimate legibility question, not a bug. Tooltips must say which is which.
 
+### Turned away — `ROLL` (tone) / `CUM` (count) — *NEW (D60)*
+
+```
+turnedAwayRate  = turnedAway / arrivals                    // ROLL, last 900 s
+turnedAwayToday = rejected_site + site_full                // CUM
+rejected_site   = rejectedOnPrice + rejectedOnWait         // exactly
+```
+
+Drivers who looked at the site and left without queueing. Since D48 this is where overload shows, because drivers no longer join a queue as long as the bays; a falling average wait with a rising figure here means the forecourt emptied itself at the gate. **Reason attribution:** `rejectedOnPrice` if the driver was over their hard price ceiling, or if the price term in their `siteScore` outweighed the wait term; otherwise `rejectedOnWait`. `site_full` is reported separately. Shown on the **Served · turned away** card: the count is reported without judgement (D44), and the tone (amber ≥35%, red ≥55%) is on the ROLL rate, because every drive-on is a reputation event (D45). Not a goal.
+
 ### Sessions completed — `CUM`
-Count of sessions with `completed == true`. Goal basis.
+Count of sessions with `completed == true`. Reported, not scored since D44.
 
 ### Session success rate — `CUM` — *(O2)*
 
@@ -123,8 +133,8 @@ arrivals = rejected_site + site_full + abandoned_queue + interrupted_by_fault
 | Funnel stage | Leave reason | Event (log) | KPI it feeds |
 | :-- | :-- | :-- | :-- |
 | Arrived | — | `vehicle.arrived` | arrival rate |
-| Rejected site | `reject_site` | `vehicle.site_rejected` → `vehicle.departed` | demand-shaping diagnostics (not abandonment) |
-| Turned away, queue full | `site_full` | `vehicle.departed` | capacity diagnostics; feeds `queue_collapse` detection |
+| Rejected site | `reject_site` | `vehicle.site_rejected` (carries `main_reason`, D60) → `vehicle.departed` | turned away (D60), split by price / wait; demand-shaping diagnostics (not abandonment) |
+| Turned away, queue full | `site_full` | `vehicle.departed` | turned away (D60); capacity diagnostics |
 | Joined queue | — | `vehicle.queue_joined` | queue length |
 | Abandoned | `queue_abandon` | `vehicle.queue_abandoned` → `vehicle.departed` | abandonment rate, trust |
 | Started | — | `session.started` | charge start success, avg wait |

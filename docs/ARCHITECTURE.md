@@ -40,14 +40,14 @@ The sim core is the system. It has three hosts that run the **same code**: the d
 
 ### Size
 
-About 13.6k lines of TypeScript/TSX/CSS, measured at this commit:
+About 14.4k lines of TypeScript/TSX/CSS, measured on 2026-11-13 after D46–D60:
 
 | Area | Files | Lines |
 | :-- | --: | --: |
-| `src/game/` (sim core + CLI) | 37 | ~7,000 |
-| `src/ui/`, `src/app/`, `src/main.tsx` | 24 | ~2,900 |
-| `src/styles/app.css` | 1 | ~1,530 |
-| `tests/` | 8 | ~2,200 (154 test cases) |
+| `src/game/` (sim core + CLI) | 38 | ~7,400 |
+| `src/ui/`, `src/app/`, `src/main.tsx` | 24 | ~2,960 |
+| `src/styles/app.css` | 1 | ~1,640 |
+| `tests/` | 8 | ~2,400 (170 test cases) |
 
 ---
 
@@ -60,7 +60,7 @@ About 13.6k lines of TypeScript/TSX/CSS, measured at this commit:
 | **Vite** | ^6.0 | Dev server with HMR (port 5273, override with `PORT`), production bundling, Web Worker bundling. |
 | **@vitejs/plugin-react** | ^4.7 | JSX transform and React Fast Refresh. The only Vite plugin. |
 | **tsx** | ^4.19 | Runs `src/game/headless.ts` directly under Node, with no compile step. |
-| **Vitest** | ^2.1 | Test runner, `node` environment, 120s per-test timeout (some tests run whole simulated days). |
+| **Vitest** | ^5.0 | Test runner, `node` environment, 120s per-test timeout (some tests run whole simulated days). |
 
 **Runtime dependencies: two** — `react` and `react-dom`. Everything else is a dev dependency.
 
@@ -103,7 +103,7 @@ src/
   app/App.tsx              the whole dashboard layout (single screen, no router)
   game/                    ── SIMULATION CORE (no UI imports) ──
     core/                  types · tick pipeline · init · rng/hash · selectors · run harness · calibration constants
-    systems/               arrivals · admission · queue · power · charging · faults · economics · trust · scoring · vehicles
+    systems/               arrivals · admission · queue · power · charging · faults · repairs · economics · trust · scoring · vehicles
     actions/               the seven player actions: validation + application
     scenarios/             roadsideHub (MVP) · commuterHub · destinationSite · lookup
     logging/               NDJSON event schema · logger · run manifest · replay

@@ -1,6 +1,6 @@
 # ChargePointOperator — Calibration Sheet & Assumptions Register
 
-**Version:** 4.0 · **Date:** 2026-11-13 *(**v4.0: D46–D55 — uniform cars, driver target spread, shorter queue tolerance and patience, charging limit off/90/75/50, bay choice, faults halved, connection fee £0, contract repairs, closed bays cost nothing. §7 measured ranges are stale until the D57 re-measure.** · v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites** · **v3.4: D42–D45 — §3 gains the detour-derived ceiling, per-archetype value of time and the per-site detour ranges; §5's worked example re-computed and made site-specific; §7 re-measured (and barely moved, which is itself the finding); §8's price gradient becomes `up-then-down`; §9 gains A8 (2014 prices, not uprated) and A9 (detour is a range, not a road network); goals are three, not four**)*
+**Version:** 4.1 · **Date:** 2026-11-13 *(**v4.1: D59 call-out premium; D58 `queue_collapse` threshold; §7 re-measured with the D59 baseline.** · **v4.0: D46–D55 — uniform cars, driver target spread, shorter queue tolerance and patience, charging limit off/90/75/50, bay choice, faults halved, connection fee £0, contract repairs, closed bays cost nothing. §7 measured ranges are stale until the D57 re-measure.** · v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites** · **v3.4: D42–D45 — §3 gains the detour-derived ceiling, per-archetype value of time and the per-site detour ranges; §5's worked example re-computed and made site-specific; §7 re-measured (and barely moved, which is itself the finding); §8's price gradient becomes `up-then-down`; §9 gains A8 (2014 prices, not uprated) and A9 (detour is a range, not a road network); goals are three, not four**)*
 **Companions:** `ChargePointOperator_Plan.md` (C9, O7), `ChargePointOperator_Architecture.md` (§6, §9.3), `ChargePointOperator_Decision_Log.md` (D8–D26)
 **Status of every number: FIRST GUESS** — chosen for plausible ratios and gradients so Phase 1 has something to assert against and Phase 3 something to tune. When a value proves wrong, change it here first, then in code. Currency £ (realistic magnitudes — D10).
 
@@ -84,7 +84,7 @@ The bases are **derived, not chosen**: each is the old ceiling (0.95 / 1.10 / 1.
 | `energyCostPerKwh` | £0.28 |
 | `opexPerSimDay` | £150 (rent, rates, comms). **Charged in proportion to open bays (D54)**, as is the standing maintenance charge |
 | **Starting capital** | **£100,000** *(raised 2026-08-17 with the £75k upgrade)* — an investment float, not a score; the scored economic metric is operating margin (D10) |
-| **Repair call-out cost** *(flat across tiers — D33)* | **£200**, whatever your contract |
+| **Repair call-out cost** *(flat across tiers — D33)* | **£200**, whatever your contract. **D59:** a player call-out on `standard` / `preventive` adds `CALL_OUT_PREMIUM` **£100** (£300) for jumping the contractor; the contractor's own repair and every `reactive` call-out stay £200 |
 | Maintenance — `reactive` | £0/day standing; fault probability ×1.25; repair time ×1.2; **no contract: the player calls out every repair** |
 | Maintenance — `standard` (default) | £25/day contract; ×1.0 / ×1.0; **contractor dispatched after 30 min** *(D53)* |
 | Maintenance — `preventive` | **£150/day** (£55k/yr = £9.1k per bay — a normal comprehensive O&M contract); fault probability ×0.5; repair time ×0.7; **contractor dispatched after 15 min** *(D53)* |
@@ -168,27 +168,27 @@ Wave table lives in `ChargePointOperator_Scenario_RoadsideHub.md` §3 (single so
 
 ## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3) · **re-measured for D46–D55 (v4.0)**
 
-Baseline (D22) = list price flat, **`standard`** maintenance, `equal_share` power, all bays open, charging limit **off**, no upgrades, and **`schedule_repair` issued on the tick a fault is detected** (so the D53 contractor never gets the chance).
+Baseline (D22, amended by D59) = list price flat, **`standard`** maintenance, `equal_share` power, all bays open, charging limit **off**, no upgrades. Faults are repaired by the **D53 contractor** after 30 min; on `reactive` the baseline calls the repair out on the tick the fault is detected.
 
-Measured over 20 seeds (`s1`–`s20`) on **2026-11-13**, after D46–D55, Junction 42. The middle column is the previous measurement (v3.4, after D42–D45).
+Measured over 20 seeds (`s1`–`s20`) on **2026-11-13**, after D46–D59, Junction 42. The middle column is the previous measurement (v3.4, after D42–D45).
 
 | KPI | **Measured** p50 [p10 · p90] | v3.4 mean | If a change moves it, suspect (in order) |
 | :-- | :-- | :-- | :-- |
 | Arrivals/day | **~430** | 432 | `DEMAND_SCALE` (D36), then wave rates and elasticity |
-| Drive-ons at the entrance | **31.7%** [29.4 · 35.9] | 24% (97/day) | **D48's shorter queue tolerance** — overload now leaves at the gate |
-| Avg wait | **3.5 sim-min** [3.2 · 3.9] | 6.6 | D48/D49, then peaks vs capacity |
-| Abandonment rate | **1.0%** [0.4 · 1.4] | 1.3% | patience (D49) |
-| Uptime | **98.1%** [96.8 · 98.8] | 95.9% | **D51 halved faults** |
+| Drive-ons at the entrance | **35.7%** [31.7 · 38.1] | 24% (97/day) | **D48's shorter queue tolerance** — overload now leaves at the gate |
+| Avg wait | **3.6 sim-min** [3.1 · 3.9] | 6.6 | D48/D49, then peaks vs capacity |
+| Abandonment rate | **1.1%** [0.4 · 1.6] | 1.3% | patience (D49) |
+| Uptime | **97.1%** [95.0 · 98.1] | 95.9% | D51 halved faults; D59's baseline waits up to 30 min for the contractor |
 | Faults/day (incl. scripted) | **3** [2 · 5] | 6.55 | D51 |
-| Sessions completed | **279** [263 · 294] | 324 | downstream of drive-ons |
-| Cumulative operating margin | **£4,006** [£3,607 · £4,344] | £3,701 | D47's larger sessions add kWh; D52 removed ~£330 of fees |
-| End trust | **55.8** [52.7 · 61.1] | 49.7 | fewer faults and shorter waits outweigh more drive-ons |
+| Sessions completed | **273** [261 · 286] | 324 | downstream of drive-ons |
+| Cumulative operating margin | **£4,074** [£3,457 · £4,196] | £3,701 | D47's larger sessions add kWh; D52 removed ~£330 of fees |
+| End trust | **54.1** [47.5 · 58.5] | 49.7 | fewer faults and shorter waits, against more drive-ons |
 
-Eastgate p50: margin £1,288 · wait 1.5 min · trust 69.2 · drive-ons 30%. Kesteven p50: margin £429 · wait 3.0 min · trust 63.2 · drive-ons 43%.
+Eastgate p50: margin £1,238 · wait 1.5 min · trust 68.2 · drive-ons 30%. Kesteven p50: margin £412 · wait 2.9 min · trust 63.1 · drive-ons 44%.
 
 **What moved, in one line:** shorter queue tolerance moved overload from the queue to the entrance (drive-ons up, waits halved), and halved faults lifted uptime and trust. Kesteven sheds the most at the gate: its drivers are unhurried (urgency ×0.7) and its posts are slow, so a short queue already looks long.
 
-**Difficulty floor check (D13): 80% on all three sites** with the D57 goals: Junction 42 £4,000 / 210 s / 55 · Eastgate £1,400 / 120 s / 70 · Kesteven £400 / 200 s / 63. At Junction 42 the three goals are met on 50% / 45% / 55% of seeds, so all three bite; at Eastgate the wait goal is met 20/20 by design and margin and trust (30% each) carry the floor (see D57 for why). Every site sits **exactly** on the bar, so re-measure after any change.
+**Difficulty floor check (D13):** **85%** at Junction 42 (£4,000 / 210 s / 55), **80%** at Eastgate (£1,450 / 120 s / 70) and Kesteven (£450 / 200 s / 63), the D57 goals as adjusted by D59. At Eastgate the wait goal is met 19/20 by design and margin and trust carry the floor (D57). Eastgate and Kesteven sit **exactly** on the bar, so re-measure after any change.
 
 The habit still holds — set goals from this table's own distribution rather than from paper, which is what OPEN-3 established and D36 re-applied.
 

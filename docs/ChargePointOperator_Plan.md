@@ -67,7 +67,7 @@ Each item: where the conflict lives → the resolution now in force.
 
 **C4 — Four different action lists.** Part H's five actions include *Add bay*; Part J's loop offers four actions; Part K's `PlayerActionType` has five (no add-bay, but has `upgrade_charger`); Part M's MVP cut includes panels emitting actions that don't exist in K, while `BayAvailabilityPanel` (which emits a core action) is *outside* the MVP cut. → **Resolved — canonical MVP action set (5):**
 
-1. `set_price` (price per kWh + connection fee)
+1. `set_price` (price per kWh + connection fee) — *the connection fee is £0 and hidden from the UI since D52; the mechanic is kept*
 2. `set_power_policy` (equal share / fast-first / queue relief / manual per-bay kW)
 3. `schedule_repair` + `set_maintenance_level` (reactive repair and preventive spend level)
 4. `toggle_bay_group` (open/close bays)

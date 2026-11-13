@@ -44,6 +44,12 @@ Ask for think-aloud. **Stay silent.** Answer any question with "what do you thin
 - **Latched bay transitions.** Closing or upgrading a busy bay does not take effect until the bay frees. `BayAvailabilityPanel` shows a pending state. If they click close, see nothing happen, and do not notice the pending label — that is the bug, and note which kind.
 - **Two different "lost drivers" percentages.** Abandonment rate and `1 − charge-start success` have deliberately different denominators. A tester spotting the mismatch is asking a fair question; log it as a tooltip failure, not tester confusion.
 
+**Three more, added 2026-11-13 for D53, D59 and D60** (observer notes only; the frozen script is unchanged):
+
+- **Contractor repairs.** On the default contract a faulted bay is repaired automatically after 30 minutes, and the Faults panel says when. Note whether they understand that a fault will be dealt with, or call out every repair in a panic.
+- **The £300 call-out.** On a contract, calling a repair out yourself costs £300 against the contractor's £200. Note whether they see the price difference and whether they ever choose to wait.
+- **Turned away vs queue.** Overload now shows mostly as drivers turning away at the entrance, on the *Served · turned away* card, rather than as a long queue. Note whether they connect a high turned-away figure to their price or to a busy forecourt.
+
 - [ ] **Save run** before restarting
 
 ---

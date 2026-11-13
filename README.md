@@ -106,7 +106,7 @@ npm run typecheck
 ```
 src/game/
   core/        types · rng · tick pipeline · selectors · run harness · calibration
-  systems/     arrivals · admission · queue · power · charging · faults · economics · trust · scoring
+  systems/     arrivals · admission · queue · power · charging · faults · repairs · economics · trust · scoring
   actions/     the seven canonical player actions
   scenarios/   roadsideHub · commuterHub · destinationSite
   logging/     NDJSON schema · logger · run manifest · replay
@@ -117,7 +117,7 @@ src/ui/
   components/  the 15-component MVP cut plus PostRunSummary, one file each; Panel and chart are shared
   hooks/       useSimulation (store) · useGameLoop (fixed timestep)
 src/app/       App.tsx — the §8.1 layout
-tests/         154 tests, each pinned to the document that defines the rule
+tests/         170 tests, each pinned to the document that defines the rule
 ```
 
 ## Three rules the code is held to

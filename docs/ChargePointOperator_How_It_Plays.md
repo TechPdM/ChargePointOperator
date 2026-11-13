@@ -1,6 +1,6 @@
 # ChargePointOperator — How the Game Works
 
-**Date:** 2026-11-13 · **Read from:** the code after the D46–D58 revision (branch `model-revision-d46`)
+**Date:** 2026-11-13 · **Read from:** the code after the D46–D60 revision (branch `model-revision-d46`)
 **Status:** a description of the game **as built**, like `model-map.html`. It specifies nothing. Where it disagrees with the code, the code is right; where it disagrees with a canonical document, §10 lists the difference so it can be settled there.
 
 This is the plain-language account: what the player does, what pushes back, and where the decisions are meant to be. The formulas are here only where they explain a decision. For every variable and path, open `model-map.html`.
@@ -9,7 +9,7 @@ This is the plain-language account: what the player does, what pushes back, and 
 
 ## 1. The game in one paragraph
 
-You run one EV charging site for one day: 00:00 to 24:00 in five real minutes at 1×. Drivers arrive in waves. Each one looks at your price, the queue and your reputation, then pulls in or drives on. Pull in and they charge, or queue for a bay. Queue too long and they give up. Bays break, and a broken bay stays down until a repair is done: your maintenance contractor comes after a while, or you can call one out yourself. The grid connection is smaller than the chargers' combined appetite, so at peaks the site runs out of power before it runs out of plugs. At midnight you are scored on three goals: **operating margin, average wait and trust**. Those three pull against each other, and the site you are running decides how hard.
+You run one EV charging site for one day: 00:00 to 24:00 in five real minutes at 1×. Drivers arrive in waves. Each one looks at your price, the queue and your reputation, then pulls in or drives on. Pull in and they charge, or queue for a bay. Queue too long and they give up. Bays break, and a broken bay stays down until a repair is done: your maintenance contractor comes after a while, or you can pay extra to call one out sooner. The grid connection is smaller than the chargers' combined appetite, so at peaks the site runs out of power before it runs out of plugs. At midnight you are scored on three goals: **operating margin, average wait and trust**. Those three pull against each other, and the site you are running decides how hard.
 
 The pitch from D2: *keep one charging site flowing under pressure.*
 
@@ -97,9 +97,9 @@ Arrivals per day before price thinning, and the mix across the day:
 
 | Site | Arrivals/day | Commuter / en-route / panic | Site adjustments | Turned away at the entrance (baseline) |
 | :-- | --: | :-- | :-- | --: |
-| Junction 42 | ~430 | 45% / 39% / 16% | — | ~32% |
+| Junction 42 | ~430 | 45% / 39% / 16% | — | ~36% |
 | Eastgate | ~200 | 76% / 17% / 7%, in two sharp commute spikes | patience ×0.8 (a commuter gives up after ~6½ min) | ~30% |
-| Kesteven | ~126 | 27% / 60% / 13%, daytime only | patience ×1.5, urgency ×0.7: unhurried shoppers | ~43% |
+| Kesteven | ~126 | 27% / 60% / 13%, daytime only | patience ×1.5, urgency ×0.7: unhurried shoppers | ~44% |
 
 The mix moves through the day: panic-heavy overnight, commuter-heavy at the commute peaks, en-route-heavy at midday. So the right price at 08:00 is not the right price at 13:00, and the measurement says that matters (§9, item 2).
 
@@ -139,7 +139,7 @@ The 80%+ stretch is where the time goes: the last 5% of the commuter's charge ta
 | **Power policy** — equal share / fast-first / finish-soonest-first / manual | Decides who gets the grid when it runs short. Creates no kilowatts. | — | Only when the cap binds. Since D48 `queue_relief` serves no more drivers than equal share, but fewer give up in the queue. `fast_first` is a trap that starves marginal bays. Inert at Kesteven by design. |
 | **Charging limit** (off / 90% / 75% / 50%, D49) | Stops cars early, so bays turn over faster. 90% trims the slowest stretch for en-route drivers filling up; 75% cuts almost everyone. **The only lever that raises the throughput ceiling under a binding cap** (D14). | kWh sold, so revenue. −0.1 trust for each driver cut short. | When the queue is the problem and energy is not the money. |
 | **Maintenance level** (reactive / standard / preventive) | Fault rate ×1.25 / ×1.0 / ×0.5, repair time ×1.2 / ×1.0 / ×0.7, and a contractor who repairs faults unasked after 30 / 15 min on standard / preventive (D53). | £0 / £25 / £150 a day standing. Call-outs are a flat £200 at every level (D33). | Busy sites with heavy hardware. Loses money on a quiet site (Kesteven). |
-| **Call out a repair** | Starts the repair now rather than waiting for the contractor. On reactive, nobody else will. | £200, the same as the contractor's | Every fault on reactive; on a contract, whenever 15–30 minutes of a lost bay matters. |
+| **Call out a repair** | Starts the repair now rather than waiting for the contractor. On reactive, nobody else will. | £200 on reactive; **£300 on a contract**, against the contractor's £200 (D59) | Every fault on reactive; on a contract, when 15–30 minutes of a lost bay is worth £100 — at a peak, or with several bays down. |
 | **Open / close bays** | Takes capacity out of service. A busy bay closes when it next goes idle. A closed bay costs nothing to run and can't fault (D54). | Capacity | Small savings on a quiet site or overnight (at most ~£50 a day per bay on the corridor). |
 | **Upgrade a charger** (rapid 150 kW → ultra-rapid 350 kW for £75,000; at Kesteven also AC 22 kW → rapid for £35,000) | More power per bay, used only by cars faster than 150 kW (D50 sends them there) | Out of £100,000 starting cash. Comes out of cash, **not** the margin goal; it is judged by `margin_trap` instead. | Mostly a trap: it buys nothing at peaks, where the grid, not the charger, is the limit (Scenario §5a). |
 
@@ -185,7 +185,7 @@ The same rules on three different sites. Gate criterion 2 needs the right answer
 | Starting price / reference | £0.79 / £0.79 | £0.72 / £0.72 | £0.55 / £0.62 |
 | Detour to next charger | 8–30 min (captive) | 2–7 min (competitive) | 5–18 min |
 | Drivers | Mixed, panic overnight, high volume | Commuter-heavy, less patient (×0.8) | Patient (×1.5), less urgent |
-| Goals: margin / wait / trust (D57) | £4,000 / 3.5 min / 55 | £1,400 / 2 min / 70 | £400 / 3.3 min / 63 |
+| Goals: margin / wait / trust (D57, D59) | £4,000 / 3.5 min / 55 | £1,450 / 2 min / 70 | £450 / 3.3 min / 63 |
 | What it teaches | You have pricing power, so use it; every goal bites | You have no pricing power; margin and trust are the hard goals | Ships underpriced; maintenance alone doesn't pay here |
 | Best strategy measured (40–80 seeds) | premium + preventive | preventive (wave-pricing level) | premium + preventive, level with premium |
 
@@ -208,9 +208,9 @@ Observations from the code and the measured findings, offered as the agenda for 
 2. **A simple pricing rule is nearly dominant.** "Price up at the peaks, down in the lulls" is ruled out at only one site, at *t*=2.11 against a bar of 2 (gate criterion 2). The same result that answers the configuration-puzzle worry could become a solved puzzle of its own; testers will likely find this rule.
 3. **Two of the three goals get easier as you serve fewer people.** An empty forecourt has a perfect average wait (D44). With waits now short, this decided Eastgate: the first goal fit failed criterion 2 because of it, and the passing fit sets the wait goal where the baseline always meets it (D57). The verdict is a claim about goal values as much as mechanics.
 4. **Maintenance is close to dominant.** `preventive` is part of every site's best strategy, and contractor repairs (D53) now make the higher tiers more convenient as well as more reliable.
-5. **On a contract, calling out a repair is always right.** It costs the same £200 as waiting for the contractor and gets the bay back sooner, so the button has no trade in it. A premium for an emergency call-out (or a cheaper contract repair) would make "wait or pay" a real choice.
+5. **Calling out a repair is now a judgement, not a reflex (D59).** On a contract it costs £300 against the contractor's £200, so it pays only when 15–30 minutes of a lost bay is worth £100. Whether players read it that way is a playtest question.
 6. **Trust responds slowly.** Capped at ±5 an hour and spread over many small events, its cause and effect may be hard to read within a five-minute day. That is gate criterion 1's question.
-7. **Overload now shows at the entrance, not in the queue.** About a third of drivers turn away at the corridor and Eastgate under baseline play, and 43% at Kesteven, where unhurried drivers meet slow posts. The dashboard needs to make drive-ons as visible as a long queue was.
+7. **Overload now shows at the entrance, not in the queue.** About a third of drivers turn away at the corridor and Eastgate under baseline play, and 44% at Kesteven, where unhurried drivers meet slow posts. Since D60 the **Served · turned away** card shows the count, the 15-minute share and the reasons (price, wait, queue full). Whether players connect it to their price is a playtest question.
 8. **Sessions are probably short.** Flat charging below 80% gives DC sessions of about 8–22 minutes. Real UK rapid sessions are believed to run nearer half an hour, mostly because of the charging curve. *Not checked against a source.* Kept flat by choice (D47) to keep the day's pace; a realistic curve is a Phase 5 option and would mean rescaling demand.
 9. **No overheads and no overstay.** No plug-in time, no losses, and a bay frees the minute a car finishes. Bay-blocking and idle fees are a real operator lever the game doesn't have.
 10. **Driver types are the same on every site** apart from the mix, the detour range and the patience and urgency multipliers. A Kesteven shopper arrives as empty as a motorway driver.
