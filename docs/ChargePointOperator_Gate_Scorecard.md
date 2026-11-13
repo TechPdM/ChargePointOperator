@@ -1,6 +1,6 @@
 # ChargePointOperator — Gate Scorecard
 
-**Version:** 1.2 (partial) · **Date:** 2026-08-20 *(v1.1: criterion 2's prose corrected for D38. **v1.2: criterion 2 re-issued at 40 seeds against the D42–D45 model with three goals — the deferred re-run is done. Two measured fragilities recorded with it: the verdict flips on a single £50 goal threshold, and `preventive` sits close to the bar at two of three sites.**)*
+**Version:** 2.0 (partial) · **Date:** 2026-11-13 *(**v2.0: criteria 2–4 re-scored after the D46–D58 model revision and the D57 goals. Criterion 2 passes narrowly — `wave-pricing` (D55) is ruled out at one site only, at t=2.11. The self-playtest below predates the revision.** · v1.1: criterion 2's prose corrected for D38. **v1.2: criterion 2 re-issued at 40 seeds against the D42–D45 model with three goals — the deferred re-run is done. Two measured fragilities recorded with it: the verdict flips on a single £50 goal threshold, and `preventive` sits close to the bar at two of three sites.**)*
 **Criteria:** `ChargePointOperator_Plan.md` §6.2 · **Thresholds:** `ChargePointOperator_Playtest_Protocol.md` §5
 **Status:** **3 of 5 criteria scored. The verdict is not yet available** — criteria 1 and 5 require the external tester sessions, and nothing in this repository can substitute for them.
 
@@ -22,65 +22,81 @@ Filling those rows from self-play or from a model's judgement would produce a nu
 | # | Criterion | Threshold | Evidence | Verdict |
 | :-- | :-- | :-- | :-- | :-- |
 | 1 | **Legibility** | ≥2 of 3 external testers score ≥5/6 ✓ across runs 1–2, within ~30 s each | §3 question scores | **PENDING — needs testers** |
-| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 7 policies, **40 seeds, re-issued 2026-08-20 for D42–D45** | **PASS** (machine half) · tester probe pending |
+| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 8 policies, **40 seeds (80 where borderline), re-issued 2026-11-13 for D46–D58** | **PASS, narrowly** (machine half) · tester probe pending |
 | 3 | **Failure modes reachable** | ≥4 of 5 failure states observed arising naturally | 36 runs, `RunManifest.failure_states_observed` | **PASS — 5 of 5** |
 | 4 | **Decisions matter** | Median played run differs meaningfully from baseline on ≥2 goal KPIs; the three operator questions answerable from logs | `compareRuns` on playtest seeds; Phase 3 findings §3 | **PASS** |
 | 5 | **One-more-run** | ≥2 of 3 external testers voluntarily take run 3 | Run-3 uptake | **PENDING — needs testers** |
 
 ---
 
-## Criterion 2 — no dominant strategy · **PASS (machine half)** · *re-issued at 40 seeds*
+## Criterion 2 — no dominant strategy · **PASS (machine half), narrowly** · *re-issued 2026-11-13*
 
-Seven standing policies × three archetypes × **40 seeds**, scored by mean goals met. Measured 2026-08-20 against the D42–D45 model with **three** goals (D44 removed `minSessionsCompleted`).
+Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for the top contenders at Junction 42 and Kesteven, where the 40-seed verdict was borderline. Measured against the D46–D58 model and the D57 goals. Mean goals met out of 3:
 
-| Site | Winner | Goals | Not measurably behind it |
-| :-- | :-- | --: | :-- |
-| Junction 42 (corridor) | `premium+preventive` | 2.67 | — clear of the field |
-| Eastgate (commuter) | `preventive` | 2.05 | `as-shipped` (*t*=1.36) |
-| Kesteven (destination) | `premium+preventive` | 2.92 | `premium` (*t*=1.84) |
+| Strategy | Junction 42 | Eastgate | Kesteven |
+| :-- | --: | --: | --: |
+| as-shipped | 1.40 | 1.43 | 1.43 |
+| undercut | 0.00 | 0.03 | 0.05 |
+| premium | 2.03 | 1.00 | 2.58 |
+| preventive | 1.83 | **1.48** | 1.38 |
+| throughput | 1.18 | 1.00 | 1.65 |
+| premium+preventive | **2.55** | 1.00 | **2.60** |
+| throughput+preventive | 1.27 | 1.00 | 1.38 |
+| **wave-pricing** *(new, D55)* | 2.36 | 1.43 | 2.40 |
 
-**Nothing is a contender everywhere, and Eastgate is what rules it out.** `premium+preventive` tops two sites and is not credible at the third, because premium pricing there loses **£364/day** (*t*=−4.86, worse on 18 of 20 seeds). That is the mechanism D42 and D43 were built to create: before them, margin peaked at £0.85 on all three archetypes and no site could make premium wrong.
+*(80-seed figures at Junction 42 and Kesteven for the four and three strategies re-run there; 40 seeds otherwise.)*
 
-**This criterion is more fragile than a PASS suggests, and the fragility was measured rather than inferred.** Two findings from the D42–D45 work belong here:
+| Site | Winner | Not measurably behind it |
+| :-- | :-- | :-- |
+| Junction 42 | `premium+preventive` | `wave-pricing` (0.19 behind, *t*=1.81) |
+| Eastgate | `preventive` | `as-shipped` (*t*=0.37), `wave-pricing` (*t*=0.40) |
+| Kesteven | `premium+preventive` | `premium` (*t*=0.29) |
 
-1. **It flipped on a single £50 goal threshold**, with the simulation model byte-identical either side. Kesteven's margin goal was briefly set to £350 — above the baseline median, on the design argument that a site whose lesson is "you ship underpriced" should require finding the price lever. At £350 criterion 2 failed; at the measured £300 median it passes. **A verdict here is a claim about the goal fit at least as much as about the mechanics.**
-2. **`preventive` sits close to the bar at two of three sites** (*t*=1.29 and *t*=1.92 in the four-goal measurement immediately before D44). Maintenance dominance — the D33 / OPEN-2 question — is unresolved and now nearer the surface, because pricing no longer beats it everywhere.
+**Nothing is a contender everywhere, but `wave-pricing` nearly is.** It is ruled out only at Kesteven, 0.20 goals behind at *t*=2.11 against a bar of 2. `premium+preventive` is ruled out by Eastgate, where it fails margin and trust (1.00 against 1.48).
 
-**What the earlier 8-seed table taught, kept because it is still the lesson.** The same code answered "three distinct winners" at 8 seeds, "two sharing a component" at 10, and "two genuinely distinct" at 40. Counting who came first was the wrong measurement; D38 replaced it with separation, and the 40-seed floor exists because samples below it drift toward whatever the run happened to produce.
+**Read with three caveats:**
 
-**Still outstanding:** the protocol also requires that testers **propose ≥2 different credible strategies** when asked. That half is a tester probe (protocol §2, after run 2).
+1. **The goals decided Eastgate.** The first D57 fit (wait ≤ 90 s) failed this criterion, because short waits made the wait goal free for any strategy that turns drivers away. The passing fit was chosen after seeing that (D57). This is the same fragility v1.2 recorded: a verdict here is a claim about the goal fit at least as much as the mechanics.
+2. **`preventive` is in every winner but Kesteven's tie.** Maintenance dominance (OPEN-2 / D33) is still near the surface, now joined by contractor repairs (D53), which make the higher tiers more convenient as well as more reliable.
+3. **An adaptive strategy is the near-miss.** That is good news for the mechanic: playing the day is rewarded, which answers the "configuration puzzle" worry D55 was added to test. It also means a simple rule (price up at the peaks, down in the lulls) is close to being correct everywhere. Testers will likely find it.
+
+**Still outstanding:** the protocol also requires that testers **propose ≥2 different credible strategies** when asked (protocol §2, after run 2).
+
+*Previous issue (v1.2, D42–D45 model, seven standing policies):* winners `premium+preventive` / `preventive` / `premium+preventive`, with `premium+preventive` ruled out at Eastgate by a £364/day loss (*t*=−4.86).
 
 ## Criterion 3 — failure modes reachable · **PASS, 5 of 5**
 
 36 runs: 3 scenarios × 3 playtest seeds × 4 approaches a real player would plausibly take (played straight, ignores the faults, cuts the price to attract customers, buys the upgrade early).
 
-| Failure state | Runs observed in |
-| :-- | --: |
-| `power_choke` | 17 |
-| `reliability_spiral` | 16 |
-| `trust_crash` | 6 |
-| `queue_collapse` | 4 |
-| `margin_trap` | 4 |
+| Failure state | Runs observed in *(2026-11-13, D46–D58)* | *v1.2* |
+| :-- | --: | --: |
+| `reliability_spiral` | 8 | 16 |
+| `power_choke` | 6 | 17 |
+| `margin_trap` | 6 | 4 |
+| `queue_collapse` | 3 | 4 |
+| `trust_crash` | 3 | 6 |
 
-All five, against a threshold of four — and none of them from a contrived setup. `queue_collapse` and `trust_crash` both come from the "cut the price to attract customers" run, which is the most plausible beginner mistake in the game and is punished legibly. `margin_trap` comes from buying the £40k upgrade early, which is the trap Scenario spec §5a deliberately left in.
+All five, against a threshold of four — and none of them from a contrived setup. `queue_collapse` and `trust_crash` both come from the "cut the price to attract customers" run, which is the most plausible beginner mistake in the game and is punished legibly. `margin_trap` comes from buying the £75k upgrade early, which is the trap Scenario spec §5a deliberately left in.
 
 *(These were unreachable as recently as Phase 1. D30 and D31 fixed that; this row is what those decisions bought.)*
 
+**After D46–D58 every count is lower, and that is intended.** Faults are halved (D51), so `reliability_spiral` is rarer, and drivers no longer join long queues (D48), so `power_choke` and `queue_collapse` now need a mistake rather than a busy day. `queue_collapse` fell to 2 of 20 price-cut seeds at the old threshold; D58 re-derived it at half a car per bay, by D31's method, and it is back to 3 of 36 here.
+
 ## Criterion 4 — decisions matter · **PASS**
 
-Played (`premium + preventive`) against the passive baseline, same seeds, on the corridor hub:
+Played (`premium + preventive`) against the passive baseline, same seeds, on the corridor hub *(re-measured 2026-11-13, D46–D58)*:
 
 | Seed | Margin | Served | Trust | Goals met |
 | :-- | --: | --: | --: | --: |
-| pt-1 | −£46 | −43 | +1.8 | 0 |
-| pt-2 | **+£552** | −50 | **+16.9** | **+2** |
-| pt-3 | −£101 | −66 | +3.6 | 0 |
+| pt-1 | **+£1,027** | −27 | +3.7 | **+1** |
+| pt-2 | +£171 | −30 | +0.6 | **+1** |
+| pt-3 | −£77 | −49 | −8.5 | 0 |
 
 Seven KPIs move ≥10% against baseline across the playtest seeds: sessions completed, average wait, abandonment rate, kWh delivered, margin, trust, goals met.
 
-The row worth reading twice is pt-1 and pt-3: the same strategy that wins pt-2 outright is roughly neutral on the other two seeds. **The strategy is not a cheat code**, which is the healthy version of this criterion.
+The row worth reading twice is pt-3: the same strategy that gains a goal on the other two seeds costs 8.5 trust there and gains nothing. **The strategy is not a cheat code**, which is the healthy version of this criterion.
 
-**The three operator questions are answerable from logs** (Phase 3 findings §3): pricing cuts average wait 76% across a 34p range; power policy is worth +12% throughput when the cap binds and nothing when it does not; maintenance pays back on a busy site and loses money on a quiet one.
+**The three operator questions are answerable from logs** (Phase 3 findings §3): pricing cuts average wait 76% across a 34p range; power policy was worth +12% throughput when the cap binds (since D48 the gain shows as fewer queue abandonments instead, because overload now leaves at the entrance); maintenance pays back on a busy site and loses money on a quiet one.
 
 ---
 

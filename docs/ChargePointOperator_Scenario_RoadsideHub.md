@@ -77,13 +77,13 @@ Measured under the baseline (20 seeds, after D46–D55): **~280 drivers served**
 
 Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. **v2.0 change (D10):** the cash-floor goal is replaced by an operating-margin goal; with a £50k float, "end richer than you started" measured nothing.
 
-**Win (all three at end of run)** — *three, not four, since **D44** removed `minSessionsCompleted`. Values re-fitted for the D42/D43 demand model; the figures below supersede the £2,200 / 480 s / 110 set this section carried through D36.*
+**Win (all three at end of run)** — *three, not four, since **D44** removed `minSessionsCompleted`. Values re-fitted by **D57** after D46–D55; they supersede £3,200 / 420 s / 55 (D42/D43) and the £2,200 / 480 s / 110 set carried through D36.*
 
 | Goal | Value |
 | :-- | :-- |
-| `minOperatingMargin` | ≥ **£3,200** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *from the measured 20-seed baseline spread £3,169–£4,445, p50 £3,453. Raised from £2,800 because site-aware pricing let the corridor earn more for the same traffic and the old goal had gone free at 20/20* |
-| `maxAvgWaitSeconds` | ≤ **420** (7 sim-min, CUM) |
-| `minTrust` | ≥ **55** — *unchanged through four re-fits, and still the goal that bites (met on 4/20)* |
+| `minOperatingMargin` | ≥ **£4,000** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *from the measured 20-seed baseline spread £2,983–£4,493, p50 £4,006; met on 50%* |
+| `maxAvgWaitSeconds` | ≤ **210** (3.5 sim-min, CUM) — *p50 211 s; met on 45%. Was 420 s, before D48 halved waits* |
+| `minTrust` | ≥ **55** — *unchanged through five re-fits; met on 55%* |
 
 **`minSessionsCompleted` is gone (D44).** Driver count is not a measure an operator manages to. `sessionsCompleted` is still reported on the dashboard — without a tone, because a colour there would be the scorecard claiming that serving more people is better.
 
@@ -97,9 +97,7 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 
 **Failure states** are defined in the KPI dictionary (D24) and detected every tick. They don't end the run; they're recorded so gate criterion 3 is a count rather than an opinion.
 
-**Difficulty floor (D13, ratified): measured 80% — PASSES, with no headroom.** The passive baseline fails ≥1 goal on 16 of 20 seeds. **`minTrust` is the goal doing the work** (met on 4/20); margin (17/20) and wait (14/20) are achievable but no longer free.
-
-**The correlation this section used to rely on has inverted.** It once read that every seed missing on trust also missed on margin, because a broken charger costs both takings and reputation. That stopped being true at D36: the busier site earns money while spending goodwill, so trust and margin now fail independently. The floor rests on `minTrust` alone, and that single unchanged number has survived four re-fits.
+**Difficulty floor (D13, ratified): measured 80% — PASSES, with no headroom.** The passive baseline fails ≥1 goal on 16 of 20 seeds. Since D57 **all three goals bite** (met 50% / 45% / 55%), where before D57 `minTrust` carried the floor alone at 4/20. Fewer faults (D51) lifted trust, and shorter queues (D48) halved waits, so each goal was re-set near its new median.
 
 **Known consequence, still worth watching:** with three goals there is one fewer way for a day to go wrong, so the survivors carry more. That is why Eastgate's wait goal had to tighten when D44 landed — its floor fell to 75% on the goal removal alone.
 

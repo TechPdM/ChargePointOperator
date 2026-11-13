@@ -166,42 +166,29 @@ That ordering is the design intent made checkable: commuters shed first — righ
 
 Wave table lives in `ChargePointOperator_Scenario_RoadsideHub.md` §3 (single source — includes the D8 overnight hours).
 
-## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3) · **STALE until the D57 re-measure**
+## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3) · **re-measured for D46–D55 (v4.0)**
 
-Baseline (D22) = £0.79 flat, **`standard`** maintenance, `equal_share` power, all bays open, partial-charge **off**, no upgrades, and **`schedule_repair` issued on the tick a fault is detected**.
+Baseline (D22) = list price flat, **`standard`** maintenance, `equal_share` power, all bays open, charging limit **off**, no upgrades, and **`schedule_repair` issued on the tick a fault is detected** (so the D53 contractor never gets the chance).
 
-**These are no longer guesses.** Measured over 20 seeds (`s1`–`s20`) on **2026-08-20**, after D42–D45 — `npm run baseline`. `ChargePointOperator_Phase1_Findings.md` §2 is the write-up of the *original* Phase 1 measurement and describes the pre-re-rating sim; what the re-rating moved and why is D35–D37 in the decision log. Re-measure whenever anything in §1–§5 changes; it takes **about 110 seconds** for the 20 seeds, so there is still no excuse for stale numbers here — though the loop is no longer the 23 seconds this line used to claim. D36's demand is nearly all of the difference; `batch`'s full `info` log collection accounts for only about 20 s of it (the same 20 runs with `collectLog: false` take ~89 s). **This table was stale for a day after the re-rating** — the archived batch in `runs/` still held the pre-re-rating figures, which is how a doc and its own evidence drift apart.
+Measured over 20 seeds (`s1`–`s20`) on **2026-11-13**, after D46–D55, Junction 42. The middle column is the previous measurement (v3.4, after D42–D45).
 
-The middle column is the **previous measurement** (v3.3, pre-D42), not the v2.2 paper guess it used to hold. That guess was answered once, in v3.0, and §7a keeps the verdict; what matters now is what D42–D45 moved, and by how much.
-
-**Almost nothing moved, and that is the finding.** D42 and D43 rewrote what a driver will pay and what they measure it against, and the corridor's baseline day is within noise of where it was. That is expected once stated: baseline play prices at £0.79, which **is** the corridor's reference price, so D43's price term is exactly zero and D45's penalty never fires. **These changes are invisible until the player reaches for the price lever** — which is precisely what they were built to make matter.
-
-| KPI | **Measured** mean [p10 · p90] | v3.3 (pre-D42) | If a change moves it, suspect (in order) |
+| KPI | **Measured** p50 [p10 · p90] | v3.4 mean | If a change moves it, suspect (in order) |
 | :-- | :-- | :-- | :-- |
-| Arrivals/day | **432** [408 · 459] | 428 | `DEMAND_SCALE` (D36) first, then wave rates and elasticity |
-| Utilization | **63.9%** [61.3 · 67.3] | 62.9% | siteScore; bays that are faster per car offset more cars |
-| Avg wait | **6.6 sim-min** [5.5 · 7.5] | 6.2 sim-min | peaks vs cap-bound capacity |
-| Abandonment rate | **1.3%** [0.9 · 1.9] | 1.4% | **the gate sheds it, not the queue — see below** |
-| Uptime | **95.92%** [94.80 · 97.57] | 95.70% | fault model; falls because more sessions mean more fault exposure |
-| Sessions completed | **324** [312 · 343] | 316 | downstream of everything above |
-| Session success rate | **98.0%** | 97.8% | fault model |
-| Cumulative operating margin | **£3,701** [£3,169 · £4,445] | £3,535 | price/energy gap, maintenance, opex |
-| End cash (no upgrade) | **£103,701** — reconciles exactly | £103,535 | invariant 6 if this doesn't reconcile; `initialCash` is £100,000 since D37 |
-| End trust | **49.7** [41.4 · 57.6] | 48.9 | D30's deltas under D36's demand — the busier site spends more goodwill than it earns |
-| Faults/day | **6.55** [3.90 · 8.10] | 7.0 | fault model is well-formed; scales with sessions, not with wall-clock |
-| Rejected at gate | **97** [75 · 120] | 101 | siteScore, and after D43 the **site's** reference price |
+| Arrivals/day | **~430** | 432 | `DEMAND_SCALE` (D36), then wave rates and elasticity |
+| Drive-ons at the entrance | **31.7%** [29.4 · 35.9] | 24% (97/day) | **D48's shorter queue tolerance** — overload now leaves at the gate |
+| Avg wait | **3.5 sim-min** [3.2 · 3.9] | 6.6 | D48/D49, then peaks vs capacity |
+| Abandonment rate | **1.0%** [0.4 · 1.4] | 1.3% | patience (D49) |
+| Uptime | **98.1%** [96.8 · 98.8] | 95.9% | **D51 halved faults** |
+| Faults/day (incl. scripted) | **3** [2 · 5] | 6.55 | D51 |
+| Sessions completed | **279** [263 · 294] | 324 | downstream of drive-ons |
+| Cumulative operating margin | **£4,006** [£3,607 · £4,344] | £3,701 | D47's larger sessions add kWh; D52 removed ~£330 of fees |
+| End trust | **55.8** [52.7 · 61.1] | 49.7 | fewer faults and shorter waits outweigh more drive-ons |
 
-**What D42–D45 did move is off this table**, because this table measures one site playing one price. The per-site margin optimum is now **£0.90 corridor · £0.75 commuter · £0.70 destination** where it was £0.85 on all three; +15% on list is worth +£197 at the corridor and −£364 at the commuter hub. Those live in `ChargePointOperator_PricingModel_Design.md` §11 and §14.
+Eastgate p50: margin £1,288 · wait 1.5 min · trust 69.2 · drive-ons 30%. Kesteven p50: margin £429 · wait 3.0 min · trust 63.2 · drive-ons 43%.
 
-**On abandonment (D31).** The 8–25% expectation predates D21, which gave each archetype its own wait sensitivity. With drivers who can see a queue and leave, a competently-run six-bay site does not generate mass abandonment — the demand goes **at the gate** instead (101 rejections/day, 24% of arrivals), and the funnel accounts for it there. **The re-rating is the evidence for this, not a complication of it:** D36 nearly doubled arrivals, and the drive-past *share* moved 23% → 24% while the abandonment rate went 1.8% → 1.4%. The gate scales with demand; the queue does not have to. Adding perceived-wait noise (D31) was the right fix for *reachability* and it did not move this number much, because the admission gate is doing the shedding by design. **Treat 8–25% as a superseded guess.** The figure to watch is the funnel split, not this rate on its own.
+**What moved, in one line:** shorter queue tolerance moved overload from the queue to the entrance (drive-ons up, waits halved), and halved faults lifted uptime and trust. Kesteven sheds the most at the gate: its drivers are unhurried (urgency ×0.7) and its posts are slow, so a short queue already looks long.
 
-The p10–p90 spread on margin is £1,665 wide. **Any goal set inside that band is a coin flip** — which is what the difficulty-floor result below reflects.
-
-**Difficulty floor check (D13): measured 80% — PASSES, with no headroom.** The baseline fails ≥1 goal on **16 of 20 seeds** against D13's ≥80%. Goals are **three** since D44 — `minOperatingMargin` £3,200, `maxAvgWaitSeconds` 420 s, `minTrust` 55. Commuter is at 85% and destination at 80%.
-
-**`minTrust` is still the goal that bites.** Met across the batch: trust **4/20**, margin **17/20**, wait **14/20**. The margin goal moved £2,800 → £3,200 under D44's re-fit because it had gone free at 20/20 — site-aware pricing lets the corridor earn more for the same traffic. That is the reverse of the pre-re-rating position, where margin bit at 4/20 and trust supported at 12/20 — and it is the outcome D36 reasoned its way to when it re-fitted every goal from the measured spread *except* `minTrust`, on the grounds that the re-rating changed the hardware but not what a good reputation is worth. The floor now rests on that single unchanged number.
-
-Two consequences worth stating plainly. **Roadside sits exactly on the bar** where commuter and destination are at 85%, so one seed flipping puts it under — re-measure before trusting it after any change, which is D36's own warning and not a new one. And **the correlation the old text relied on has inverted**: trust and margin no longer fail together, because the busier site earns money while spending goodwill. A goal set from this table's p80 for margin (£4,087) would bite; £2,800 does not, and is carried by trust instead.
+**Difficulty floor check (D13): 80% on all three sites** with the D57 goals: Junction 42 £4,000 / 210 s / 55 · Eastgate £1,400 / 120 s / 70 · Kesteven £400 / 200 s / 63. At Junction 42 the three goals are met on 50% / 45% / 55% of seeds, so all three bite; at Eastgate the wait goal is met 20/20 by design and margin and trust (30% each) carry the floor (see D57 for why). Every site sits **exactly** on the bar, so re-measure after any change.
 
 The habit still holds — set goals from this table's own distribution rather than from paper, which is what OPEN-3 established and D36 re-applied.
 

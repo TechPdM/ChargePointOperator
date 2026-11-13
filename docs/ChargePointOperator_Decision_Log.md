@@ -351,7 +351,19 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 **D56 — The scenario spec and Architecture §6 are brought back to the code.** *(2026-11-13)* The roadside scenario spec still described the pre-re-rating site (50/150 kW bays, a 350 kW grid, £50k cash, a £40k upgrade, unscaled demand), and Architecture §6 still carried the pre-D30/D42/D43/D45 formulas. Both are corrected, together with the D46–D55 changes. Not a model change: the code was right and the documents had drifted, against the README rule that documents win.
 
-**D57 — Goals re-fitted after D46–D55.** *(2026-11-13, pending Mark's approval of the values)* Every change above moves the baseline distribution, so the goals are re-set the way D36 set them: round numbers from the measured 20-seed baseline spread, checked against D13's ≥80% floor, then gate criterion 2 re-run at 40 seeds. Values and measurements are recorded in the scenario files and the calibration sheet §7 once taken.
+**D57 — Goals re-fitted after D46–D55.** *(2026-11-13, ratified by Mark)* Re-set the way D36 set them: round numbers from the measured 20-seed baseline spread, each at an 80% D13 floor, then gate criterion 2 re-run at 40 seeds.
+
+| Site | Margin | Avg wait | Trust | Was |
+| :-- | --: | --: | --: | :-- |
+| Junction 42 | **£4,000** | **210 s** | **55** | £3,200 / 420 s / 55 |
+| Eastgate | **£1,400** | **120 s** | **70** | £1,000 / 250 s / 61 |
+| Kesteven | **£400** | **200 s** | **63** | £300 / 480 s / 61 |
+
+*The first Eastgate fit failed criterion 2, and the second was chosen after seeing that.* It was £1,350 / 90 s / 69. Waits are now short enough that a 90 s goal was a coin-flip for the baseline and free for any strategy that turns drivers away — D44's "an empty forecourt has a perfect average wait" again — so `premium+preventive` could not be ruled out at Eastgate (*t*=1.72). The re-fit sets the wait goal where the baseline always meets it and lets margin and trust carry the floor, which is how Eastgate worked before D46. Recorded plainly because the protocol was frozen precisely to stop goals being moved after a fail; Mark chose this over redefining the wait goal (a mechanic change) and over recording the fail.
+
+*Criterion 2 result with these goals: PASS, narrowly.* 40 seeds, 80 at the two sites where it was borderline. Winners: `premium+preventive` at Junction 42, `preventive` at Eastgate (with `as-shipped` not separable), `premium+preventive` and `premium` level at Kesteven. **`wave-pricing` (D55) is the near-miss:** best or level at Eastgate, 0.19 goals behind at Junction 42 (*t*=1.81, not separable at 80 seeds), and ruled out only at Kesteven, at *t*=2.11 against a bar of 2. One more site going the other way would make it a dominant strategy. Criteria 3 (5 of 5, with D58) and 4 also pass.
+
+*What D55 asked, answered:* adjusting price through the day beats every standing policy at Eastgate and is close to the best elsewhere without using maintenance at all. Playing the day is rewarded; the game is not only a configuration puzzle.
 
 
 **D58 — `queue_collapse` re-derived for the shorter queues.** *(2026-11-13, ratified by Mark)* Queue pressure threshold **1.0 → 0.5** (clear 0.7 → 0.35); abandonment arm unchanged at 30% over the 1,800 s sustain window. The `queue_overload` alert moves with it, so it still warns before the failure state fires.
