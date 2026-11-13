@@ -14,6 +14,7 @@ import { roadsideHub } from "../game/scenarios/roadsideHub.ts";
 import { APP_COMMIT, APP_VERSION } from "../ui/buildInfo.ts";
 import { devInfo, devNoteRender, devSetContext } from "../ui/devLog.ts";
 import { simClock } from "../ui/format.ts";
+import { randomDaySeed } from "../ui/seeds.ts";
 import { AboutBanner } from "../ui/components/AboutBanner.tsx";
 import { ScenarioHeader } from "../ui/components/ScenarioHeader.tsx";
 import { RunControls } from "../ui/components/RunControls.tsx";
@@ -33,13 +34,12 @@ import { EventLogPanel } from "../ui/components/EventLogPanel.tsx";
 import { PostRunSummary } from "../ui/components/PostRunSummary.tsx";
 
 /**
- * First load starts on a random day. It was always `s1`, so everyone opening
- * the page played the same day until they pressed New seed. Kept in the
- * `s<number>` form so New seed carries on from it, and shown in the top bar so a
- * day can still be replayed. Picked once per page load, at module scope, so
- * React's double render in dev cannot pick two.
+ * First load starts on a random day; it was always `s1`, so everyone opening
+ * the page played the same day. Picked once per page load, at module scope, so
+ * React's double render in dev cannot pick two. New seed and Free play pick
+ * random days the same way (`ui/seeds.ts`).
  */
-const FIRST_SEED = `s${1 + Math.floor(Math.random() * 9_999)}`;
+const FIRST_SEED = randomDaySeed();
 
 export function App(): ReactElement {
   const sim = useSimulation(roadsideHub, FIRST_SEED);

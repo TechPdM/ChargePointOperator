@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { ALL_SCENARIOS } from "../../game/scenarios/index.ts";
 import { PLAYTEST_SEEDS } from "../../game/experiment/gateEvidence.ts";
 import type { Simulation } from "../hooks/useSimulation.ts";
+import { randomDaySeed } from "../seeds.ts";
 
 const SPEEDS = [1, 2, 4] as const;
 
@@ -40,7 +41,7 @@ export function RunControls({ sim }: { sim: Simulation }): ReactElement {
       <button type="button" className="ghost" onClick={() => sim.restart()}>
         Restart
       </button>
-      <button type="button" className="ghost" onClick={() => sim.restart(randomSeed(state.seed))}>
+      <button type="button" className="ghost" onClick={() => sim.restart(randomDaySeed(state.seed))}>
         New seed
       </button>
       <button type="button" className="ghost" onClick={sim.exportRun}>
@@ -51,7 +52,7 @@ export function RunControls({ sim }: { sim: Simulation }): ReactElement {
         <span className="visually-hidden">Seed</span>
         <select
           value={PLAYTEST_SEEDS.includes(state.seed as (typeof PLAYTEST_SEEDS)[number]) ? state.seed : "free"}
-          onChange={(e) => sim.restart(e.target.value === "free" ? randomSeed(state.seed) : e.target.value)}
+          onChange={(e) => sim.restart(e.target.value === "free" ? randomDaySeed(state.seed) : e.target.value)}
         >
           <option value="free">Free play</option>
           {PLAYTEST_SEEDS.map((s) => (
@@ -86,11 +87,3 @@ export function RunControls({ sim }: { sim: Simulation }): ReactElement {
   );
 }
 
-/**
- * Seeds are strings (D26). Derived from the current one so the sequence is
- * reproducible from a written-down starting point.
- */
-function randomSeed(current: string): string {
-  const match = /^s(\d+)$/.exec(current);
-  return match ? `s${Number(match[1]) + 1}` : `${current}-b`;
-}
