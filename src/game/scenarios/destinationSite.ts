@@ -165,40 +165,11 @@ export const destinationSite: ScenarioConfig = {
    * wait 571–1,139 s · sessions 84–107.
    */
   goals: {
-    // £520, not a rounder £500, and 95 sessions rather than 90: at £500/90 the
-    // same five seeds (s1, s4, s10, s11, s14) passed all four goals and the
-    // floor sat at exactly 75%. Wait does not separate them — every seed that
-    // fails on wait already fails on margin — so the two thresholds that do
-    // were moved by the smallest amount that breaks s1 and s4.
-    // Re-fitted for D42/D43 (2026-08-19). §11.2 of the pricing design predicted
-    // this site would take the hardest knock and it did: its optimum price fell
-    // £0.85 → £0.70 once drivers judged price against a £0.62 local going rate
-    // instead of a national one, and margin at optimum fell £845 → £628. The
-    // old £520 goal was met on 2/20.
-    //
-    // Baseline spread: margin £107–£508 (p50 £305) · trust 59.3–65.4
-    // (p50 62.1) · wait 6.0–9.5 sim-min (p50 7.8) · sessions 88–100 (p50 94).
-    // £300 is the measured baseline median, derived the same way as every other
-    // threshold in this file.
-    //
-    // It was briefly £350 — set above the baseline so that hitting it required
-    // finding the pricing lever, which is this site's lesson. That was the one
-    // threshold in the whole re-fit argued from design rather than measured off
-    // a percentile, and criterion 2 broke at exactly this site under it. Under
-    // test, so the reasoning is recoverable if it is ever wanted back.
-    minOperatingMargin: 300,
-    // Nobody is in a hurry — a 13-minute wait is genuinely fine here, which
-    // is why the wait goal is nearly twice the corridor's. Set at 800 rather
-    // than 900 because wait runs *anti*-correlated with margin on this site
-    // (a busy day is a profitable one), so it is the threshold that catches
-    // the seeds margin does not — at 900 the floor sat at 75%.
-    // 800 s was met on 20/20 — free — and 540 s left the D13 floor short at
-    // 75%. 8 sim-min is still the most generous wait goal of the three sites
-    // (the corridor's is 7) so the "nobody here is in a hurry" character
-    // survives; it just stops being unconstrained.
-    maxAvgWaitSeconds: 480,
-    // Trust ran 59.3–65.4 (p50 62.1), so 58 was met on 19/20 — free. 61 sits
-    // just under the median and makes a bad day on trust cost something.
-    minTrust: 61,
+    // D57 (2026-11-13, ratified by Mark): re-fitted after D46–D55. Baseline
+    // spread: margin £35–£513 (p50 £429) · wait 90–264 s (p50 180) · trust
+    // 57.3–71.8 (p50 63.2). Met 50% / 60% / 50%; D13 floor 80%.
+    minOperatingMargin: 400,
+    maxAvgWaitSeconds: 200,
+    minTrust: 63,
   },
 };

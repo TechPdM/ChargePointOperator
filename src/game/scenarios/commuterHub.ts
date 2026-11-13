@@ -193,26 +193,19 @@ export const commuterHub: ScenarioConfig = {
    * and the money is the thing that is genuinely hard to make.
    */
   goals: {
-    // Re-fitted for D42/D43 (2026-08-19). This site moved furthest: it is the
-    // one where premium pricing now actively loses money, so the old £1,200
-    // margin goal became near-unreachable (met on 3/20) while wait and trust
-    // went slack (19/20 and 18/20).
+    // D57 (2026-11-13, ratified by Mark): re-fitted after D46–D55. Baseline
+    // spread: margin £787–£1,590 (p50 £1,288) · wait 66–120 s (p50 90) ·
+    // trust 62.9–75.5 (p50 69.2). D13 floor 80%.
     //
-    // Baseline spread: margin £678–£1,223 (p50 £894) · trust 60.4–67.6
-    // (p50 62.3) · wait 3.9–4.7 sim-min (p50 4.2) · sessions 136–157 (p50 147).
-    //
-    // Margin stays the sharp one here — an urban site with no pricing power
-    // should be a margin problem — but at a figure inside the measured spread
-    // rather than above the top of it.
-    minOperatingMargin: 1_000,
-    // 270 s was met on 80%, which left the D13 floor at 75% once D44 removed
-    // the fourth goal — three goals means one fewer way for a day to go wrong,
-    // so the survivors have to carry it. 250 s is just under the measured
-    // median of 252 s (4.2 sim-min).
-    maxAvgWaitSeconds: 250,
-    minTrust: 61,
-    // 140 left the D13 floor at 75%, under the ≥80% bar: four goals that are
-    // each individually reachable still have to combine into a day the baseline
-    // loses. 147 is the measured median, which is the same lever D36 pulled to
+    // The first fit (£1,350 / 90 s / 69) FAILED gate criterion 2: waits are
+    // now short enough that a 90 s goal was a coin-flip for the baseline and
+    // free for anyone turning drivers away, so premium+preventive could not be
+    // ruled out here. Wait is therefore set where the baseline always meets it
+    // (met 20/20) and margin and trust carry the floor (each met 30%), as they
+    // did before D46. That is a goal chosen after seeing a fail, and is
+    // recorded as such in D57.
+    minOperatingMargin: 1_400,
+    maxAvgWaitSeconds: 120,
+    minTrust: 70,
   },
 };
