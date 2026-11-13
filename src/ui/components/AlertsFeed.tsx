@@ -12,8 +12,13 @@ import type { SimulationState } from "../../game/core/types.ts";
 function alertDetail(name: string, state: SimulationState): string | undefined {
   const t = ALERT_THRESHOLDS;
   switch (name) {
-    case "queue_overload":
-      return `More than ${t.queueOverloadPressure} car${t.queueOverloadPressure === 1 ? "" : "s"} waiting per open bay.`;
+    case "queue_overload": {
+      // D58 put the threshold below one car per bay, so say it as a ratio.
+      const p: number = t.queueOverloadPressure;
+      return p >= 1
+        ? `More than ${p} car${p === 1 ? "" : "s"} waiting per open bay.`
+        : `More than one car waiting for every ${Math.round(1 / p)} open bays.`;
+    }
     case "low_uptime":
       return `Bays have been out of service for more than ${100 - t.lowUptimePct}% of open bay-time.`;
     case "negative_margin":
