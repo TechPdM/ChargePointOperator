@@ -277,7 +277,7 @@ closeOutRun(simState)     // NEW (D18/D19): after the final tick — finalize st
 
 The model had `schedule_repair`, `repairSecondsMean`, maintenance multipliers and a fault/repair downtime split, but never said what triggers a repair. Without that, `downtimeFaultSeconds` and `downtimeRepairSeconds` are indistinguishable and baseline uptime is a coin flip. Pinned:
 
-- A faulted bay stays `faulted` **indefinitely** until the player (or the baseline actor) issues `schedule_repair`. Repairs are never automatic — that's the whole point of the maintenance mechanic.
+- **AMENDED (D53):** on `reactive` maintenance a faulted bay stays `faulted` **indefinitely** until the player (or the baseline actor) issues `schedule_repair`. On `standard` / `preventive` the contractor starts the repair once the fault has stood 30 / 15 min (`MaintenanceProfile.contractResponseSeconds`), emitting `charger.repair_started` with `dispatched_by: "contract"` and no `repair_scheduled`, which stays the player's decision marker. Both paths share `systems/repairs.ts`, so duration and cost cannot drift.
 - `schedule_repair` moves the bay `faulted → repairing`, stamps `repairScheduledAtSecond`, sets `repairDueAtSecond = now + round(repairSecondsMean × maintenanceRepairTimeMultiplier)`, and debits the per-repair cost **immediately**.
 - `repairing → idle` when `secondsElapsed >= repairDueAtSecond`.
 - **No concurrency limit** in MVP — all six bays can repair simultaneously. A technician-availability constraint is a Phase 5 mechanic, not a silent MVP rule.
@@ -742,43 +742,59 @@ Selectors: `getCompatibleIdleBays(vehicle, chargers)`, `getProjectedWait(queue, 
 Deliberately simple and legible; constants come from the calibration sheet (C9).
 
 ```pseudo
-effectiveTargetSoc       = min(driverTargetSoc, sitePartialChargeTargetSoc ?? 1)   // D14
-requestedKwh             = (effectiveTargetSoc - currentSoc) * batteryCapacityKwh
-effectivePowerKw         = min(bayAllocatedKw, vehicle.maxChargeRateKw)            // D15
-                           * taper(currentSoc)     // 1.0 below 0.80 SOC, 0.4 at/above (D14);
-                                                   // a session targeting 0.80 never enters the taper zone
-estimatedDurationSeconds = requestedKwh / effectivePowerKw * 3600
+// AMENDED (D56, 2026-11-13): re-synced to the code — D30, D42, D43, D45–D50 folded in.
 
-// AMENDED (D21). v1.3 had `arrivalRate = baseDemand * waveMultiplier * priceElasticity(price)`
-// with no `baseDemand` defined anywhere, while the wave table gives ABSOLUTE rates —
-// and the calibration sheet hard-coded an elasticity of 1.2 next to a per-wave
-// priceElasticity of 0.7–1.2. One formula now, and the wave value IS the coefficient:
+// --- arrival (D21, D42, D46, D47) ---
+batteryCapacityKwh       = uniform(40, 80)                       // D46: one range, every driver type
+vehicle.maxChargeRateKw  = uniform(50, 250)                      // D46
+driverTargetSoc          = uniform(archetype.targetSoc)          // D47: 0.80–0.90 / 0.80–1.00 / 0.60–0.80
+requestedKwh             = (driverTargetSoc - arrivalSoc) * batteryCapacityKwh
+detourPremium            = min(0.40, (detourMinutes / 60 * valueOfTimePerHour) / requestedKwh)   // D42
+maxAcceptablePricePerKwh = archetype.maxAcceptablePriceBase + detourPremium                     // D42
+
 priceMultiplier          = clamp(1 - wave.priceElasticity
                                    * (price - scenario.referencePricePerKwh)
                                    / scenario.referencePricePerKwh,
-                                 0.3, 1.5)
+                                 0.3, 1.5)                        // D21: the wave value IS the coefficient
 arrivalRatePerMinute     = wave.arrivalRatePerMinute * priceMultiplier
 
-// AMENDED (D21). priceSensitivity and waitSensitivity were calibrated per archetype
-// and then read by nothing — the old formula used flat global coefficients instead.
-// They are now the whole point of the formula: archetypes differ on admission.
+// --- admission (D21, D31, D43) ---
+perceivedWait            = projectedWait * uniform(0.65, 1.35)    // D31
 siteScore                = a * urgencyScore
-                           - b * waitSensitivity  * (expectedWaitSeconds / 600)
-                           - c * priceSensitivity * ((price - archetypeReferencePrice) / 0.10)
+                           - b * waitSensitivity  * (perceivedWait / 600)
+                           - c * priceSensitivity * ((price - scenario.referencePricePerKwh) / 0.10)  // D43: the SITE's reference
                            + d * ((trust - 50) / 25)
 accepted                 = siteScore >= ACCEPT_THRESHOLD
-                           AND price <= demand.maxAcceptablePricePerKwh   // hard reject
+                           AND price <= maxAcceptablePricePerKwh  // hard reject
 
-abandonProbability       = 0 while waited < patienceSeconds; then ramps (Calibration §5)
+// --- placement (D50) ---
+bay                      = free bay maximising min(bay.maxPowerKw, vehicle.maxChargeRateKw);
+                           ties → smallest bay, then bay order. Queue is FIFO; the front driver
+                           chooses the same way when a bay frees.
 
-sessionRevenue           = deliveredKwh * pricePerKwh + connectionFee
-sessionEnergyCost        = deliveredKwh * scenario.energyCostPerKwh        // AMENDED (C10)
+// --- charging (D14, D15, D47) ---
+effectiveTargetSoc       = min(driverTargetSoc, sitePartialChargeTargetSoc ?? 1)   // D14; options off/0.90/0.75/0.50 (D49)
+effectivePowerKw         = min(bayAllocatedKw, vehicle.maxChargeRateKw)
+                           * taper(currentSoc)     // 1.0 below 0.80 SOC, 0.4 at/above (D14)
+                                                   // since D47 targets reach 1.0, so the taper applies;
+                                                   // a tick that crosses 0.80 is split at the knee
+estimatedDurationSeconds = kWh below 0.80 / P + kWh above 0.80 / (0.4 · P),   P = min(bay kW, car kW)
+
+abandonProbability       = 0 while waited < patienceSeconds; then ramps to 0.5/tick over 600 s (Calibration §5)
+
+// --- money (C10, D52, D54) ---
+sessionRevenue           = deliveredKwh * pricePerKwh + connectionFee        // fee £0 and hidden (D52)
+sessionEnergyCost        = deliveredKwh * scenario.energyCostPerKwh
 margin                   = revenue - energyCost - maintenanceCost
-                           - (opexPerSimDay * simDayFraction)              // AMENDED (C10)
+                           - (opexPerSimDay * simDayFraction * openBayShare)  // D54: closed bays cost nothing
+                           // standing maintenance is scaled by openBayShare too
 
-trustDelta               = + completionBonus + shortWaitBonus + uptimeBonus
-                           - abandonPenalty - faultPenalty - rejectPenalty
-                           - partialChargePenalty                          // D14
+// --- trust (D30, D45) ---
+trustDelta               = + fastCompletionBonus (wait < 300 s)   or  slowCompletionPenalty
+                           + uptimeBonus (ROLL uptime > 98%)
+                           - siteRejection (any drive-on) - priceRejectionExtra (price over their ceiling)
+                           - abandonPenalty - faultPenalty (mid-session / idle)
+                           - partialChargePenalty                                 // D14
                          clamped to ±5 over a rolling 3,600 sim-second window
 ```
 

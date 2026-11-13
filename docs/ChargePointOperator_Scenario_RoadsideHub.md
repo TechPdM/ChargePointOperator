@@ -1,8 +1,8 @@
 # ChargePointOperator — Scenario Spec: Roadside Hub
 
-**Version:** 2.4 · **Date:** 2026-08-19 *(v2.4: fail rules removed by D41 — the day now always runs to 24:00)*
+**Version:** 3.0 · **Date:** 2026-11-13 *(**v3.0: re-synced to the code (D56) — §2 hardware, grid, cash and upgrade as re-rated on 2026-08-17; §3 demand ×1.8; §4 contract repairs (D53); §5a re-priced. D46–D55 folded in.** · v2.4: fail rules removed by D41 — the day now always runs to 24:00)*
 **Superseded header:** 2.3 · 2026-08-16 *(v2.0: rebuilt for ratified D8/D10/D14 · v2.1: bankruptcy phrasing, margin-trap observability · v2.2: readiness-review fixes — scripted-fault target pinned, §2 completed against D20, §5a upgrade-value analysis, re-derived load math · **v2.3: `minOperatingMargin` set to £2,200 from the measured distribution — D13 difficulty floor now PASSES (Mark, OPEN-7 closed)**)*
-**Companions:** Calibration sheet v2.2 (constants), KPI dictionary (goal + failure-state definitions), Architecture §5.7 (`ScenarioConfig`), Decision log (D8–D26)
+**Companions:** Calibration sheet v4.0 (constants), KPI dictionary (goal + failure-state definitions), Architecture §5.7 (`ScenarioConfig`), Decision log (D8–D26)
 **This is the MVP scenario (Plan D5)** — `scenarios/roadsideHub.ts` in prose form. Commuter-hub and destination-site variants follow in Phase 3 (O6).
 
 ---
@@ -24,17 +24,17 @@ Field names below are the `ScenarioConfig` fields from Architecture §5.7. **v2.
 | :-- | :-- | :-- |
 | `durationSeconds` | 86,400 (00:00–24:00 at 288× = 300 real seconds) | Calibration §1 (D8) |
 | `tickSeconds` | 60 | Calibration §1 (D26) |
-| `bays` | 6: bays 1–4 `rapid_dc` (50 kW), bays 5–6 `ultrarapid_dc` (150 kW) | Calibration §2 |
-| `initialGridPowerKw` | 350 | Calibration §2 |
+| `bays` | 6: bays 1–4 `rapid_dc` (150 kW), bays 5–6 `ultrarapid_dc` (350 kW) — *re-rated 2026-08-17; was 50 / 150 kW* | Calibration §2 |
+| `initialGridPowerKw` | **650** (50% of the 1,300 kW nameplate) — *was 350* | Calibration §2 |
 | `maxQueueLength` | 12 | Calibration §2 (D20) |
-| `initialCash` | £50,000 (investment float — D10) | Calibration §4 |
+| `initialCash` | **£100,000** (investment float — D10); *was £50,000, which could not fund the £75k upgrade* | Calibration §4 |
 | `initialPricePerKwh` | £0.79 | Calibration §4 |
-| `initialConnectionFee` | £0.99 | Calibration §4 |
+| `initialConnectionFee` | **£0**, and hidden from the UI (D52); *was £0.99* | Calibration §4 |
 | `referencePricePerKwh` | £0.79 (elasticity pivot — D21; **and since D43 what drivers judge your price against**) | Calibration §4 |
 | **`detourMinutes`** | **`[8, 30]` sim-min to the nearest alternative rapid (D42)** | Calibration §3 |
 | `energyCostPerKwh` | £0.28 | Calibration §4 |
 | `opexPerSimDay` | £150 | Calibration §4 |
-| `upgradeCosts` | `rapid_dc → ultrarapid_dc`: £40,000 | Calibration §2 (D20) |
+| `upgradeCosts` | `rapid_dc → ultrarapid_dc`: **£75,000** (150 → 350 kW); *was £40,000* | Calibration §2 (D20) |
 | `initialPowerPolicy` / `initialMaintenanceLevel` | `equal_share` / `standard` | = the baseline policy (D22), so played-vs-baseline starts identical |
 | `initialPartialChargeTargetSoc` | undefined (**off**) | D14 |
 | `initialTrust` | 60 | Calibration §5 |
@@ -42,7 +42,7 @@ Field names below are the `ScenarioConfig` fields from Architecture §5.7. **v2.
 
 ## 3. Demand waves (single source of truth)
 
-Rates are `arrivalRatePerMinute` in sim-minutes; mixes are commuter / en-route / panic fractions.
+Rates are `arrivalRatePerMinute` in sim-minutes; mixes are commuter / en-route / panic fractions. **Every rate below is multiplied by 1.8 in play** (`DEMAND_SCALE` in `roadsideHub.ts`, set with the 2026-08-17 hardware re-rating so the bigger site is still under pressure). The table keeps the base shape; the day's arrivals are ≈ 430, not 239.
 
 | Sim clock | Wave | Rate /min | Mix c/e/p | `priceElasticity` | Character |
 | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -56,19 +56,20 @@ Rates are `arrivalRatePerMinute` in sim-minutes; mixes are commuter / en-route /
 | 19:00–22:00 | `evening` | 0.12 | .30/.50/.20 | 1.0 | Wind-down |
 | 22:00–24:00 | `late` | 0.05 | .10/.50/.40 | 0.8 | Stragglers and one last panic case |
 
-**Load math — `AMENDED (v2.2)`:** ≈ 239 arrivals/day carrying **6,703 kWh** of demand, at a mix-weighted **28.0 kWh/session** (full derivation: Calibration §7a — v2.1's round "30 kWh" was close but the ceiling figures downstream of it were not).
+**Load — `AMENDED (v3.0)`, measured rather than derived.** At ×1.8 the day brings ≈ **430 arrivals** wanting ≈ **32 kWh** each (D46/D47 means: commuter 24, en-route 39, panic 37.5 kWh). The 650 kW grid cap is the binding limit at the peaks: `am-commute`, `midday` and `pm-peak` arrive at 32–38 drivers an hour against an energy-bound ceiling near 20 sessions an hour.
 
-Service capacity has two regimes: **unconstrained** ≈ 15 sessions/hour (bay-limited, at the ~72 kW mean effective power the vehicle caps of D15 actually allow), but **when the 350 kW grid cap binds** — by design, at peaks — throughput is energy-bound at ≈ 350 ÷ 28 ≈ **12.5 sessions/hour** regardless of power policy (policies redistribute the pain; they don't create kilowatts). `am-commute` ≈ 18/hr and `pm-peak` ≈ 21/hr against that ceiling build real backlogs.
+Measured under the baseline (20 seeds, after D46–D55): **~280 drivers served**, **~31% drive on** at the entrance, average wait **3.5 min**, ~1% of those who queue give up, **~3 faults** a day including the scripted one.
 
-Whole-day energy is *not* the constraint — 350 kW over 24h is 8,400 kWh against 6,703 kWh of demand. The constraint is temporal, and it bites in exactly three windows (Calibration §7a): `am-commute` (absorbed by the mid-lull), `midday` (~465 kWh lost, worsened by the scripted fault) and `pm-peak` (~156 kWh lost). That is the shape of the game.
+**Since D48 overload shows up mostly at the entrance, not in the queue.** A commuter will join a queue of about 5 minutes and no longer, so a saturated site turns drivers away rather than building a long queue. That is why `power_choke` and `queue_collapse` now need a mistake (a price cut floods the forecourt) and are no longer reached by competent play.
 
-**Partial-charge (D14) is the one lever that raises the ceiling** — capping at 0.80 SOC cuts kWh/session and dodges the slow taper zone entirely (Calibration §3), so it should visibly transform peak throughput and do almost nothing off-peak. Admission rejections + abandonment shed the rest; expected served ≈ **150–190** (Calibration §7 — corrected from v2.1's 105–150, which did not follow from these inputs). If peaks prove unwinnable or trivial, tune the two peak rates first.
+**The charging limit is the one lever that raises the ceiling** (D14). Since D47 drivers want 60–100% and the last stretch above 80% charges at 40% speed, so a 90% or 75% limit cuts the slowest kWh of the session. It should help at the peaks and do almost nothing off-peak.
 
 ## 4. Faults
 
 - **Random faults:** Calibration §5 model, scaled by maintenance level. Faults fire only on `charging` bays and integrate to ≈ `1 − reliabilityBase` per session.
-- **Repairs:** never automatic — a faulted bay waits until `schedule_repair` is issued (Architecture §4.4). The baseline actor calls it on the tick the fault is detected (D22).
-- **Scripted fault (guaranteed):** at **12:30**, **bay 5** (`ultrarapid_dc`) throws `power_module_fault` — 150 kW of best capacity gone as the midday wave peaks. The designed "problem reveal" beat (Part I).
+- **Rate (D51):** per-session unreliability halved on 2026-11-13. Measured ~2 random faults a day under the baseline, down from ~4.3.
+- **Repairs (D53):** on `standard` and `preventive` a contractor starts the repair once a fault has stood 30 / 15 min. On `reactive` a faulted bay waits until `schedule_repair` is issued (Architecture §4.4). The player can always call one out sooner at the same £200. The baseline actor calls it on the tick the fault is detected (D22).
+- **Scripted fault (guaranteed):** at **12:30**, **bay 5** (`ultrarapid_dc`) throws `power_module_fault` — 350 kW of best capacity gone as the midday wave peaks. The designed "problem reveal" beat (Part I). **D54:** if the player has closed bay 5, it does not fire.
 
   *v2.2 fix:* v2.1 said "the busier ultra bay; tiebreak bay 5" and then called the fault seed-independent. It wasn't — which bay is busier varies by seed. The **timing** is what has to be seed-independent, because it's a story beat; the target is now a fixed `bayId` in `scenario.scriptedFaults` (D20). Bay 5 over bay 6 is arbitrary and that's fine.
 
@@ -104,19 +105,19 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 
 Standing instruction unchanged: raise a goal, never the economy constants, for difficulty reasons.
 
-## 5a. Is the £40k upgrade ever the right call? — `NEW (v2.2)`
+## 5a. Is the £75k upgrade ever the right call? — `NEW (v2.2)`, re-priced v3.0
 
-Worth stating plainly, because the scenario's own load math cuts against it. If "when the cap binds, throughput is energy-bound *regardless of power policy*" is true — and it is — then the same logic says upgrading a bay from 50 kW to 150 kW buys **nothing at the peaks**, which is precisely when the site is in trouble. Worse, it raises full simultaneous demand from 500 kW to 600 kW, so the cap binds *harder*. And there is no action to buy grid capacity: the constraint that actually binds cannot be purchased.
+Worth stating plainly, because the scenario's own load math cuts against it. If "when the cap binds, throughput is energy-bound *regardless of power policy*" is true — and it is — then the same logic says upgrading a bay from 150 kW to 350 kW buys **nothing at the peaks**, which is precisely when the site is in trouble. Worse, it raises nameplate from 1,300 kW to 1,500 kW against a 650 kW connection, so the cap binds *harder*. And there is no action to buy grid capacity: the constraint that actually binds cannot be purchased.
 
 Where the upgrade does win:
 
 - **Mid-load windows** (`mid-lull`, `pm-lull`, `evening`) where the cap is slack and a bay's own ceiling is the limit — sessions finish faster, bays free sooner, and the queue entering the next peak is shorter.
-- **En-route drivers**, who carry the largest energy demand (35.8 kWh) and the highest `maxChargeRateKw` (120–250) — they're the only archetype that can actually use 150 kW. A commuter capped at 90 kW wastes a third of an ultra bay.
+- **Cars that can use it.** Since D46 any driver's car can take 50–250 kW, so only cars above 150 kW gain from a 350 kW bay, and D50 sends them there and sends slower cars to the 150 kW bays.
 - **Paired with `queue_relief`** (D23), where finishing sessions sooner is the explicit objective.
 
 Where it loses: bought early, bought for peak relief, or bought at a site whose mix is commuter-heavy.
 
-**This is deliberately left as a genuine trap-or-treasure and must be tested, not asserted.** Two gate criteria depend on which way it falls. If Phase 3 sweeps show "never upgrade" is simply correct, that's a dominant strategy (criterion 2) and the fix is a mechanic — buyable grid capacity is the obvious candidate, since it's the constraint the player can currently only route around. If it's *sometimes* correct, the £40k spend that buys nothing is the `margin_trap` failure state doing its job (criterion 3). Both outcomes are informative; the failure mode is not looking.
+**This is deliberately left as a genuine trap-or-treasure and must be tested, not asserted.** Two gate criteria depend on which way it falls. If Phase 3 sweeps show "never upgrade" is simply correct, that's a dominant strategy (criterion 2) and the fix is a mechanic — buyable grid capacity is the obvious candidate, since it's the constraint the player can currently only route around. If it's *sometimes* correct, the £75k spend that buys nothing is the `margin_trap` failure state doing its job (criterion 3). Both outcomes are informative; the failure mode is not looking.
 
 ## 6. The five real-time minutes (player experience arc)
 
