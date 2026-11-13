@@ -20,6 +20,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { devError, devNoteFrame } from "../devLog.ts";
 
 const TICKS_PER_REAL_SECOND = 4.8;
 /** Most ticks one frame will run. Keeps a single frame's work bounded. */
@@ -74,7 +75,16 @@ export function useGameLoop(running: boolean, speed: number, advance: () => void
         const elapsedSeconds = (now - last.current) / 1_000;
         const { budget, carried } = spendDebt(debt.current, elapsedSeconds, speed);
         debt.current = carried;
-        for (let i = 0; i < budget; i++) advance();
+        const workStart = performance.now();
+        try {
+          for (let i = 0; i < budget; i++) advance();
+        } catch (error) {
+          // Diagnostics only: an exception here stops the loop for good,
+          // because the next frame is never requested. Say so, then rethrow.
+          devError("game loop threw; the loop has stopped", error);
+          throw error;
+        }
+        devNoteFrame(now - last.current, budget, performance.now() - workStart);
       }
       last.current = now;
       frame = requestAnimationFrame(step);

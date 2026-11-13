@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { devInfo } from "../devLog.ts";
 import { queueAction } from "../../game/actions/playerActions.ts";
 import { createInitialState } from "../../game/core/init.ts";
 import { tick } from "../../game/core/tick.ts";
@@ -285,6 +286,7 @@ export function useSimulation(scenario: ScenarioConfig, seed: string): Simulatio
   useEffect(() => () => worker.current?.terminate(), []);
 
   const act = useCallback<Simulation["act"]>((action, record) => {
+    devInfo(`action: ${record.label}`, { detail: record.detail ?? null });
     dispatch({ kind: "queue", action, record });
   }, []);
 

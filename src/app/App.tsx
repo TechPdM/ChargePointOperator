@@ -5,13 +5,15 @@
  * trends centre, live state right, logs along the bottom.
  */
 
-import type { ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 
 import { useGameLoop } from "../ui/hooks/useGameLoop.ts";
 import { useSimulation } from "../ui/hooks/useSimulation.ts";
 import { roadsideHub } from "../game/scenarios/roadsideHub.ts";
 
 import { APP_COMMIT, APP_VERSION } from "../ui/buildInfo.ts";
+import { devInfo, devNoteRender, devSetContext } from "../ui/devLog.ts";
+import { simClock } from "../ui/format.ts";
 import { AboutBanner } from "../ui/components/AboutBanner.tsx";
 import { ScenarioHeader } from "../ui/components/ScenarioHeader.tsx";
 import { RunControls } from "../ui/components/RunControls.tsx";
@@ -35,6 +37,19 @@ export function App(): ReactElement {
   useGameLoop(sim.state.running, sim.state.speed, sim.advance);
 
   const state = sim.state.sim;
+
+  // Dev-only diagnostics (no-ops in production): what the clock reads, every
+  // committed render, and every pause / resume / end of day.
+  const secondsRef = useRef(state.clock.secondsElapsed);
+  secondsRef.current = state.clock.secondsElapsed;
+  devSetContext(() => simClock(secondsRef.current), sim.state.running);
+  useEffect(() => devNoteRender());
+  const wasRunning = useRef(sim.state.running);
+  useEffect(() => {
+    if (wasRunning.current === sim.state.running) return;
+    wasRunning.current = sim.state.running;
+    devInfo(sim.state.running ? "run resumed" : state.running ? "run paused" : "day ended");
+  }, [sim.state.running, state.running]);
 
   return (
     <div className="shell">
