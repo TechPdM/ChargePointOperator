@@ -130,7 +130,10 @@ export const destinationSite: ScenarioConfig = {
   initialConnectionFee: 0,
   initialTrust: 60,
   initialPowerPolicy: "equal_share",
-  initialMaintenanceLevel: "standard",
+  // D63: the player starts with no contract and decides whether to take one;
+  // the baseline (D22) still runs the standard contract.
+  initialMaintenanceLevel: "reactive",
+  baselineMaintenanceLevel: "standard",
   initialPartialChargeTargetSoc: undefined,
 
   // The whole character of the site: people are somewhere else, doing

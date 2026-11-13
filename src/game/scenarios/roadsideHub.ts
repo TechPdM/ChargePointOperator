@@ -194,7 +194,10 @@ export const roadsideHub: ScenarioConfig = {
   initialConnectionFee: 0, // D52: was £0.99; the fee is hidden and starts at zero
   initialTrust: 60,
   initialPowerPolicy: "equal_share",
-  initialMaintenanceLevel: "standard",
+  // D63: the player starts with no contract and decides whether to take one;
+  // the baseline (D22) still runs the standard contract.
+  initialMaintenanceLevel: "reactive",
+  baselineMaintenanceLevel: "standard",
   initialPartialChargeTargetSoc: undefined,
 
   energyCostPerKwh: 0.28,

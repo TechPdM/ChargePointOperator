@@ -68,33 +68,33 @@ Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for t
 
 36 runs: 3 scenarios × 3 playtest seeds × 4 approaches a real player would plausibly take (played straight, ignores the faults, cuts the price to attract customers, buys the upgrade early).
 
-| Failure state | Runs observed in *(2026-11-13, D46–D58)* | *v1.2* |
+| Failure state | Runs observed in *(2026-11-13, D46–D63)* | *v1.2* |
 | :-- | --: | --: |
-| `reliability_spiral` | 8 | 16 |
+| `reliability_spiral` | 25 | 16 |
 | `power_choke` | 6 | 17 |
-| `margin_trap` | 6 | 4 |
-| `queue_collapse` | 3 | 4 |
-| `trust_crash` | 3 | 6 |
+| `margin_trap` | 5 | 4 |
+| `queue_collapse` | 4 | 4 |
+| `trust_crash` | 4 | 6 |
 
 All five, against a threshold of four — and none of them from a contrived setup. `queue_collapse` and `trust_crash` both come from the "cut the price to attract customers" run, which is the most plausible beginner mistake in the game and is punished legibly. `margin_trap` comes from buying the £75k upgrade early, which is the trap Scenario spec §5a deliberately left in.
 
 *(These were unreachable as recently as Phase 1. D30 and D31 fixed that; this row is what those decisions bought.)*
 
-**After D46–D58 every count is lower, and that is intended.** Faults are halved (D51), so `reliability_spiral` is rarer, and drivers no longer join long queues (D48), so `power_choke` and `queue_collapse` now need a mistake rather than a busy day. `queue_collapse` fell to 2 of 20 price-cut seeds at the old threshold; D58 re-derived it at half a car per bay, by D31's method, and it is back to 3 of 36 here.
+**After D46–D63 most counts are lower, and that is intended.** Faults are halved (D51) and drivers no longer join long queues (D48), so `power_choke` and `queue_collapse` now need a mistake rather than a busy day; D58 re-derived `queue_collapse` by D31's method. `reliability_spiral` is the exception, up to 25: since D63 the site starts with no contract, so the "ignores the faults" approach really does leave every fault unrepaired.
 
 ## Criterion 4 — decisions matter · **PASS**
 
-Played (`premium + preventive`) against the passive baseline, same seeds, on the corridor hub *(re-measured 2026-11-13, D46–D58)*:
+Played (`premium + preventive`) against the passive baseline, same seeds, on the corridor hub *(re-measured 2026-11-13, D46–D63; the move from the D58 figures is D59's baseline, which now waits for the contractor)*:
 
 | Seed | Margin | Served | Trust | Goals met |
 | :-- | --: | --: | --: | --: |
-| pt-1 | **+£1,027** | −27 | +3.7 | **+1** |
-| pt-2 | +£171 | −30 | +0.6 | **+1** |
-| pt-3 | −£77 | −49 | −8.5 | 0 |
+| pt-1 | +£274 | −42 | +6.7 | **+1** |
+| pt-2 | **+£1,125** | −21 | **+12.2** | **+3** |
+| pt-3 | +£89 | −58 | −4.2 | −1 |
 
 Seven KPIs move ≥10% against baseline across the playtest seeds: sessions completed, average wait, abandonment rate, kWh delivered, margin, trust, goals met.
 
-The row worth reading twice is pt-3: the same strategy that gains a goal on the other two seeds costs 8.5 trust there and gains nothing. **The strategy is not a cheat code**, which is the healthy version of this criterion.
+The row worth reading twice is pt-3: the same strategy that gains goals on the other two seeds loses one there. **The strategy is not a cheat code**, which is the healthy version of this criterion.
 
 **The three operator questions are answerable from logs** (Phase 3 findings §3): pricing cuts average wait 76% across a 34p range; power policy was worth +12% throughput when the cap binds (since D48 the gain shows as fewer queue abandonments instead, because overload now leaves at the entrance); maintenance pays back on a busy site and loses money on a quiet one.
 

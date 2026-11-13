@@ -75,6 +75,8 @@ function withOverrides(args: Args): ScenarioConfig {
   return {
     ...base,
     initialMaintenanceLevel: args.maintenance ?? base.initialMaintenanceLevel,
+    // An explicit --maintenance is what the whole run, baseline included, plays.
+    baselineMaintenanceLevel: args.maintenance ?? base.baselineMaintenanceLevel,
     initialPowerPolicy: args.power ?? base.initialPowerPolicy,
     initialPricePerKwh: args.price ?? base.initialPricePerKwh,
     initialPartialChargeTargetSoc: args.partial ?? base.initialPartialChargeTargetSoc,

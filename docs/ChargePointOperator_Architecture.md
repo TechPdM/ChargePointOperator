@@ -684,7 +684,8 @@ export interface ScenarioConfig {
   initialConnectionFee: number;             // NEW (D20)
   initialTrust: number;                     // NEW (D20): 60
   initialPowerPolicy: PowerPolicy;          // NEW (D20)
-  initialMaintenanceLevel: MaintenanceLevel;// NEW (D20)
+  initialMaintenanceLevel: MaintenanceLevel;// NEW (D20). D63: `reactive` on every scenario — the player starts with no contract
+  baselineMaintenanceLevel?: MaintenanceLevel; // NEW (D63): the level the D22 baseline takes at 00:00; absent = keep the starting level
   initialPartialChargeTargetSoc?: number;   // NEW (D20): undefined = off
 
   energyCostPerKwh: number;                 // NEW (C10): margin was uncomputable without it

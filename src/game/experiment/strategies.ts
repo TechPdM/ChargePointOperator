@@ -103,7 +103,11 @@ export const STRATEGIES: Strategy[] = [
   {
     name: "preventive",
     blurb: "preventive maintenance, price unchanged",
-    apply: (base) => ({ ...base, initialMaintenanceLevel: "preventive" }),
+    apply: (base) => ({
+      ...base,
+      initialMaintenanceLevel: "preventive",
+      baselineMaintenanceLevel: "preventive",
+    }),
   },
   {
     name: "throughput",
@@ -122,6 +126,7 @@ export const STRATEGIES: Strategy[] = [
       ...base,
       initialPricePerKwh: round2(base.initialPricePerKwh * 1.15),
       initialMaintenanceLevel: "preventive",
+      baselineMaintenanceLevel: "preventive",
     }),
   },
   {
@@ -132,6 +137,7 @@ export const STRATEGIES: Strategy[] = [
       initialPowerPolicy: "queue_relief",
       initialPartialChargeTargetSoc: 0.75,
       initialMaintenanceLevel: "preventive",
+      baselineMaintenanceLevel: "preventive",
     }),
   },
   {

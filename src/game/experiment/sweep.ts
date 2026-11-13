@@ -351,7 +351,8 @@ export function sanityAxes(): SweepAxis[] {
         "reactive → preventive: uptime ↑ everywhere; margin's SIGN is archetype-dependent by design (OPEN-2 resolved)",
       points: (["reactive", "standard", "preventive"] as const).map((level) => ({
         label: level,
-        scenario: (base) => ({ ...base, initialMaintenanceLevel: level }),
+        // D63: the level under test is the baseline's too.
+        scenario: (base) => ({ ...base, initialMaintenanceLevel: level, baselineMaintenanceLevel: level }),
       })),
       expect: [
         { metric: "cumUptimePct", direction: "up", tolerance: 0.01 },

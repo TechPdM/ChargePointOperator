@@ -46,7 +46,7 @@ Ask for think-aloud. **Stay silent.** Answer any question with "what do you thin
 
 **Three more, added 2026-11-13 for D53, D59 and D60** (observer notes only; the frozen script is unchanged):
 
-- **Contractor repairs.** On the default contract a faulted bay is repaired automatically after 30 minutes, and the Faults panel says when. Note whether they understand that a fault will be dealt with, or call out every repair in a panic.
+- **No contract at the start (D63).** The site starts on *Repair upon request*: a faulted bay stays down until they call a repair out. Note whether they notice the first fault, whether they call it out, and whether they think to take out a contract. On a contract, a contractor repairs faults automatically after 30 minutes (15 on preventive) and the Faults panel says when.
 - **The £300 call-out.** On a contract, calling a repair out yourself costs £300 against the contractor's £200. Note whether they see the price difference and whether they ever choose to wait.
 - **Turned away vs queue.** Overload now shows mostly as drivers turning away at the entrance, on the *Served · turned away* card, rather than as a long queue. Note whether they connect a high turned-away figure to their price or to a busy forecourt.
 

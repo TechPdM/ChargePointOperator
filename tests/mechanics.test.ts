@@ -398,7 +398,8 @@ describe("repair rules — Architecture §4.4", () => {
   });
 
   it("schedule_repair debits immediately and returns the bay after the repair time", () => {
-    let s = createInitialState(roadsideHub, "s1");
+    // Standard contract explicitly: D63 starts the player on reactive (×1.2).
+    let s = createInitialState({ ...roadsideHub, initialMaintenanceLevel: "standard" }, "s1");
     const bay = s.chargers["bay-3"];
     if (!bay) throw new Error("no bay-3");
     bay.state = "faulted";
@@ -874,13 +875,14 @@ describe("calling out a repair on a contract costs a premium (D59)", () => {
   });
 
   it("the baseline leaves a contract repair to the contractor", () => {
-    const s = createInitialState(roadsideHub, "s1");
+    const s = createInitialState({ ...roadsideHub, initialMaintenanceLevel: "standard" }, "s1");
     const bay = s.chargers["bay-3"];
     if (!bay) throw new Error("no bay-3");
     bay.state = "faulted";
     expect(baselinePolicy(s)).toEqual([]);
+    // A reactive baseline is asked for by leaving out baselineMaintenanceLevel.
     const reactive = createInitialState(
-      { ...roadsideHub, initialMaintenanceLevel: "reactive" },
+      { ...roadsideHub, initialMaintenanceLevel: "reactive", baselineMaintenanceLevel: undefined },
       "s1",
     );
     const r3 = reactive.chargers["bay-3"];
@@ -902,5 +904,30 @@ describe("drive-ons are counted by reason (D60)", () => {
       expect(f.rejectedOnPrice + f.rejectedOnWait).toBe(f.rejectedSite);
       if (price > 1) expect(f.rejectedOnPrice).toBeGreaterThan(f.rejectedOnWait);
     }
+  });
+});
+
+describe("the player starts with no contract; the baseline takes one (D63)", () => {
+  it("every site starts the player on reactive and names standard for the baseline", () => {
+    for (const sc of [roadsideHub, commuterHub, destinationSite]) {
+      expect(sc.initialMaintenanceLevel).toBe("reactive");
+      expect(sc.baselineMaintenanceLevel).toBe("standard");
+    }
+  });
+
+  it("the baseline switches to its contract before the first minute is simulated", () => {
+    const run = runScenario({ scenario: roadsideHub, seed: "s1", policy: baselinePolicy, collectLog: false });
+    const same = runScenario({
+      scenario: { ...roadsideHub, initialMaintenanceLevel: "standard" },
+      seed: "s1",
+      policy: baselinePolicy,
+      collectLog: false,
+    });
+    expect(run.finalState.site.policy.maintenanceLevel).toBe("standard");
+    // Same day either way: the switch lands on tick 0.
+    expect(run.finalState.site.metrics.sessionsCompleted).toBe(
+      same.finalState.site.metrics.sessionsCompleted,
+    );
+    expect(run.finalState.site.metrics.trust).toBeCloseTo(same.finalState.site.metrics.trust, 9);
   });
 });

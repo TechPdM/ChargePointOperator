@@ -22,6 +22,13 @@ export type PolicyActor = (state: SimulationState) => PlayerActionDraft[];
 
 export const baselinePolicy: PolicyActor = (state) => {
   const actions: PlayerActionDraft[] = [];
+  // D63: the player starts with no contract; the baseline takes the scenario's
+  // baseline contract before the first minute is simulated, so its day is
+  // exactly the standard-contract day the goals were fitted against.
+  const wanted = state.scenario.baselineMaintenanceLevel;
+  if (state.clock.tick === 0 && wanted && state.site.policy.maintenanceLevel !== wanted) {
+    return [{ type: "set_maintenance_level", level: wanted }];
+  }
   // D59: a passive operator on a contract lets the contractor come.
   if (MAINTENANCE[state.site.policy.maintenanceLevel].contractResponseSeconds !== undefined) {
     return actions;

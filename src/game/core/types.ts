@@ -488,6 +488,13 @@ export interface ScenarioConfig {
   initialTrust: number;
   initialPowerPolicy: PowerPolicy;
   initialMaintenanceLevel: MaintenanceLevel;
+  /**
+   * D63: the maintenance level the D22 baseline runs. The player starts on
+   * `initialMaintenanceLevel` (no contract); the baseline takes this one at
+   * 00:00. Absent means the baseline keeps whatever the run started with —
+   * which is how an experiment asks for a reactive baseline.
+   */
+  baselineMaintenanceLevel?: MaintenanceLevel;
   initialPartialChargeTargetSoc?: number;
 
   /**

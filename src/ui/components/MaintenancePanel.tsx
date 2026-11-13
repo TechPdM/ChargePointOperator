@@ -8,7 +8,7 @@ import type { MaintenanceLevel } from "../../game/core/types.ts";
 const LEVELS: { id: MaintenanceLevel; name: string; blurb: string }[] = [
   {
     id: "reactive",
-    name: "Fix on failure",
+    name: "Repair upon request",
     blurb: "No contract: you call out every repair yourself. More faults, slower repairs.",
   },
   {
@@ -18,7 +18,7 @@ const LEVELS: { id: MaintenanceLevel; name: string; blurb: string }[] = [
   },
   {
     id: "preventive",
-    name: "Preventive",
+    name: "Preventive contract",
     blurb: "Costs more per day. Halves faults, faster repairs, contractor in 15 min.",
   },
 ];

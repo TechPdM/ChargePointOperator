@@ -177,6 +177,7 @@ export function gatherDecisionsMatter(): DecisionsMatterEvidence {
             ...scenario,
             initialPricePerKwh: round2(scenario.initialPricePerKwh * 1.15),
             initialMaintenanceLevel: "preventive",
+            baselineMaintenanceLevel: "preventive",
           },
           seed,
           policy: baselinePolicy,

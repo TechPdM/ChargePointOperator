@@ -35,7 +35,7 @@ Field names below are the `ScenarioConfig` fields from Architecture §5.7. **v2.
 | `energyCostPerKwh` | £0.28 | Calibration §4 |
 | `opexPerSimDay` | £150 | Calibration §4 |
 | `upgradeCosts` | `rapid_dc → ultrarapid_dc`: **£75,000** (150 → 350 kW); *was £40,000* | Calibration §2 (D20) |
-| `initialPowerPolicy` / `initialMaintenanceLevel` | `equal_share` / `standard` | = the baseline policy (D22), so played-vs-baseline starts identical |
+| `initialPowerPolicy` / `initialMaintenanceLevel` | `equal_share` / **`reactive`** *(D63; was `standard`)* | The player starts with no contract and decides whether to take one. The baseline (D22) runs `baselineMaintenanceLevel` **`standard`**, switching before the first minute, so its day is unchanged |
 | `initialPartialChargeTargetSoc` | undefined (**off**) | D14 |
 | `initialTrust` | 60 | Calibration §5 |
 | Bays open at start | all 6 | — |
