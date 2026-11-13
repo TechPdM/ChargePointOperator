@@ -298,6 +298,62 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 *Carried forward, and not settled here:* `preventive` sits close to the separation bar at two of three sites (*t*=1.29 and *t*=1.92 in the four-goal measurement). **Maintenance dominance is still near the surface** — the D33 / OPEN-2 question, unresolved. Criterion 2 was also shown to flip on a single £50 goal threshold with the model byte-identical either side, so a PASS is a claim about the goal fit at least as much as about the mechanics.
 
+*D46–D57 come from a review of how the game plays (2026-11-13, `ChargePointOperator_How_It_Plays.md`). Mark stepped through each point and chose from measured options. They are model changes, so they land here first, then in the calibration sheet, then in code; and they invalidate every measured figure downstream, so the goals, the D13 floors and gate criteria 2–4 are re-measured once, together, after the batch (D57).*
+
+**D46 — A car is not a personality.** *(2026-11-13, ratified by Mark)* Battery size and the car's maximum charge rate stop being properties of the driver type. Every driver draws a battery from **40–80 kWh** and a car charge rate from **50–250 kW**, whatever their type.
+
+*Why:* the archetype decided what car you owned — every en-route driver had a 120–250 kW car and every commuter a 60–120 kW one. That is a statement about people's journeys being made about their hardware, and it quietly did work the bay-choice rule (D50) should do instead: fast cars only ever turned up as en-route drivers.
+
+*Consequence:* mean session energy changes for every archetype, and with it the D42 detour premium. The `maxAcceptablePriceBase` values are **re-derived by D42's own method** — old ceiling minus the premium a 19-min detour buys at the new mean energy — so the corridor keeps the tolerance it had: **£0.80 / £1.06 / £1.46** (was £0.78 / £1.05 / £1.44).
+
+**D47 — Drivers want different amounts, and charging past 80% is slow.** *(2026-11-13, ratified by Mark)* Each driver draws their own target charge from a per-type range: **commuter 80–90% · en-route 80–100% · panic 60–80%** (was a flat 0.80 / 0.80 / 0.60). This is the "better design" D33 named and deferred: driver target SOC with real spread.
+
+*Charging stays flat — no curve — but the existing two-segment taper now bites.* Full power below 80%, 40% at or above (A1/D14). Until now no session ever entered the taper zone; with targets up to 100% it does, so an 80→100% top-up runs at 40% speed. Mark chose this over both a realistic curve and removing the taper: sessions stay short and the pace of the day is unchanged, while the slow last stretch gives the charging limit (D49) its real-world reason to exist. Considered and declined: a realistic curve (~25–35 min DC sessions). The day's 288× compression means session length does not affect responsiveness, but longer sessions would have needed demand rescaled across every site.
+
+*Consequence:* the duration estimate at plug-in, the queue-relief ordering and the projected wait all now account for the taper zone. Previously they could ignore it because nothing reached it.
+
+**D48 — Drivers will not queue as long.** *(2026-11-13, ratified by Mark)* The longest queue a mid-range driver will join (as perceived, at the site's reference price, trust 50) moves from **~11 / ~21 / ~87 min** to **5 / 10 / 20 min** (commuter / en-route / panic). Implemented in `waitSensitivity`, solved from the `siteScore` formula at mid urgency: **1.3 / 1.05 / 0.875** (was 0.6 / 0.5 / 0.2).
+
+*Accepted consequence:* panic drivers now mind waiting more than commuters used to. They still tolerate the longest queue of the three, because urgency carries them; the old 87-minute tolerance was the absurdity being removed.
+
+**D49 — Patience matches the new tolerance; the charging limit is re-scoped to Off / 90% / 75% / 50%.** *(2026-11-13, ratified by Mark)*
+
+- **Patience** once queued: **8 / 12 / 20 min** (was 15 / 20 / 30). Set a little above each join tolerance so drivers who queue are mostly served but a long wait does cost you. Kesteven's `patienceMultiplier` falls **3.0 → 1.5** (a 90-minute wait for a panic driver at a garden centre was the same absurdity). Eastgate's 0.8 stays.
+- **Charging limit options** become **off / 0.90 / 0.75 / 0.50** (were off / 0.70 / 0.60 / 0.50). Possible only because of D47: with every driver at 0.80 or below, 0.90 would have been an exact no-op, the defect OPEN-6 closed.
+
+**D50 — Drivers take the bay that suits their car.** *(2026-11-13, ratified by Mark)* A driver placed on a bay — on arrival, or from the front of the queue — takes the free bay that would charge their car fastest, `min(bay kW, car kW)`; on a tie, the **smallest** such bay, which leaves high-power bays for cars that can use them; then bay order. The queue stays first-come, first-served, and nobody waits for a better bay type.
+
+*Why:* bays were filled in id order, so at Kesteven a nearly empty car sat on a 22 kW post while the 150 kW rapid stood idle, and at Junction 42 the 350 kW bays took cars only once bays 1–4 were full. *Considered and declined:* letting queued drivers hold out for a faster bay type. It needs per-type wait estimates and queue-jumping, and is much harder to read from the dashboard.
+
+**D51 — Random faults halved.** *(2026-11-13, ratified by Mark)* Per-session unreliability is halved on every charger type: `reliabilityBase` **0.995 / 0.9925 / 0.9875** for AC / rapid / ultra-rapid (was 0.99 / 0.985 / 0.975). Measured before the change (10 seeds, baseline): 5.3 faults/day at Junction 42 (4.3 random + the scripted one), 2.8 at Eastgate, 2.2 at Kesteven, about 1.3% of sessions. Target: ~2 random faults a day on the corridor. The scripted faults are unchanged.
+
+*Considered and declined:* ÷4 and ÷10. The ÷10 option would have left `reliability_spiral` (gate criterion 3) close to unreachable and maintenance close to pointless.
+
+**D52 — The connection fee is £0 and hidden.** *(2026-11-13, ratified by Mark)* Every scenario starts with `initialConnectionFee` **0** (Junction 42 was £0.99, Eastgate £0.50; Kesteven was already 0) and the fee control is removed from `PricingControlPanel`. The mechanic stays — the action field, the session field, the revenue booking and the log events — for later use. It was worth ~£330/day at Junction 42, about 8% of margin, which the D57 re-fit absorbs.
+
+**D53 — Maintenance contracts dispatch repairs.** *(2026-11-13, ratified by Mark)* On `standard` and `preventive` maintenance a contractor starts the repair automatically once a fault has stood for the contract's response time: **30 min** standard, **15 min** preventive. On `reactive` there is no contract, and the player must call the repair out. The player can still call out a repair at any time, at the same £200, and the repair duration and cost are unchanged.
+
+*Why:* repair was the one lever with no choice in it — at £200 against a bay lost for the rest of the day, you always repair, so it tested only how quickly you noticed. It is now part of the maintenance decision: pay a standing charge and faults look after themselves, or save it and watch the forecourt.
+
+*Logged as a sim consequence, not a decision.* A contract repair emits `charger.repair_started` with `dispatched_by: "contract"` and no `charger.repair_scheduled`, because `repair_scheduled` is `schedule_repair`'s decision marker and replay rebuilds player actions from it.
+
+*The baseline is unchanged* (D22): it still calls out a repair on the tick a fault is detected, so it never waits for the contractor.
+
+**D54 — A closed bay costs nothing to keep.** *(2026-11-13, ratified by Mark)* Site running costs (`opexPerSimDay`) and the standing maintenance charge are charged in proportion to the bays that are open. A closed bay cannot fault, scripted faults included.
+
+*Why:* closing a bay took capacity away and saved nothing, so its only use was to get into trouble. It is now a small, real trade on a quiet site or overnight. *Bounded on purpose:* on the corridor one closed bay saves one-sixth of £150 opex plus one-sixth of the standing charge, at most about £50 a day, so it cannot become a strategy on its own.
+
+**D55 — The dominant-strategy test gains an adaptive player.** *(2026-11-13, ratified by Mark)* A new strategy, `wave-pricing`, changes price with the demand wave instead of setting it once: 15% over list in waves running well above the day's mean rate, 10% under in the quiet ones, list otherwise. It repairs on detection like the baseline. Measurement only; no change to the game.
+
+*Why:* every strategy measured so far is a standing policy fixed at 00:00, so nothing had tested whether playing the day beats setting it up well. If it does not, the game is a configuration puzzle, and that is gate criterion 5's risk measured early.
+
+*Also fixed:* `scoreStrategy`'s `winRate` still counted wins as `goalsMetCount === 4`, which no run can reach since D44 removed the fourth goal. It now compares against the scenario's own goal count.
+
+**D56 — The scenario spec and Architecture §6 are brought back to the code.** *(2026-11-13)* The roadside scenario spec still described the pre-re-rating site (50/150 kW bays, a 350 kW grid, £50k cash, a £40k upgrade, unscaled demand), and Architecture §6 still carried the pre-D30/D42/D43/D45 formulas. Both are corrected, together with the D46–D55 changes. Not a model change: the code was right and the documents had drifted, against the README rule that documents win.
+
+**D57 — Goals re-fitted after D46–D55.** *(2026-11-13, pending Mark's approval of the values)* Every change above moves the baseline distribution, so the goals are re-set the way D36 set them: round numbers from the measured 20-seed baseline spread, checked against D13's ≥80% floor, then gate criterion 2 re-run at 40 seeds. Values and measurements are recorded in the scenario files and the calibration sheet §7 once taken.
+
+
 ## Open
 
 **OPEN-4 — Trust deltas are net-positive; trust runs to the ceiling. — `CLOSED 2026-08-16 by D30`** *(raised Phase 1; closed same day)* Baseline trust now ends at 56.4 [49.6 · 62.2], in the calibrated 45–70 band. Original entry, for the record: Measured baseline trust ends at **96.3 mean, 8/20 seeds pinned at 100**, against an expected 45–70. The Calibration §5 deltas sum strongly positive under competent play (~+64/day from completions alone, +12 from the uptime bonus, against roughly −16 of penalties); the rolling ±5 clamp limits the *rate* but never the sign. **Three consequences:** `minTrust` is unscoreable; `trust_crash` is unreachable, putting gate criterion 3 at risk; and — the serious one — `siteScore` carries `+0.3 × (trust − 50)/25`, so at trust 100 every arrival gets **+0.6** rather than the +0.12 the admission formula was calibrated around, inflating acceptance, utilization and sessions. **This is a model change, so it lands here before it lands in the sheet.** Candidate fix (findings §5.1): drop the flat completion bonus to 0, keep only the fast-completion bonus, and raise the uptime-bonus threshold to 98% — leaving trust flat under good operation and falling under bad. Do not simply tighten the clamp; the clamp is a rate limit and the problem is the sign. **Decide before re-setting any goal**, since trust feeds admission and therefore every other number.
