@@ -52,6 +52,8 @@ npm run build
 
 `tsc --noEmit && vite build` — type checking gates the bundle. `npm run typecheck` runs the same check alone.
 
+**Build-time values.** `vite.config.ts` defines `__APP_VERSION__` (from `package.json`) and `__APP_COMMIT__` (`git rev-parse --short HEAD`, empty outside a checkout). They are declared in `src/build-info.d.ts` and read through `src/ui/buildInfo.ts`, which falls back to `"dev"` / `""` where the define has not run. The header title and the footer show the version; the commit is on hover.
+
 ## 3. TypeScript configuration
 
 `tsconfig.json` covers `src`, `tests` and `vitest.config.ts` with one config for both the headless core and the UI. The settings that shape day-to-day front-end code:
@@ -90,6 +92,10 @@ new Worker(new URL("../workers/baseline.worker.ts", import.meta.url), { type: "m
 ```
 
 Only plain data crosses the boundary (the scenario goes over as an id and is looked up on the worker side). If construction or the worker itself fails, `useSimulation` falls back to scoring on the main thread. The worker is terminated on unmount.
+
+**Dev logger (2026-11-13).** `src/ui/devLog.ts`, installed from `src/main.tsx`, writes `[CPO]` lines to the console in dev only: actions, pause / resume / end of day, long tasks over 100 ms, game-loop frames over 500 ms apart or over 50 ms of tick work, the loop running without a React commit for over a second, and an exception escaping the loop. `useGameLoop` reports each frame to it and logs-then-rethrows an exception from its tick loop. Every call checks `import.meta.env.DEV`, so production carries none of it.
+
+**Seeds.** First load, New seed and Free play take a random `s1`–`s9999` from `src/ui/seeds.ts`; the playtest seeds `pt-1`–`pt-3` are fixed (`experiment/gateEvidence.ts`).
 
 ## 6. Components
 
@@ -202,9 +208,9 @@ So a UI change is verified by `npm run typecheck` and by looking at it in the de
 
 ```
 index.html                       Vite entry
-vite.config.ts                   plugin-react, port 5273 (PORT overrides)
+vite.config.ts                   plugin-react, port 5273 (PORT overrides), version/commit define
 tsconfig.json                    one config, src + tests
-src/main.tsx                     createRoot, StrictMode, the one CSS import
+src/main.tsx                     createRoot, StrictMode, the one CSS import, dev logger install
 src/app/App.tsx                  the whole layout — Architecture §8.1
 src/styles/app.css               the entire stylesheet
 src/ui/hooks/useSimulation.ts    the store (useReducer over SimulationState)
@@ -212,6 +218,9 @@ src/ui/hooks/useGameLoop.ts      rAF → ticks, D26 + D40
 src/ui/workers/baseline.worker.ts end-of-day baseline, off-thread
 src/ui/components/               18 files; Panel.tsx and chart.tsx are shared
 src/ui/format.ts                 number/unit/clock formatting
+src/ui/buildInfo.ts              version + commit from the build (vite.config.ts define)
+src/ui/devLog.ts                 dev-only [CPO] console diagnostics
+src/ui/seeds.ts                  random free-play seeds
 ```
 
 Related: `ChargePointOperator_Architecture.md` §8 (dashboard layout, component cut, component–state mapping) and `ChargePointOperator_Decision_Log.md` (D17, D26, D28, D40, D41).

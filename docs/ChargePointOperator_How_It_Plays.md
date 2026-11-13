@@ -1,6 +1,6 @@
 # ChargePointOperator — How the Game Works
 
-**Date:** 2026-11-13 · **Read from:** the code after the D46–D60 revision (branch `model-revision-d46`)
+**Date:** 2026-11-13 · **Read from:** the code after the D46–D63 revision (v0.2.0)
 **Status:** a description of the game **as built**, like `model-map.html`. It specifies nothing. Where it disagrees with the code, the code is right; where it disagrees with a canonical document, §10 lists the difference so it can be settled there.
 
 This is the plain-language account: what the player does, what pushes back, and where the decisions are meant to be. The formulas are here only where they explain a decision. For every variable and path, open `model-map.html`.

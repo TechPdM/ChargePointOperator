@@ -22,6 +22,7 @@ The design documents are canonical and come first:
 | `docs/ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
 | `docs/ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
 | `docs/ChargePointOperator_PricingModel_Discovery.md` | why profit alone cannot be the objective yet — measured, nothing decided |
+| `docs/ChargePointOperator_Dev_Log_*.md` | what actually happened, one file per working day — latest 2026-11-13 (the D46–D63 revision, v0.2.0, the dev logger, random days) |
 
 Where code and documents disagree, the documents win — fix the document first, then the code.
 
@@ -38,6 +39,12 @@ The dashboard:
 ```bash
 npm run dev
 ```
+
+It opens on a random day; **New seed** and **Free play** pick another, and the seed shown in the top bar replays one. The **Playtest pt-1 / pt-2 / pt-3** seeds are fixed days for the playtest protocol. The version in the header and footer comes from `package.json`, with the build's commit on hover.
+
+In dev, a `[CPO]` console logger records actions, pauses, main-thread blocks and stalled frames — filter the browser console on `[CPO]`. It is compiled out of production builds.
+
+Deploying is manual (the Netlify site is not linked to the repo): `npm run build`, then `netlify deploy --prod --dir=dist`.
 
 One run, printed as a summary:
 
