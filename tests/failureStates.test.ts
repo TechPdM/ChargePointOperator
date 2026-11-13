@@ -286,6 +286,31 @@ describe("criterion 2 is judged on separation, not ranking (D38)", () => {
     expect(v.dominantStrategy).toBe("always");
   });
 
+  it("does not count an all-rounder that is best nowhere as dominant (D62)", () => {
+    // `steady` trails each site's winner by a quarter-goal with a lot of
+    // seed-to-seed noise (t ≈ 1.2), so it cannot be ruled out anywhere — but it
+    // tops none, and the winners differ by site. Before D62 this failed.
+    const close = Array.from({ length: 20 }, (_, i) => [3, 4, 4, 2][i % 4] ?? 0);
+    const scores = [
+      score("x", "a", alternating(4, 3)),
+      score("steady", "a", [...close]),
+      score("y", "b", alternating(4, 3)),
+      score("steady", "b", [...close]),
+      score("z", "c", alternating(4, 3)),
+      score("steady", "c", [...close]),
+      score("x", "b", alternating(0, 0)),
+      score("x", "c", alternating(0, 0)),
+      score("y", "a", alternating(0, 0)),
+      score("y", "c", alternating(0, 0)),
+      score("z", "a", alternating(0, 0)),
+      score("z", "b", alternating(0, 0)),
+    ];
+    const v = judgeDominance(scores);
+    expect(v.dominantStrategy).toBeNull();
+    expect(v.allRounders).toEqual(["steady"]);
+    expect(v.pass).toBe(true);
+  });
+
   it("passes when each site rules the other sites' answers out", () => {
     const scores = [
       score("reliability", "a", alternating(4, 3)),

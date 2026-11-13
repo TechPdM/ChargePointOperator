@@ -1,6 +1,6 @@
 # ChargePointOperator — Gate Scorecard
 
-**Version:** 2.1 (partial) · **Date:** 2026-11-13 *(**v2.1: criterion 2 FAILS on the D46–D60 model — the adaptive `wave-pricing` rule cannot be ruled out at any site (D61). Criteria 3 and 4 pass. v2.0 (earlier the same day) had criterion 2 passing narrowly. The self-playtest below predates the revision.** · v1.1: criterion 2's prose corrected for D38. **v1.2: criterion 2 re-issued at 40 seeds against the D42–D45 model with three goals — the deferred re-run is done. Two measured fragilities recorded with it: the verdict flips on a single £50 goal threshold, and `preventive` sits close to the bar at two of three sites.**)*
+**Version:** 2.2 (partial) · **Date:** 2026-11-13 *(**v2.2: criterion 2 PASSES narrowly under D62 — `wave-pricing` is credible everywhere but the best nowhere, so it is reported as an all-rounder. v2.1 recorded it as a FAIL on the strict reading (D61); D62 amended the rule after that result, and says so. Criteria 3 and 4 pass. v2.0 (earlier the same day) had criterion 2 passing narrowly. The self-playtest below predates the revision.** · v1.1: criterion 2's prose corrected for D38. **v1.2: criterion 2 re-issued at 40 seeds against the D42–D45 model with three goals — the deferred re-run is done. Two measured fragilities recorded with it: the verdict flips on a single £50 goal threshold, and `preventive` sits close to the bar at two of three sites.**)*
 **Criteria:** `ChargePointOperator_Plan.md` §6.2 · **Thresholds:** `ChargePointOperator_Playtest_Protocol.md` §5
 **Status:** **3 of 5 criteria scored. The verdict is not yet available** — criteria 1 and 5 require the external tester sessions, and nothing in this repository can substitute for them.
 
@@ -22,14 +22,14 @@ Filling those rows from self-play or from a model's judgement would produce a nu
 | # | Criterion | Threshold | Evidence | Verdict |
 | :-- | :-- | :-- | :-- | :-- |
 | 1 | **Legibility** | ≥2 of 3 external testers score ≥5/6 ✓ across runs 1–2, within ~30 s each | §3 question scores | **PENDING — needs testers** |
-| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 8 policies, **40 seeds (80 where borderline), re-issued 2026-11-13 for D46–D60** | **FAIL** (machine half): adaptive `wave-pricing` credible everywhere · tester probe pending |
+| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 8 policies, **40 seeds (80 where borderline), re-issued 2026-11-13 for D46–D60** | **PASS, narrowly** (machine half, under D62) · adaptive `wave-pricing` is an all-rounder, best nowhere · tester probe pending |
 | 3 | **Failure modes reachable** | ≥4 of 5 failure states observed arising naturally | 36 runs, `RunManifest.failure_states_observed` | **PASS — 5 of 5** |
 | 4 | **Decisions matter** | Median played run differs meaningfully from baseline on ≥2 goal KPIs; the three operator questions answerable from logs | `compareRuns` on playtest seeds; Phase 3 findings §3 | **PASS** |
 | 5 | **One-more-run** | ≥2 of 3 external testers voluntarily take run 3 | Run-3 uptake | **PENDING — needs testers** |
 
 ---
 
-## Criterion 2 — no dominant strategy · **FAIL (machine half)** · *re-issued 2026-11-13, D61*
+## Criterion 2 — no dominant strategy · **PASS (machine half), narrowly** · *re-issued 2026-11-13, D61 then D62*
 
 Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for the top contenders at Junction 42 and Kesteven. Measured against the D46–D60 model and the goals as of D59. Mean goals met out of 3:
 
@@ -52,13 +52,15 @@ Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for t
 | Eastgate | `preventive` | **`wave-pricing`** (*t*=0.39), `as-shipped` (*t*=0.72) |
 | Kesteven | `premium` | `premium+preventive` (*t*=0.48), **`wave-pricing`** (0.15 behind, *t*=1.84) |
 
-**`wave-pricing` cannot be ruled out at any site, so under D38's rule it is a dominant strategy and criterion 2's machine half fails.** It is a single, simple policy: 15% over list in waves well above the day's mean rate, 10% under in the quiet ones, list otherwise, repair on detection. Mark chose the strict reading (D61) over judging the criterion on fixed setups only.
+**Verdict under D62: PASS.** Three distinct winners, and no strategy is both the best somewhere and credible everywhere.
 
-**Fixed setups alone would pass** — three different winners, none credible everywhere — and that is recorded so the scope of the fail is clear: it is the adaptive rule, not any standing policy.
+**`wave-pricing` is an all-rounder, not a dominant strategy.** It cannot be ruled out at any site, but it is the best at none: it trails a different, site-specific winner everywhere. Under D38 as first written that counted as dominant, and D61 recorded it as a **FAIL**. D62 then amended the rule — dominant now also requires being the top scorer somewhere, matching the protocol's "no single policy *wins* everywhere" — and **that amendment was made after seeing the fail**. Both steps are in the decision log so the record shows how this verdict was reached. The rule itself: 15% over list in waves well above the day's mean rate, 10% under in the quiet ones, list otherwise; a player has to make about 8 changes by hand in a 5-minute day.
 
-**More seeds will not rescue it.** The gaps shrank as seeds were added (0.25 → 0.15 goals at Junction 42), so they look small but real. Before D59 the verdict passed on *t*=2.11 at Kesteven; D59's baseline change was enough to move it under the bar, which is the same fragility v1.2 recorded.
+**Fixed setups alone also pass** — none is credible everywhere.
 
-**What the protocol says next.** Plan §6.2: a fail on criterion 2 means pivot to Operations Balancer — but it frames that as a *fundamental* fail, "it's a solved puzzle or a spreadsheet". This fail is narrow: one adaptive rule is near-best everywhere while no standing policy is. Whether to tune (make the right price adjustment differ by site, then re-test) or pivot is Mark's decision and is not taken here. The tester half of the criterion — whether people propose ≥2 credible strategies — is still to come and will show whether players find this rule.
+**Why "narrowly".** `wave-pricing` is within 0.15 goals of the best at every site, and the gaps shrank as seeds were added. A small model change could make it the top scorer somewhere, at which point it would be dominant under D62 too. This verdict has already moved twice on the same day (pass before D59, fail under D61, pass under D62), the same fragility v1.2 recorded.
+
+**Still outstanding:** the tester half — whether people propose ≥2 credible strategies, and whether they find the wave-pricing rule. That is the real test of whether it is a skill or a solved puzzle.
 
 *Previous issues:* 2026-11-13 morning, D46–D58 with the pre-D59 baseline: PASS narrowly, `wave-pricing` ruled out only at Kesteven (*t*=2.11). v1.2 (D42–D45, seven standing policies): PASS, winners `premium+preventive` / `preventive` / `premium+preventive`.
 

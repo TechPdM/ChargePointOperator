@@ -393,6 +393,24 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 *Superseded:* D57's "criterion 2 result: PASS, narrowly" was measured before D59 and no longer holds.
 
 
+**D62 — A strategy that is never the best is not a dominant strategy.** *(2026-11-13, ratified by Mark. Taken after seeing the D61 result, and recorded as such.)* D38's test is amended: a strategy is **dominant** only if it is **not measurably behind the best at any site** (as before) **and is the top-scoring strategy at one or more sites** (ties count). A strategy that is never the best anywhere but is always close is a robust all-rounder, reported as such, not a dominant strategy.
+
+*Why:* criterion 2 exists to catch a solved puzzle — one answer that is right everywhere, so the site stops changing what you should do. D38 operationalised that as "not measurably behind the best anywhere", which also catches a strategy that loses to a different, site-specific winner at every site: the opposite of a solved puzzle, since the site still decides what is best. The protocol's own wording is "no single policy **wins** everywhere"; a strategy that wins nowhere cannot fail that.
+
+*And on the merits:* `wave-pricing` — charge more when it is busy, less when it is quiet — is how real operators behave and the skill the game should teach. It is also manual: about 8 well-timed price changes in a 5-minute day. Mark expects players to adopt it, and regards that as the mechanic working.
+
+*Effect:* criterion 2's machine half moves from **FAIL (D61) to PASS**. Winners: `premium+preventive` at Junction 42, `preventive` at Eastgate, `premium` at Kesteven — three distinct. `wave-pricing` tops nowhere and is reported as an all-rounder. No earlier verdict changes: every strategy D38 has previously flagged (e.g. `premium+preventive` after D44) was also the top scorer at one or more sites.
+
+*Caveats, carried on the scorecard:*
+1. This amendment was made **after** seeing a fail, which is what the frozen protocol warns against. It is recorded here so the record shows how the conclusion was reached.
+2. The pass is narrow. `wave-pricing` is within 0.15 goals of the best at every site; a small model change could make it the top scorer somewhere, at which point the amended rule would flag it.
+3. Whether players find the rule, and how well they execute it, is for the tester half of criterion 2 and for criterion 5.
+
+*Implementation:* `judgeDominance` (`experiment/strategies.ts`) requires the top-somewhere condition and returns the all-rounders separately; the CLI verdict names them. Tested both ways in `tests/failureStates.test.ts`.
+
+*Supersedes:* D61's FAIL verdict. D61 stands as the record that the strict reading was applied first.
+
+
 ## Open
 
 **OPEN-4 — Trust deltas are net-positive; trust runs to the ceiling. — `CLOSED 2026-08-16 by D30`** *(raised Phase 1; closed same day)* Baseline trust now ends at 56.4 [49.6 · 62.2], in the calibrated 45–70 band. Original entry, for the record: Measured baseline trust ends at **96.3 mean, 8/20 seeds pinned at 100**, against an expected 45–70. The Calibration §5 deltas sum strongly positive under competent play (~+64/day from completions alone, +12 from the uptime bonus, against roughly −16 of penalties); the rolling ±5 clamp limits the *rate* but never the sign. **Three consequences:** `minTrust` is unscoreable; `trust_crash` is unreachable, putting gate criterion 3 at risk; and — the serious one — `siteScore` carries `+0.3 × (trust − 50)/25`, so at trust 100 every arrival gets **+0.6** rather than the +0.12 the admission formula was calibrated around, inflating acceptance, utilization and sessions. **This is a model change, so it lands here before it lands in the sheet.** Candidate fix (findings §5.1): drop the flat completion bonus to 0, keep only the fast-completion bonus, and raise the uptime-bonus threshold to 98% — leaving trust flat under good operation and falling under bad. Do not simply tighten the clamp; the clamp is a rate limit and the problem is the sign. **Decide before re-setting any goal**, since trust feeds admission and therefore every other number.

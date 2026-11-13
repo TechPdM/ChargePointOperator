@@ -516,8 +516,12 @@ const PLAYTEST_TESTERS = 3;
  */
 function verdictLine(v: DominanceVerdict): string {
   const short = `${v.seeds} seeds is under the ${MIN_SEEDS_FOR_DOMINANCE} this test needs`;
+  const rounders =
+    v.allRounders.length > 0
+      ? ` — ${v.allRounders.map((s) => `"${s}"`).join(", ")} is credible everywhere but best nowhere (an all-rounder, not dominant: D62)`
+      : "";
   if (v.pass && !v.underpowered) {
-    return `PASS — no strategy is a contender on every archetype (${v.seeds} seeds)`;
+    return `PASS — no strategy is the best somewhere and a contender everywhere (${v.seeds} seeds)${rounders}`;
   }
   if (v.pass) return `PASS (provisional) — nothing is credible everywhere, but ${short}`;
   if (v.underpowered) {

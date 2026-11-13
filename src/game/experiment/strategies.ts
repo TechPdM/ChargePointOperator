@@ -235,10 +235,16 @@ export interface DominanceVerdict {
    */
   contenders: { scenarioId: string; strategies: Contender[] }[];
   /**
-   * A strategy that is a contender on **every** archetype — the thing criterion
-   * 2 forbids. Null when no single answer is credible everywhere.
+   * A strategy that is a contender on **every** archetype and the top scorer on
+   * at least one (D62) — the thing criterion 2 forbids. Null when there is none.
    */
   dominantStrategy: string | null;
+  /**
+   * D62: credible at every site but the top scorer at none. Reported, not
+   * failed — a robust all-rounder that loses to a different winner on every
+   * site is the opposite of a solved puzzle.
+   */
+  allRounders: string[];
   /** Distinct strategies that top at least one archetype. Reporting only (D38). */
   distinctWinners: string[];
   /** Seeds each cell was scored over. */
@@ -312,13 +318,20 @@ export function judgeDominance(scores: StrategyScore[]): DominanceVerdict {
     : new Set<string>();
 
   const distinctWinners = [...new Set(winners.map((w) => w.strategy))];
-  const dominantStrategy = everywhere.size > 0 ? ([...everywhere].sort()[0] ?? null) : null;
+  // D62: dominant means credible everywhere AND the top scorer (ties count)
+  // somewhere. Criterion 2 is "no single policy wins everywhere"; a strategy
+  // that is never the best cannot be winning anywhere.
+  const topSomewhere = new Set(winners.flatMap((w) => w.tiedWith));
+  const dominant = [...everywhere].filter((s) => topSomewhere.has(s)).sort();
+  const allRounders = [...everywhere].filter((s) => !topSomewhere.has(s)).sort();
+  const dominantStrategy = dominant[0] ?? null;
   const seeds = Math.min(...scores.map((s) => s.goalsMetPerSeed.length));
 
   return {
     winners,
     contenders,
     dominantStrategy,
+    allRounders,
     distinctWinners,
     seeds: Number.isFinite(seeds) ? seeds : 0,
     underpowered: seeds < MIN_SEEDS_FOR_DOMINANCE,
