@@ -1,6 +1,6 @@
 # ChargePointOperator — Gate Scorecard
 
-**Version:** 2.0 (partial) · **Date:** 2026-11-13 *(**v2.0: criteria 2–4 re-scored after the D46–D58 model revision and the D57 goals. Criterion 2 passes narrowly — `wave-pricing` (D55) is ruled out at one site only, at t=2.11. The self-playtest below predates the revision.** · v1.1: criterion 2's prose corrected for D38. **v1.2: criterion 2 re-issued at 40 seeds against the D42–D45 model with three goals — the deferred re-run is done. Two measured fragilities recorded with it: the verdict flips on a single £50 goal threshold, and `preventive` sits close to the bar at two of three sites.**)*
+**Version:** 2.1 (partial) · **Date:** 2026-11-13 *(**v2.1: criterion 2 FAILS on the D46–D60 model — the adaptive `wave-pricing` rule cannot be ruled out at any site (D61). Criteria 3 and 4 pass. v2.0 (earlier the same day) had criterion 2 passing narrowly. The self-playtest below predates the revision.** · v1.1: criterion 2's prose corrected for D38. **v1.2: criterion 2 re-issued at 40 seeds against the D42–D45 model with three goals — the deferred re-run is done. Two measured fragilities recorded with it: the verdict flips on a single £50 goal threshold, and `preventive` sits close to the bar at two of three sites.**)*
 **Criteria:** `ChargePointOperator_Plan.md` §6.2 · **Thresholds:** `ChargePointOperator_Playtest_Protocol.md` §5
 **Status:** **3 of 5 criteria scored. The verdict is not yet available** — criteria 1 and 5 require the external tester sessions, and nothing in this repository can substitute for them.
 
@@ -22,47 +22,45 @@ Filling those rows from self-play or from a model's judgement would produce a nu
 | # | Criterion | Threshold | Evidence | Verdict |
 | :-- | :-- | :-- | :-- | :-- |
 | 1 | **Legibility** | ≥2 of 3 external testers score ≥5/6 ✓ across runs 1–2, within ~30 s each | §3 question scores | **PENDING — needs testers** |
-| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 8 policies, **40 seeds (80 where borderline), re-issued 2026-11-13 for D46–D58** | **PASS, narrowly** (machine half) · tester probe pending |
+| 2 | **No dominant strategy** | Sweeps show ≥2 policy families winning on different archetypes; testers propose ≥2 credible strategies | `strategies` over 3 archetypes × 8 policies, **40 seeds (80 where borderline), re-issued 2026-11-13 for D46–D60** | **FAIL** (machine half): adaptive `wave-pricing` credible everywhere · tester probe pending |
 | 3 | **Failure modes reachable** | ≥4 of 5 failure states observed arising naturally | 36 runs, `RunManifest.failure_states_observed` | **PASS — 5 of 5** |
 | 4 | **Decisions matter** | Median played run differs meaningfully from baseline on ≥2 goal KPIs; the three operator questions answerable from logs | `compareRuns` on playtest seeds; Phase 3 findings §3 | **PASS** |
 | 5 | **One-more-run** | ≥2 of 3 external testers voluntarily take run 3 | Run-3 uptake | **PENDING — needs testers** |
 
 ---
 
-## Criterion 2 — no dominant strategy · **PASS (machine half), narrowly** · *re-issued 2026-11-13*
+## Criterion 2 — no dominant strategy · **FAIL (machine half)** · *re-issued 2026-11-13, D61*
 
-Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for the top contenders at Junction 42 and Kesteven, where the 40-seed verdict was borderline. Measured against the D46–D58 model and the D57 goals. Mean goals met out of 3:
+Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for the top contenders at Junction 42 and Kesteven. Measured against the D46–D60 model and the goals as of D59. Mean goals met out of 3:
 
 | Strategy | Junction 42 | Eastgate | Kesteven |
 | :-- | --: | --: | --: |
-| as-shipped | 1.40 | 1.43 | 1.43 |
-| undercut | 0.00 | 0.03 | 0.05 |
-| premium | 2.03 | 1.00 | 2.58 |
-| preventive | 1.83 | **1.48** | 1.38 |
-| throughput | 1.18 | 1.00 | 1.65 |
-| premium+preventive | **2.55** | 1.00 | **2.60** |
-| throughput+preventive | 1.27 | 1.00 | 1.38 |
-| **wave-pricing** *(new, D55)* | 2.36 | 1.43 | 2.40 |
+| as-shipped | 1.13 | 1.32 | 1.32 |
+| undercut | 0.00 | 0.00 | 0.00 |
+| premium | 1.84 | 1.00 | **2.40** |
+| preventive | 1.66 | **1.40** | 0.95 |
+| throughput | 1.18 | 1.00 | 1.30 |
+| premium+preventive | **2.35** | 1.00 | 2.35 |
+| throughput+preventive | 1.35 | 1.00 | 1.18 |
+| **wave-pricing** *(D55)* | 2.20 | 1.35 | 2.25 |
 
-*(80-seed figures at Junction 42 and Kesteven for the four and three strategies re-run there; 40 seeds otherwise.)*
+*(80 seeds for premium, preventive, premium+preventive and wave-pricing at Junction 42, and premium, premium+preventive and wave-pricing at Kesteven; 40 otherwise.)*
 
 | Site | Winner | Not measurably behind it |
 | :-- | :-- | :-- |
-| Junction 42 | `premium+preventive` | `wave-pricing` (0.19 behind, *t*=1.81) |
-| Eastgate | `preventive` | `as-shipped` (*t*=0.37), `wave-pricing` (*t*=0.40) |
-| Kesteven | `premium+preventive` | `premium` (*t*=0.29) |
+| Junction 42 | `premium+preventive` | **`wave-pricing`** (0.15 behind, *t*=1.35) |
+| Eastgate | `preventive` | **`wave-pricing`** (*t*=0.39), `as-shipped` (*t*=0.72) |
+| Kesteven | `premium` | `premium+preventive` (*t*=0.48), **`wave-pricing`** (0.15 behind, *t*=1.84) |
 
-**Nothing is a contender everywhere, but `wave-pricing` nearly is.** It is ruled out only at Kesteven, 0.20 goals behind at *t*=2.11 against a bar of 2. `premium+preventive` is ruled out by Eastgate, where it fails margin and trust (1.00 against 1.48).
+**`wave-pricing` cannot be ruled out at any site, so under D38's rule it is a dominant strategy and criterion 2's machine half fails.** It is a single, simple policy: 15% over list in waves well above the day's mean rate, 10% under in the quiet ones, list otherwise, repair on detection. Mark chose the strict reading (D61) over judging the criterion on fixed setups only.
 
-**Read with three caveats:**
+**Fixed setups alone would pass** — three different winners, none credible everywhere — and that is recorded so the scope of the fail is clear: it is the adaptive rule, not any standing policy.
 
-1. **The goals decided Eastgate.** The first D57 fit (wait ≤ 90 s) failed this criterion, because short waits made the wait goal free for any strategy that turns drivers away. The passing fit was chosen after seeing that (D57). This is the same fragility v1.2 recorded: a verdict here is a claim about the goal fit at least as much as the mechanics.
-2. **`preventive` is part of every site's winner** (at Kesteven, level with plain `premium`). Maintenance dominance (OPEN-2 / D33) is still near the surface, now joined by contractor repairs (D53), which make the higher tiers more convenient as well as more reliable.
-3. **An adaptive strategy is the near-miss.** That is good news for the mechanic: playing the day is rewarded, which answers the "configuration puzzle" worry D55 was added to test. It also means a simple rule (price up at the peaks, down in the lulls) is close to being correct everywhere. Testers will likely find it.
+**More seeds will not rescue it.** The gaps shrank as seeds were added (0.25 → 0.15 goals at Junction 42), so they look small but real. Before D59 the verdict passed on *t*=2.11 at Kesteven; D59's baseline change was enough to move it under the bar, which is the same fragility v1.2 recorded.
 
-**Still outstanding:** the protocol also requires that testers **propose ≥2 different credible strategies** when asked (protocol §2, after run 2).
+**What the protocol says next.** Plan §6.2: a fail on criterion 2 means pivot to Operations Balancer — but it frames that as a *fundamental* fail, "it's a solved puzzle or a spreadsheet". This fail is narrow: one adaptive rule is near-best everywhere while no standing policy is. Whether to tune (make the right price adjustment differ by site, then re-test) or pivot is Mark's decision and is not taken here. The tester half of the criterion — whether people propose ≥2 credible strategies — is still to come and will show whether players find this rule.
 
-*Previous issue (v1.2, D42–D45 model, seven standing policies):* winners `premium+preventive` / `preventive` / `premium+preventive`, with `premium+preventive` ruled out at Eastgate by a £364/day loss (*t*=−4.86).
+*Previous issues:* 2026-11-13 morning, D46–D58 with the pre-D59 baseline: PASS narrowly, `wave-pricing` ruled out only at Kesteven (*t*=2.11). v1.2 (D42–D45, seven standing policies): PASS, winners `premium+preventive` / `preventive` / `premium+preventive`.
 
 ## Criterion 3 — failure modes reachable · **PASS, 5 of 5**
 

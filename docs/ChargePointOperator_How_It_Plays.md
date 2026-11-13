@@ -187,7 +187,7 @@ The same rules on three different sites. Gate criterion 2 needs the right answer
 | Drivers | Mixed, panic overnight, high volume | Commuter-heavy, less patient (×0.8) | Patient (×1.5), less urgent |
 | Goals: margin / wait / trust (D57, D59) | £4,000 / 3.5 min / 55 | £1,450 / 2 min / 70 | £450 / 3.3 min / 63 |
 | What it teaches | You have pricing power, so use it; every goal bites | You have no pricing power; margin and trust are the hard goals | Ships underpriced; maintenance alone doesn't pay here |
-| Best strategy measured (40–80 seeds) | premium + preventive | preventive (wave-pricing level) | premium + preventive, level with premium |
+| Best strategy measured (40–80 seeds) | premium + preventive (wave-pricing level) | preventive (wave-pricing level) | premium (wave-pricing level) |
 
 The day's shape on the corridor: a sparse, panic-heavy night, then the morning commute, a lull, a midday en-route surge with **the scripted fault on the 350 kW bay 5 at 12:30**, a recovery window, then the evening peak, the hardest stretch of the day.
 
@@ -205,7 +205,7 @@ Observations from the code and the measured findings, offered as the agenda for 
 **Thin, or not yet tested:**
 
 1. **Price carries most of the game.** It controls congestion, margin and (through rejections) trust all at once. Power policy now only changes how many give up in the queue, the upgrade is a designed trap, and closing bays saves little.
-2. **A simple pricing rule is nearly dominant.** "Price up at the peaks, down in the lulls" is ruled out at only one site, at *t*=2.11 against a bar of 2 (gate criterion 2). The same result that answers the configuration-puzzle worry could become a solved puzzle of its own; testers will likely find this rule.
+2. **A simple pricing rule is dominant (D61).** "Price up at the peaks, down in the lulls" cannot be ruled out at any site, so gate criterion 2's machine half fails on the strict reading. No standing policy is dominant. The result that answers the configuration-puzzle worry has become a solved puzzle of its own; tune or pivot is open.
 3. **Two of the three goals get easier as you serve fewer people.** An empty forecourt has a perfect average wait (D44). With waits now short, this decided Eastgate: the first goal fit failed criterion 2 because of it, and the passing fit sets the wait goal where the baseline always meets it (D57). The verdict is a claim about goal values as much as mechanics.
 4. **Maintenance is close to dominant.** `preventive` is part of every site's best strategy, and contractor repairs (D53) now make the higher tiers more convenient as well as more reliable.
 5. **Calling out a repair is now a judgement, not a reflex (D59).** On a contract it costs £300 against the contractor's £200, so it pays only when 15–30 minutes of a lost bay is worth £100. Whether players read it that way is a playtest question.

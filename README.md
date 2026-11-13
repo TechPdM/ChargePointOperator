@@ -2,7 +2,7 @@
 
 A dashboard-first simulation game about running one EV charging site under pressure. You set price, power policy, charging limits, maintenance level and which bays are open; the queue, the grid cap and the faults do the rest.
 
-**Status: Phase 4 — the gate, blocked on people.** Criteria 2, 3 and 4 are scored and pass; criteria 1 and 5 need three external testers and cannot be measured any other way. See `docs/ChargePointOperator_Gate_Scorecard.md`.
+**Status: Phase 4 — the gate.** After the D46–D61 model revision, criteria 3 and 4 pass and **criterion 2's machine half fails**: an adaptive pricing rule is near-best at every site (D61). Tune or pivot is an open decision. Criteria 1 and 5 need three external testers and cannot be measured any other way. See `docs/ChargePointOperator_Gate_Scorecard.md`.
 
 The design documents are canonical and come first:
 

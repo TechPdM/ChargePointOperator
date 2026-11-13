@@ -361,7 +361,7 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 *The first Eastgate fit failed criterion 2, and the second was chosen after seeing that.* It was £1,350 / 90 s / 69. Waits are now short enough that a 90 s goal was a coin-flip for the baseline and free for any strategy that turns drivers away — D44's "an empty forecourt has a perfect average wait" again — so `premium+preventive` could not be ruled out at Eastgate (*t*=1.72). The re-fit sets the wait goal where the baseline always meets it and lets margin and trust carry the floor, which is how Eastgate worked before D46. Recorded plainly because the protocol was frozen precisely to stop goals being moved after a fail; Mark chose this over redefining the wait goal (a mechanic change) and over recording the fail.
 
-*Criterion 2 result with these goals: PASS, narrowly.* 40 seeds, 80 at the two sites where it was borderline. Winners: `premium+preventive` at Junction 42, `preventive` at Eastgate (with `as-shipped` not separable), `premium+preventive` and `premium` level at Kesteven. **`wave-pricing` (D55) is the near-miss:** best or level at Eastgate, 0.19 goals behind at Junction 42 (*t*=1.81, not separable at 80 seeds), and ruled out only at Kesteven, at *t*=2.11 against a bar of 2. One more site going the other way would make it a dominant strategy. Criteria 3 (5 of 5, with D58) and 4 also pass.
+*Criterion 2 result with these goals, before D59: PASS, narrowly — superseded by D61.* 40 seeds, 80 at the two sites where it was borderline. Winners: `premium+preventive` at Junction 42, `preventive` at Eastgate (with `as-shipped` not separable), `premium+preventive` and `premium` level at Kesteven. **`wave-pricing` (D55) is the near-miss:** best or level at Eastgate, 0.19 goals behind at Junction 42 (*t*=1.81, not separable at 80 seeds), and ruled out only at Kesteven, at *t*=2.11 against a bar of 2. One more site going the other way would make it a dominant strategy. Criteria 3 (5 of 5, with D58) and 4 also pass.
 
 *What D55 asked, answered:* adjusting price through the day beats every standing policy at Eastgate and is close to the best elsewhere without using maintenance at all. Playing the day is rewarded; the game is not only a configuration puzzle.
 
@@ -382,6 +382,15 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 **D60 — Drive-ons are counted by reason and shown on the dashboard.** *(2026-11-13, ratified by Mark)* Since D48 overload leaves at the entrance rather than in the queue (about a third of arrivals at the corridor and Eastgate under baseline play, 44% at Kesteven), so the dashboard has to show it. The funnel gains `rejectedOnPrice` and `rejectedOnWait`, which split `rejectedSite` exactly: over the driver's price ceiling, or the larger of the two penalty terms in their score. Tick samples gain `arrivals` and `turnedAway` for a 15-minute rate.
 
 *On the dashboard:* the **Served** card becomes **Served · turned away**. It shows the count turned away today, a tone from the share turning away over the last 15 minutes (amber at 35%, red at 55%), and a detail line splitting the day's drive-ons into price, wait and queue-full. It replaces the old card rather than adding a tenth, which would break the strip's 3×3 contract. The tone judges a reputation event (D45), not volume, so it does not reopen D44.
+
+
+**D61 — Criterion 2 is recorded as a FAIL on the strict reading.** *(2026-11-13, ratified by Mark)* After D59 the 40/80-seed strategy test leaves the adaptive `wave-pricing` strategy (D55) within reach of the best at all three sites (*t*=1.35 / 0.39 / 1.84 against a bar of 2), so under D38 it is a dominant strategy. Mark chose to record that as criterion 2's machine half **failing**, rather than judge the criterion on standing policies only (which pass) or leave it unresolved until the playtest.
+
+*Why the strict reading:* the protocol says "no single policy wins everywhere", and `wave-pricing` is a single, simple policy. Its examples happen to be standing ones, but narrowing the criterion to fit them after seeing the result is what a frozen protocol exists to prevent.
+
+*Not decided here:* Plan §6.2 says a fail on 2 means pivot, framed as a *fundamental* fail ("a solved puzzle or a spreadsheet"). This one is narrow — no standing policy is dominant — so tune-and-re-test versus pivot is left open for Mark.
+
+*Superseded:* D57's "criterion 2 result: PASS, narrowly" was measured before D59 and no longer holds.
 
 
 ## Open
