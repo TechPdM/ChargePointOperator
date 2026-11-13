@@ -320,7 +320,7 @@ export function sanityAxes(): SweepAxis[] {
     {
       name: "partialChargeTarget",
       notes: "kWh/session ↓, sessions/hr ↑ at peaks, wait ↓, trust ↘ mild",
-      points: [undefined, 0.7, 0.6, 0.5].map((soc) => ({
+      points: [undefined, 0.9, 0.75, 0.5].map((soc) => ({ // D49 options
         label: soc === undefined ? "off" : `${Math.round(soc * 100)}%`,
         scenario: (base) => ({ ...base, initialPartialChargeTargetSoc: soc }),
       })),

@@ -16,15 +16,67 @@
  */
 
 import { runScenario } from "../core/run.ts";
-import type { ScenarioConfig } from "../core/types.ts";
-import { baselinePolicy } from "./baselinePolicy.ts";
+import { getActiveWave } from "../core/selectors.ts";
+import type { PlayerActionDraft, ScenarioConfig, SimulationState } from "../core/types.ts";
+import { baselinePolicy, type PolicyActor } from "./baselinePolicy.ts";
 import { summariseRun, type RunSummary } from "./compareRuns.ts";
 
 export interface Strategy {
   name: string;
   blurb: string;
   apply: (base: ScenarioConfig) => ScenarioConfig;
+  /**
+   * What the strategy does during the day. Absent means the baseline actor:
+   * repair on detection and otherwise leave the standing policy alone.
+   */
+  policy?: PolicyActor;
 }
+
+/** Waves this far above the day's mean arrival rate are peaks (D55). */
+const PEAK_RATIO = 1.5;
+/** …and this far below it are lulls. */
+const LULL_RATIO = 0.6;
+const PEAK_MARKUP = 1.15;
+const LULL_DISCOUNT = 0.9;
+
+function meanArrivalRate(scenario: ScenarioConfig): number {
+  let arrivals = 0;
+  let seconds = 0;
+  for (const w of scenario.demandWaves) {
+    const span = w.endSecond - w.startSecond;
+    arrivals += w.arrivalRatePerMinute * (span / 60);
+    seconds += span;
+  }
+  return seconds > 0 ? arrivals / (seconds / 60) : 0;
+}
+
+/**
+ * D55: the first strategy that plays the day rather than setting it up. Price
+ * follows the demand wave — 15% over list at the peaks, 10% under in the lulls,
+ * list otherwise — and faults are repaired on detection, as the baseline does.
+ *
+ * It reads only what the dashboard shows a player (the clock, and the wave
+ * the scenario timeline names), so a human could do exactly this.
+ */
+export const wavePricingPolicy: PolicyActor = (state: SimulationState) => {
+  const actions: PlayerActionDraft[] = baselinePolicy(state);
+  const list = state.scenario.initialPricePerKwh;
+  const wave = getActiveWave(state.clock.secondsElapsed, state.scenario.demandWaves);
+  const mean = meanArrivalRate(state.scenario);
+  let target = list;
+  if (wave && mean > 0) {
+    const ratio = wave.arrivalRatePerMinute / mean;
+    if (ratio >= PEAK_RATIO) target = round2(list * PEAK_MARKUP);
+    else if (ratio <= LULL_RATIO) target = round2(list * LULL_DISCOUNT);
+  }
+  // Pending actions apply next tick, so check those too or this re-sends the
+  // same price every tick until it lands.
+  const pending = state.pendingActions.some((a) => a.type === "set_price");
+  if (!pending && Math.abs(state.site.policy.pricePerKwh - target) > 1e-9) {
+    actions.push({ type: "set_price", pricePerKwh: target });
+  }
+  return actions;
+};
 
 /**
  * Each strategy is expressed as a starting policy the player could set in the
@@ -55,11 +107,12 @@ export const STRATEGIES: Strategy[] = [
   },
   {
     name: "throughput",
-    blurb: "finish-soonest-first + 70% charging limit",
+    // D49: 70% is no longer offered; 75% is the nearest option that is.
+    blurb: "finish-soonest-first + 75% charging limit",
     apply: (base) => ({
       ...base,
       initialPowerPolicy: "queue_relief",
-      initialPartialChargeTargetSoc: 0.7,
+      initialPartialChargeTargetSoc: 0.75,
     }),
   },
   {
@@ -77,9 +130,15 @@ export const STRATEGIES: Strategy[] = [
     apply: (base) => ({
       ...base,
       initialPowerPolicy: "queue_relief",
-      initialPartialChargeTargetSoc: 0.7,
+      initialPartialChargeTargetSoc: 0.75,
       initialMaintenanceLevel: "preventive",
     }),
+  },
+  {
+    name: "wave-pricing",
+    blurb: "price up at the peaks, down in the lulls (D55)",
+    apply: (base) => base,
+    policy: wavePricingPolicy,
   },
 ];
 
@@ -113,7 +172,7 @@ export function scoreStrategy(
         runScenario({
           scenario: strategy.apply(scenario),
           seed: `s${i}`,
-          policy: baselinePolicy,
+          policy: strategy.policy ?? baselinePolicy,
           logLevel: "info",
           collectLog: false,
         }),
@@ -128,7 +187,10 @@ export function scoreStrategy(
     scenarioId: scenario.id,
     meanGoalsMet: mean((s) => s.goalsMetCount),
     goalsMetPerSeed: runs.map((s) => s.goalsMetCount),
-    winRate: runs.filter((s) => s.goalsMetCount === 4).length / runs.length,
+    // D55 fix: was `=== 4`, which no run could reach once D44 left three goals.
+    winRate:
+      runs.filter((s) => s.goalsMetCount === Object.keys(scenario.goals).length).length /
+      runs.length,
     meanMargin: mean((s) => s.cumMargin),
     meanSessions: mean((s) => s.sessionsCompleted),
     meanTrust: mean((s) => s.trust),
