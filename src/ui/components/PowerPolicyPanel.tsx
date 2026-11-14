@@ -56,7 +56,7 @@ export function PowerPolicyPanel({ sim }: { sim: Simulation }): ReactElement {
               style={{ width: `${share}%` }}
               title={`${bay.label}: ${Math.round(bay.allocatedPowerKw)} kW`}
             >
-              <span className="bus-seg-label">{bay.label.replace("Bay ", "")}</span>
+              <span className="bus-seg-label">{bay.label.replace(/^(Bay|Post) /, "")}</span>
             </div>
           );
         })}

@@ -48,7 +48,13 @@
    * graphics. As *text* the bar is 4.5:1 and `--tier-rapid` only reached
    * 4.31:1, so labels use the lighter `-text` variants (7.3:1 and 7.1:1).
    * Same hue, same meaning, legible at 10px.
+   *
+   * Slow AC (Kesteven's posts) is a warm tan, kept clear of the teal and violet
+   * and of the amber warning: 6.0:1 on panel as a fill, 8.2:1 as text, and the
+   * dark segment label reads at 6.9:1 on it.
    */
+  --tier-slow: #c4915e;
+  --tier-slow-text: #d9ad80;
   --tier-rapid: #1b8cac;
   --tier-ultra: #8b7ff5;
   --tier-rapid-text: #4fb8d6;
@@ -704,6 +710,9 @@ button:focus-visible,
   overflow: hidden;
 }
 
+.bus-seg.tier-slow_ac {
+  background: var(--tier-slow);
+}
 .bus-seg.tier-rapid_dc {
   background: var(--tier-rapid);
 }
@@ -1004,6 +1013,10 @@ input[type="number"] {
   text-align: center;
 }
 
+.bay-tier.tier-slow_ac {
+  color: var(--tier-slow-text);
+  background: color-mix(in srgb, var(--tier-slow) 18%, transparent);
+}
 .bay-tier.tier-rapid_dc {
   color: var(--tier-rapid-text);
   background: color-mix(in srgb, var(--tier-rapid) 18%, transparent);
