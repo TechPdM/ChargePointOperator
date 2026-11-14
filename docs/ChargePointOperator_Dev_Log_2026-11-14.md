@@ -18,6 +18,7 @@ Live at `cpo.thisliquidspace.com`, on `main` at `d8770d2`. Version still 0.2.0.
 | Interface | A pending close can be cancelled: the bay button reads **Keep open** | D64; §3 below |
 | Interface | The Average wait card's colours ran backwards (red at zero, green as the wait grew) | §2a below |
 | Interface | The end-of-day panel moved to the top, under the run controls and above the KPIs (was below the policy panels) | Mark's request |
+| Interface | Goals-met celebration on the end-of-day panel: current runs round the border and discharges (option C2) | §2b below |
 | Docs | KPI dictionary v1.6; Architecture §4 (charger bay) and the `toggle_bay_group` type; Session Pack observer note | §4 below |
 
 ## 2. The stuck close
@@ -52,6 +53,16 @@ Mark's point, which the sim already honoured: a faulted bay is never in use. The
 *Fix:* green up to 70% of the goal, red past the goal, keeping the old 300-of-420 ratio and unable to invert whatever the goal. `KpiCardGrid.tsx`. Typecheck clean.
 
 *Noticed, not changed:* the queue card is green up to pressure 0.5, but D58 put `queue_collapse` at 0.5, so the card can read green at the threshold where collapse sets in.
+
+## 2b. Goals-met celebration
+
+Mark asked for a confetti or lightning moment when every goal is met. Options were shown as a separate page first (four effects, then three finishes for the one he picked) and **C2, full-frame discharge** chosen: an arc of current runs twice round the panel border, speeding up, then the whole border flickers bright twice and throws sparks outward from every edge, leaving a green glow. About 2.8 s, once, when the panel appears; nothing on a day that misses a goal.
+
+*Code:* `src/ui/effects/frameDischarge.ts` (plain canvas, no library; the trail is capped at 420 px and the spark count scales with the border length, since the real panel is far wider than the mock); `GoalsMetEffect.tsx` lays the canvas 80 px past the panel on every side and adds `is-lit` for the glow; with reduced motion asked for it shows the glow only. `.shell` got `overflow-x: clip` so the sparks can't widen the page.
+
+*Also fixed:* the panel's hint read "all four goals met" (and counted misses from 4) with three goals; it now reads from `GOAL_COUNT`.
+
+*Checked:* typecheck and build. Not yet seen in the app itself.
 
 ## 3. How many simulations have we run?
 

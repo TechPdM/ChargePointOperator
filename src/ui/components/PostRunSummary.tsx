@@ -4,6 +4,7 @@ import { evaluateGoals } from "../../game/systems/scoring.ts";
 import { FAILURE_STATE_COPY, minutes, money } from "../format.ts";
 import type { Comparison } from "../../game/experiment/compareRuns.ts";
 import type { ScenarioGoals, SimulationState } from "../../game/core/types.ts";
+import { GoalsMetEffect } from "./GoalsMetEffect.tsx";
 
 /**
  * The end-of-day report — O5, and the answer to the last of the three
@@ -49,10 +50,15 @@ export function PostRunSummary({
 
   return (
     <section className={`panel post-run ${outcome.allMet ? "is-win" : "is-loss"}`}>
+      {outcome.allMet ? <GoalsMetEffect /> : null}
       <div className="panel-head">
         <h2>End of day — {state.scenario.name}</h2>
         <span className="panel-hint">
-          {outcome.allMet ? "all four goals met" : `${4 - Object.values(outcome.goalsMet).filter(Boolean).length} goal(s) missed`}
+          {(() => {
+            const missed = Object.values(outcome.goalsMet).filter((met) => !met).length;
+            if (missed === 0) return `all ${GOAL_COUNT} goals met`;
+            return `${missed} of ${GOAL_COUNT} goals missed`;
+          })()}
         </span>
       </div>
 

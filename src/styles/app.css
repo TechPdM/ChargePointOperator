@@ -101,6 +101,9 @@ body {
   min-height: 100%;
   max-width: 1920px;
   margin: 0 auto;
+  /* The goals-met sparks run past the panel's sides; clip them here rather
+     than let them widen the page. `clip`, not `hidden`: no scroll container. */
+  overflow-x: clip;
 }
 
 /*
@@ -1504,7 +1507,31 @@ input[type="number"] {
 /* ------------------------------------------------------- post-run summary */
 
 .post-run {
+  position: relative;
   border-left: 3px solid var(--rule-bright);
+}
+
+/* Goals-met celebration (GoalsMetEffect): a canvas laid over the panel with
+   room round it for sparks; it never takes clicks. */
+.goals-met-effect {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.post-run.is-lit {
+  animation: post-run-lit 1.8s ease-out;
+}
+
+@keyframes post-run-lit {
+  0% {
+    box-shadow:
+      0 0 0 1px var(--ok),
+      0 0 34px color-mix(in srgb, var(--ok) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 
 .post-run.is-win {
