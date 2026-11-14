@@ -1,6 +1,6 @@
 # ChargePointOperator — Strategy Analysis: Why Days End Just Short
 
-**Version:** 1.0 · **Date:** 2026-11-14
+**Version:** 1.1 · **Date:** 2026-11-14 *(v1.1: §5a, how "Turned away" is calculated)*
 **Companions:** `ChargePointOperator_Calibration.md` §7 (measured baseline) · `ChargePointOperator_Decision_Log.md` (D13, D22, D57, D59, D63) · `ChargePointOperator_Gate_Scorecard.md` (criterion 2)
 **Status:** analysis and options only. No decision taken and no code changed. The order of work is Mark's call (§5).
 
@@ -102,6 +102,37 @@ So replaying a seed isn't a controlled re-run once you act differently. From one
 **Recommended order:** 3, 4 and 5 first, since they directly fix "close but never winning". Then 1, which makes every later re-tune more precise and makes replays fair. 2 and 6 are design decisions to take along the way.
 
 **Proposed targets for 4** (not yet agreed): passive benchmark wins about 10–20% of days, good player about 60–70%.
+
+## 5a. How "Turned away" is calculated
+
+The "Turned away" card adds up two kinds of driver who left without charging (`KpiCardGrid.tsx`):
+
+1. **Drove on at the entrance (`rejectedSite`).** Nearly all of the count is this.
+2. **No space (`siteFull`).** The queue was already 12 deep. This almost never happens: it was zero on every day in the 40-day runs.
+
+**How a driver decides to drive on** (`src/game/systems/admission.ts`). Each arriving driver gives the site a score and drives on if it comes out below 0.15:
+
+```
+score = 2.0 × urgency
+      − 1.0 × wait sensitivity  × (wait they think they'll have ÷ 10 min)
+      − 0.8 × price sensitivity × (price − the site's going rate) ÷ 10p
+      + 0.3 × (trust − 50) ÷ 25
+```
+
+- **Urgency** is drawn per driver. Low-battery drivers are 0.9–1.0, commuters 0.3–0.5. At Kesteven everyone's urgency is cut to 70%.
+- **Wait** is the wait the sim forecasts: it works through the queue against when each working bay will free up. Broken and closed bays aren't counted, so a fault makes the forecast jump straight away. Each driver then misjudges the forecast by up to ±35% either way.
+- **Price** is measured against the site's going rate (£0.79 at Junction 42, £0.72 at Eastgate, £0.62 at Kesteven), not against the price you start on.
+- **Trust** above 50 makes drivers more willing to stay, and below 50 less willing.
+
+Separately, a driver also drives on if your price is above their personal ceiling, whatever their score. That ceiling is a base for their type plus a premium that rises with how far they'd have to drive to the next charger (D42).
+
+**Two more things worth knowing:**
+- **Each drive-on costs trust:** −0.15, plus a further −0.2 if the price was above that driver's ceiling (D45). So drive-ons pull trust down, which makes more people drive on.
+- **High prices also put people off before they arrive** (the arrival-rate elasticity, D21). Those drivers never appear, so they don't count as turned away.
+
+**Typical levels:** about 36% of arrivals at Junction 42, 30% at Eastgate and 44% at Kesteven (calibration §7). Kesteven is highest because its drivers are in no hurry and its chargers are slow, so even a short queue looks long. Now that new players start at Kesteven, a lot of drive-ons there is normal, not a sign of playing badly.
+
+The card's tooltip and the end-of-day panel split drive-ons into price or wait as the main reason (D60). The reason is whichever cost more on that driver's score, or price whenever they were over their ceiling.
 
 ## 6. Open
 
