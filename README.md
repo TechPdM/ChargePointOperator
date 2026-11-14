@@ -22,7 +22,7 @@ The design documents are canonical and come first:
 | `docs/ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
 | `docs/ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
 | `docs/ChargePointOperator_PricingModel_Discovery.md` | why profit alone cannot be the objective yet — measured, nothing decided |
-| `docs/ChargePointOperator_Dev_Log_*.md` | what actually happened, one file per working day — latest 2026-11-14 (D64: closing a faulted bay with no contract) |
+| `docs/ChargePointOperator_Dev_Log_*.md` | what actually happened, one file per working day — latest 2026-11-14 (D64, the goals-met celebration, interface fixes) |
 
 Where code and documents disagree, the documents win — fix the document first, then the code.
 

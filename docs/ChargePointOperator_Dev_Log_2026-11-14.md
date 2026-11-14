@@ -4,13 +4,13 @@
 
 **Convention:** one file per working day, `ChargePointOperator_Dev_Log_YYYY-MM-DD.md`. The log is the series.
 
-**Status of this entry:** a short day. One question about how many simulations the project has run, and one reported bug, a bay stuck in "Pending — closing when it frees", which became D64. Deployed.
+**Status of this entry:** one model change (D64, from a bay stuck in "Pending — closing when it frees"), a goals-met celebration on the end-of-day panel, and several interface fixes. Six deploys, all live.
 
 ---
 
 ## 1. What shipped
 
-Live at `cpo.thisliquidspace.com`, on `main` at `d8770d2`. Version still 0.2.0.
+Live at `cpo.thisliquidspace.com`, on `main` at `07a775a`. Version still 0.2.0.
 
 | Area | Change | Where recorded |
 | :-- | :-- | :-- |
@@ -18,7 +18,8 @@ Live at `cpo.thisliquidspace.com`, on `main` at `d8770d2`. Version still 0.2.0.
 | Interface | A pending close can be cancelled: the bay button reads **Keep open** | D64; §3 below |
 | Interface | The Average wait card's colours ran backwards (red at zero, green as the wait grew) | §2a below |
 | Interface | The end-of-day panel moved to the top, under the run controls and above the KPIs (was below the policy panels) | Mark's request |
-| Interface | Goals-met celebration on the end-of-day panel: current runs round the border and discharges (option C2) | §2b below |
+| Interface | Goals-met celebration on the end-of-day panel: current runs round the border and discharges (option C2); `?debug=win` to test it | §2b below |
+| Interface | Speed buttons (1× 2× 4×) spaced 3 px apart instead of a joined strip | §2c below |
 | Docs | KPI dictionary v1.6; Architecture §4 (charger bay) and the `toggle_bay_group` type; Session Pack observer note | §4 below |
 
 ## 2. The stuck close
@@ -66,7 +67,18 @@ Mark asked for a confetti or lightning moment when every goal is met. Options we
 
 *Also fixed:* the panel's hint read "all four goals met" (and counted misses from 4) with three goals; it now reads from `GOAL_COUNT`.
 
-*Checked:* typecheck and build. Not yet seen in the app itself.
+*Checked:* typecheck and build; Mark checked the fixed flash with `?debug=win` ("flash looks good") and took it to mobile.
+
+*Tried and dropped:* seals and hamsters in the effect (a hamster running ahead of the current, critters flung out at the discharge), then a slower version of them. Built on the review page only, never in the game; Mark removed both.
+
+## 2c. Smaller interface changes
+
+- **Speed buttons** were a joined segmented strip and felt cramped. Now 3 px apart (the stylesheet has no spacing step under `--gap`'s 10 px; 3 px is already used and matches `--radius`), each with its own border and corners.
+- **Trust card colours** were questioned (green at Junction 42, amber elsewhere on a fresh day). Cause: every site starts on trust 60, and the card colours against the end-of-day goal (55 / 70 / 63) from the first minute, unlike the margin card, which is judged against the demand so far. A pace line was planned; not built. Mark is reconsidering whether trust is meant to be maintained or built (§6).
+
+## 2d. The stutter, again
+
+Reported again on the dev server, after a run of hot-reloaded edits to the header, CSS and effect files under an open tab, the same circumstances as 2026-11-13's report. Not investigated further: the next steps given were a hard reload, then the live site (no hot reload, no StrictMode), then the `[CPO]` console log if it persists. No report since.
 
 ## 3. How many simulations have we run?
 
@@ -83,11 +95,13 @@ Not known: nothing counts runs. The only saved output is in `runs/` from 16–18
 
 - **Netlify builds on deploy.** `netlify deploy --prod --dir=dist` ran `npm run build` itself (a build command set in the Netlify app) before uploading, so a deploy rebuilds from the working tree rather than shipping whatever is in `dist/`.
 - Push and deploy were run by Mark with `!`, as before.
+- **Review pages for visual work.** The celebration options were built as a private artifact page first and chosen there; only the chosen one went into the code. The mock panel used a canvas sized by CSS, which is why the sizing bug only showed in the game.
+- **No browser checks for small visual changes.** I started playing a full day in Chrome to watch the effect; Mark stopped it as overkill. Small UI changes: typecheck, build, commit, hand over the deploy. Saved to memory.
 
 ## 6. Open, carried forward
 
 1. **Look at D64 in the browser:** close a faulted bay on *Repair upon request*, then check the *Keep open* button on a busy bay.
-2. Everything from 2026-11-13 §7 stands: the playtest, the narrow criterion 2 pass, maintenance near-dominance, the harsher no-contract start, the unreproduced freeze.
+2. Everything from 2026-11-13 §7 stands: the playtest, the narrow criterion 2 pass, maintenance near-dominance, the harsher no-contract start, the unreproduced freeze (reported again today, §2d).
 3. **Trust card colours.** Every site starts on trust 60, so the card opens green at Junction 42 (goal 55) and amber at Eastgate (70) and Kesteven (63). A pace line like the margin card's was planned; Mark is reconsidering whether trust is meant to be maintained or built, which decides it.
 4. **Queue card thresholds** (green ≤ 0.5, red ≥ 1.5) predate D58's 0.5 collapse threshold; Mark's call whether to align them.
 5. **Watch in the playtest** whether players use closing to shield uptime from faults, now that it works.
