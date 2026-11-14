@@ -21,6 +21,7 @@ Live at `cpo.thisliquidspace.com`, on `main` at `07a775a`. Version still 0.2.0.
 | Interface | Goals-met celebration on the end-of-day panel: current runs round the border and discharges (option C2); `?debug=win` to test it | §2b below |
 | Interface | Speed buttons (1× 2× 4×) spaced 3 px apart instead of a joined strip | §2c below |
 | Docs | KPI dictionary v1.6; Architecture §4 (charger bay) and the `toggle_bay_group` type; Session Pack observer note | §4 below |
+| Docs | Detour price-ceiling plan moved into `docs/` and renamed; How It Plays, Architecture, model map, Frontend Stack, ARCHITECTURE.md, README and Session Pack brought up to date (on `main` at `e0021f3`; docs only, so no redeploy) | §4 below |
 
 ## 2. The stuck close
 
@@ -88,6 +89,16 @@ Not known: nothing counts runs. The only saved output is in `runs/` from 16–18
 - KPI dictionary **v1.6**: uptime denominator note for closed faulted bays.
 - Architecture: the charger-bay state machine paragraph and the `toggle_bay_group` comment.
 - Session Pack: the latched-transition observer note now gives the D64 exception and the *Keep open* button.
+- **Plan moved out of `docs/superpowers`.** The detour price-ceiling plan (2026-08-19) was the only file in `docs/superpowers/plans/`. It moved into `docs/` (`942d2bf`), was renamed to the docs naming convention as `ChargePointOperator_Plan_Detour_Price_Ceiling_2026-08-19.md` (`a3ce66f`), and the empty `docs/superpowers` folder was removed.
+- **End-of-day docs sync** (`e0021f3`), covering D64, the celebration and the interface changes:
+  - How It Plays: dated 2026-11-14; D64 added to faults and to the open/close row.
+  - Architecture §4.4: the D64 contractor rule (closed bays skipped; an old fault is dispatched at once on reopening) and the downtime accounting.
+  - Model map: the bay-toggle and faults nodes carry D64.
+  - Frontend Stack: 20 components; a section on the celebration.
+  - `docs/ARCHITECTURE.md`: sizes re-measured (about 15.1k lines; UI 30 files, about 3,450 lines; CSS about 1,720; 178 tests); the celebration and the panel's new position.
+  - README: `effects/` in the tree; 178 tests.
+  - Session Pack: the observer checklist says to play without `?debug=win`.
+  - Deliberately left as they were: Architecture §8.1 (the design-time layout), Playtest Protocol v1.3, Calibration, the Gate Scorecard and the historical docs.
 
 ## 5. Working notes
 
