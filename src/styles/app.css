@@ -496,21 +496,13 @@ button:focus-visible,
 
 .speed-group {
   display: flex;
+  gap: 3px;
 }
 
 .speed {
-  border-radius: 0;
+  border-radius: var(--radius);
   padding: 6px 9px;
   color: var(--ink-2);
-}
-.speed:first-child {
-  border-radius: var(--radius) 0 0 var(--radius);
-}
-.speed:last-child {
-  border-radius: 0 var(--radius) var(--radius) 0;
-}
-.speed + .speed {
-  border-left: none;
 }
 .speed.is-active {
   color: var(--ink);
