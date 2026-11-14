@@ -6,8 +6,9 @@
  * whole border flickers bright twice and throws sparks outward from every
  * edge. Pure canvas, no library, ~2.8 s, then it clears itself.
  *
- * The canvas is laid over the panel with a margin on every side (`MARGIN`) so
- * the sparks have somewhere to fly; the panel sits at (MARGIN, MARGIN) inside it.
+ * The canvas is laid over the panel with a margin on every side
+ * (`DISCHARGE_MARGIN`) so the sparks have somewhere to fly. The frame is
+ * measured from the panel element itself, never inferred from the canvas.
  */
 
 export const DISCHARGE_MARGIN = 80;
@@ -41,10 +42,14 @@ function readColours(): Colours {
 }
 
 /**
- * Run the effect on `canvas`, which must already be sized to the panel plus
- * `DISCHARGE_MARGIN` on each side. Returns a cancel function.
+ * Run the effect on `canvas` (laid over `panel` with room round it), tracing
+ * `panel`'s border. Returns a cancel function.
  */
-export function playFrameDischarge(canvas: HTMLCanvasElement, onDischarge?: () => void): () => void {
+export function playFrameDischarge(
+  canvas: HTMLCanvasElement,
+  panel: HTMLElement,
+  onDischarge?: () => void,
+): () => void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return () => {};
 
@@ -56,10 +61,13 @@ export function playFrameDischarge(canvas: HTMLCanvasElement, onDischarge?: () =
 
   const W = rect.width;
   const H = rect.height;
-  const px = DISCHARGE_MARGIN;
-  const py = DISCHARGE_MARGIN;
-  const pw = W - 2 * DISCHARGE_MARGIN;
-  const ph = H - 2 * DISCHARGE_MARGIN;
+  // Measured, not assumed: the panel's own border box, in canvas coordinates,
+  // so the current runs along the border actually drawn on screen.
+  const box = panel.getBoundingClientRect();
+  const px = box.left - rect.left + 0.5;
+  const py = box.top - rect.top + 0.5;
+  const pw = box.width - 1;
+  const ph = box.height - 1;
   if (pw <= 0 || ph <= 0) return () => {};
 
   const C = readColours();

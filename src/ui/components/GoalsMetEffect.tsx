@@ -24,7 +24,7 @@ export function GoalsMetEffect(): ReactElement {
       light();
       return unlight;
     }
-    const cancel = playFrameDischarge(el, light);
+    const cancel = playFrameDischarge(el, panel, light);
     return () => {
       cancel();
       unlight();
@@ -35,7 +35,15 @@ export function GoalsMetEffect(): ReactElement {
     <canvas
       ref={canvas}
       className="goals-met-effect"
-      style={{ inset: -DISCHARGE_MARGIN }}
+      // Sized explicitly: a canvas is a replaced element, so `inset` alone
+      // leaves it at its intrinsic pixel size instead of stretching it, and
+      // the effect then measures (and draws round) a box unrelated to the panel.
+      style={{
+        left: -DISCHARGE_MARGIN,
+        top: -DISCHARGE_MARGIN,
+        width: `calc(100% + ${2 * DISCHARGE_MARGIN}px)`,
+        height: `calc(100% + ${2 * DISCHARGE_MARGIN}px)`,
+      }}
       aria-hidden="true"
     />
   );

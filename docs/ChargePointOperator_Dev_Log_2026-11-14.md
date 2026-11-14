@@ -62,6 +62,8 @@ Mark asked for a confetti or lightning moment when every goal is met. Options we
 
 *Testing it:* add `?debug=win` to the URL (e.g. `cpo.thisliquidspace.com/?debug=win`) and the effect plays at the end of every day whatever the outcome. It changes nothing else, including the score.
 
+*Bug, found by Mark with `?debug=win`:* the flash traced a box unrelated to the panel. The canvas was placed with `inset: -80px` and no size; a canvas is a replaced element, so absolutely positioned it keeps its intrinsic pixel size (300×150, then whatever the code set) instead of stretching. The effect measured that box and drew round it, and resizing the canvas resized the box (StrictMode's second run in dev measured the first run's resize; in production the first measurement gives a negative height and probably nothing drew). The review page hid this by giving its canvas `width/height: 100%`. Fixed: explicit `calc(100% + 160px)` size, and the effect now measures the panel element's own border box rather than inferring it from the canvas, which also removes a 1–3 px inset from the border.
+
 *Also fixed:* the panel's hint read "all four goals met" (and counted misses from 4) with three goals; it now reads from `GOAL_COUNT`.
 
 *Checked:* typecheck and build. Not yet seen in the app itself.

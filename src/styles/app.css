@@ -1515,6 +1515,7 @@ input[type="number"] {
    room round it for sparks; it never takes clicks. */
 .goals-met-effect {
   position: absolute;
+  display: block;
   pointer-events: none;
   z-index: 5;
 }
