@@ -107,6 +107,10 @@ Not known: nothing counts runs. The only saved output is in `runs/` from 16–18
 - **Review pages for visual work.** The celebration options were built as a private artifact page first and chosen there; only the chosen one went into the code. The mock panel used a canvas sized by CSS, which is why the sizing bug only showed in the game.
 - **No browser checks for small visual changes.** I started playing a full day in Chrome to watch the effect; Mark stopped it as overkill. Small UI changes: typecheck, build, commit, hand over the deploy. Saved to memory.
 
+## 5a. Strategy analysis: why days end just short
+
+Mark suspected the game had become almost impossible to win. Measured and written up in `ChargePointOperator_Strategy_Analysis_2026-11-14.md`. In short: each goal sits near the baseline's median, so a win needs three coin-flips on one day (baseline wins 8–12%, the best built-in strategy 60% / 20% / 45% at Junction 42 / Eastgate / Kesteven). D13 only checks that the game isn't too easy, never that it can be won. Faults (1–7 a day) dominate margin and trust, and any action that changes the random draws reshuffles the rest of the day. No recent regression. The doc proposes six changes, recommends a good-player benchmark, a winnability check and a goal re-fit first, and leaves the order to Mark. No code changed.
+
 ## 6. Open, carried forward
 
 1. **Look at D64 in the browser:** close a faulted bay on *Repair upon request*, then check the *Keep open* button on a busy bay.
