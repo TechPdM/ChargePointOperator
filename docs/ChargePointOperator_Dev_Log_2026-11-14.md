@@ -111,6 +111,10 @@ Not known: nothing counts runs. The only saved output is in `runs/` from 16–18
 
 Mark suspected the game had become almost impossible to win. Measured and written up in `ChargePointOperator_Strategy_Analysis_2026-11-14.md`. In short: each goal sits near the baseline's median, so a win needs three coin-flips on one day (baseline wins 8–12%, the best built-in strategy 60% / 20% / 45% at Junction 42 / Eastgate / Kesteven). D13 only checks that the game isn't too easy, never that it can be won. Faults (1–7 a day) dominate margin and trust, and any action that changes the random draws reshuffles the rest of the day. No recent regression. The doc proposes six changes, recommends a good-player benchmark, a winnability check and a goal re-fit first, and leaves the order to Mark. No code changed.
 
+## 5b. Site picker easiest first
+
+Mark asked for the site picker reversed so new players start on the easy site. It now lists Kesteven, Eastgate, Junction 42, and the game opens on Kesteven. Interface only (`PICKER_ORDER` in `scenarios/index.ts`); the CLI and gate tests keep the old order. Note from §5a: by measured win rate under good play, Junction 42 is the most winnable (60%), Kesteven next (45%) and Eastgate least (20%); Kesteven is the gentlest to play, not the easiest to win. Typecheck clean.
+
 ## 6. Open, carried forward
 
 1. **Look at D64 in the browser:** close a faulted bay on *Repair upon request*, then check the *Keep open* button on a busy bay.

@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { ALL_SCENARIOS } from "../../game/scenarios/index.ts";
+import { PICKER_ORDER } from "../../game/scenarios/index.ts";
 import { PLAYTEST_SEEDS } from "../../game/experiment/gateEvidence.ts";
 import type { Simulation } from "../hooks/useSimulation.ts";
 import { randomDaySeed } from "../seeds.ts";
@@ -68,11 +68,11 @@ export function RunControls({ sim }: { sim: Simulation }): ReactElement {
         <select
           value={state.sim.scenario.id}
           onChange={(e) => {
-            const next = ALL_SCENARIOS.find((s) => s.id === e.target.value);
+            const next = PICKER_ORDER.find((s) => s.id === e.target.value);
             if (next) sim.loadScenario(next);
           }}
         >
-          {ALL_SCENARIOS.map((s) => (
+          {PICKER_ORDER.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>

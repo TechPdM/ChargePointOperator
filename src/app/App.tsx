@@ -9,7 +9,7 @@ import { useEffect, useRef, type ReactElement } from "react";
 
 import { useGameLoop } from "../ui/hooks/useGameLoop.ts";
 import { useSimulation } from "../ui/hooks/useSimulation.ts";
-import { roadsideHub } from "../game/scenarios/roadsideHub.ts";
+import { PICKER_ORDER } from "../game/scenarios/index.ts";
 
 import { APP_COMMIT, APP_VERSION } from "../ui/buildInfo.ts";
 import { devInfo, devNoteRender, devSetContext } from "../ui/devLog.ts";
@@ -42,7 +42,7 @@ import { PostRunSummary } from "../ui/components/PostRunSummary.tsx";
 const FIRST_SEED = randomDaySeed();
 
 export function App(): ReactElement {
-  const sim = useSimulation(roadsideHub, FIRST_SEED);
+  const sim = useSimulation(PICKER_ORDER[0]!, FIRST_SEED);
   useGameLoop(sim.state.running, sim.state.speed, sim.advance);
 
   const state = sim.state.sim;

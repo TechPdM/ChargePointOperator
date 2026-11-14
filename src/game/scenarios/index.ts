@@ -13,6 +13,13 @@ export { commuterHub, destinationSite, roadsideHub };
 
 export const ALL_SCENARIOS: ScenarioConfig[] = [roadsideHub, commuterHub, destinationSite];
 
+/**
+ * The order the site picker lists them in, easiest first, so a new player
+ * starts on the quiet destination site. Interface order only: the CLI and the
+ * gate tests keep `ALL_SCENARIOS`.
+ */
+export const PICKER_ORDER: ScenarioConfig[] = [destinationSite, commuterHub, roadsideHub];
+
 export const scenarios: Record<string, ScenarioConfig> = Object.fromEntries(
   ALL_SCENARIOS.map((s) => [s.id, s]),
 );
