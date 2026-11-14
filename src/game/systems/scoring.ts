@@ -34,16 +34,18 @@ function accumulateBayTime(ctx: TickContext): void {
       ctx.sample.openBaySeconds += ctx.delta;
     }
 
-    if (bay.state === "faulted") {
+    if (!bay.isOpen) {
+      // Player-closed time is tracked but excluded from the uptime denominator —
+      // closing a bay is a capacity decision, not unreliability (KPI dict).
+      // D64: that holds for a closed bay that is still faulted, or under
+      // repair; its fault counts against uptime only while it is open.
+      m.downtimeClosedSeconds += ctx.delta;
+    } else if (bay.state === "faulted") {
       m.downtimeFaultSeconds += ctx.delta;
       ctx.sample.faultSeconds += ctx.delta;
     } else if (bay.state === "repairing") {
       m.downtimeRepairSeconds += ctx.delta;
       ctx.sample.repairSeconds += ctx.delta;
-    } else if (!bay.isOpen) {
-      // Player-closed time is tracked but excluded from the uptime denominator —
-      // closing a bay is a capacity decision, not unreliability (KPI dict).
-      m.downtimeClosedSeconds += ctx.delta;
     }
 
     if (isBusy(bay)) {

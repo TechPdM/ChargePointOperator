@@ -931,3 +931,57 @@ describe("the player starts with no contract; the baseline takes one (D63)", () 
     expect(run.finalState.site.metrics.trust).toBeCloseTo(same.finalState.site.metrics.trust, 9);
   });
 });
+
+describe("closing a faulted bay with no contract (D64)", () => {
+  function faulted(level: "reactive" | "standard") {
+    const s = createInitialState({ ...roadsideHub, initialMaintenanceLevel: level }, "s1");
+    const bay = s.chargers["bay-3"];
+    if (!bay) throw new Error("no bay-3");
+    bay.state = "faulted";
+    bay.faultedAtSecond = 0;
+    return s;
+  }
+
+  it("on Repair upon request it closes at once and stays faulted", () => {
+    let s = queueAction(faulted("reactive"), { type: "toggle_bay_group", bayIds: ["bay-3"], open: false });
+    s = advance(s, 1);
+    const bay = s.chargers["bay-3"];
+    expect(bay?.isOpen).toBe(false);
+    expect(bay?.closeRequested).toBe(false);
+    expect(bay?.state).toBe("faulted");
+    expect(s.site.openBayIds).not.toContain("bay-3");
+  });
+
+  it("on a contract it still waits for the bay to free", () => {
+    let s = queueAction(faulted("standard"), { type: "toggle_bay_group", bayIds: ["bay-3"], open: false });
+    s = advance(s, 1);
+    expect(s.chargers["bay-3"]?.isOpen).toBe(true);
+    expect(s.chargers["bay-3"]?.closeRequested).toBe(true);
+  });
+
+  it("counts against uptime while open, and as closed once closed", () => {
+    let s = advance(faulted("reactive"), 10);
+    const faultBefore = s.site.metrics.downtimeFaultSeconds;
+    expect(faultBefore).toBeGreaterThan(0);
+
+    s = queueAction(s, { type: "toggle_bay_group", bayIds: ["bay-3"], open: false });
+    s = advance(s, 10);
+    expect(s.site.metrics.downtimeFaultSeconds).toBe(faultBefore);
+    expect(s.site.metrics.downtimeClosedSeconds).toBeGreaterThan(0);
+
+    // Reopening brings the fault, and the downtime, back.
+    s = queueAction(s, { type: "toggle_bay_group", bayIds: ["bay-3"], open: true });
+    s = advance(s, 5);
+    expect(s.chargers["bay-3"]?.state).toBe("faulted");
+    expect(s.site.metrics.downtimeFaultSeconds).toBeGreaterThan(faultBefore);
+  });
+
+  it("can still be repaired while closed, and comes back closed", () => {
+    let s = queueAction(faulted("reactive"), { type: "toggle_bay_group", bayIds: ["bay-3"], open: false });
+    s = advance(s, 1);
+    s = queueAction(s, { type: "schedule_repair", chargerBayId: "bay-3" });
+    s = advance(s, 120);
+    expect(s.chargers["bay-3"]?.state).toBe("idle");
+    expect(s.chargers["bay-3"]?.isOpen).toBe(false);
+  });
+});

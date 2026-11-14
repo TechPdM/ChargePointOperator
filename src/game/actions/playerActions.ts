@@ -107,7 +107,13 @@ function applyOne(ctx: TickContext, action: PlayerAction): void {
           bay.isOpen = true;
           bay.closeRequested = false;
           applied.push(bayId);
-        } else if (bay.state === "idle") {
+        } else if (
+          bay.state === "idle" ||
+          // D64: with no contract, nobody is coming to fix a faulted bay and
+          // nobody is plugged in (the fault ended the session), so the player
+          // may close it now. It stays faulted; reopening brings the fault back.
+          (bay.state === "faulted" && policy.maintenanceLevel === "reactive")
+        ) {
           bay.isOpen = false;
           bay.closeRequested = false;
           applied.push(bayId);

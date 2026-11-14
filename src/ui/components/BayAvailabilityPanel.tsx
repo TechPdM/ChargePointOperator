@@ -42,7 +42,8 @@ export function BayAvailabilityPanel({ sim }: { sim: Simulation }): ReactElement
       </ul>
       <p className="note">
         A closed bay costs nothing to run and can't break down. Closing one that's in use waits for
-        the car to finish — nobody gets unplugged. An upgrade is charged straight away and fitted
+        the car to finish — nobody gets unplugged. With no contract, a broken bay closes straight
+        away but stays broken until it's repaired. An upgrade is charged straight away and fitted
         when the bay next frees.
       </p>
     </Panel>
@@ -77,14 +78,21 @@ function BayRow({ bay, sim }: { bay: ChargerBay; sim: Simulation }): ReactElemen
         <button
           type="button"
           className="mini"
+          // A pending close is cancelled by opening the bay (D19), so while one
+          // is latched the button offers that rather than repeating the close.
           onClick={() =>
             sim.act(
-              { type: "toggle_bay_group", bayIds: [bay.id], open: !bay.isOpen },
-              { label: "Bays", detail: `${bay.label} ${bay.isOpen ? "closed" : "opened"}` },
+              { type: "toggle_bay_group", bayIds: [bay.id], open: !bay.isOpen || bay.closeRequested },
+              {
+                label: "Bays",
+                detail: `${bay.label} ${
+                  bay.closeRequested ? "kept open" : bay.isOpen ? "closed" : "opened"
+                }`,
+              },
             )
           }
         >
-          {bay.isOpen ? "Close" : "Open"}
+          {bay.closeRequested ? "Keep open" : bay.isOpen ? "Close" : "Open"}
         </button>
         {upgrade ? (
           <button

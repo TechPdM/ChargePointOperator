@@ -41,7 +41,7 @@ Ask for think-aloud. **Stay silent.** Answer any question with "what do you thin
 
 **Two known hazards to watch for specifically:**
 
-- **Latched bay transitions.** Closing or upgrading a busy bay does not take effect until the bay frees. `BayAvailabilityPanel` shows a pending state. If they click close, see nothing happen, and do not notice the pending label — that is the bug, and note which kind.
+- **Latched bay transitions.** Closing or upgrading a busy bay does not take effect until the bay frees. Exception (D64): with no contract, closing a faulted bay is immediate; the bay stays broken. While a close is pending the button reads *Keep open*. `BayAvailabilityPanel` shows a pending state. If they click close, see nothing happen, and do not notice the pending label — that is the bug, and note which kind.
 - **Two different "lost drivers" percentages.** Abandonment rate and `1 − charge-start success` have deliberately different denominators. A tester spotting the mismatch is asking a fair question; log it as a tooltip failure, not tester confusion.
 
 **Three more, added 2026-11-13 for D53, D59 and D60** (observer notes only; the frozen script is unchanged):

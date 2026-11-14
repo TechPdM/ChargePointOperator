@@ -1,6 +1,6 @@
 # ChargePointOperator — KPI Dictionary
 
-**Version:** 1.5 · **Date:** 2026-11-13 *(**v1.5: D58 `queue_collapse` and `queue_overload` at pressure 0.5; D60 turned-away KPI and its funnel split.** · v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24 · **v1.4: D31 — `queue_collapse` thresholds set from the measured joint distribution, and its abandonment arm reads the sustain window**)*
+**Version:** 1.6 · **Date:** 2026-11-14 *(**v1.6: D64 — a closed bay counts as closed whatever its state, so closing a faulted bay takes its fault out of uptime.** · **v1.5: D58 `queue_collapse` and `queue_overload` at pressure 0.5; D60 turned-away KPI and its funnel split.** · v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24 · **v1.4: D31 — `queue_collapse` thresholds set from the measured joint distribution, and its abandonment arm reads the sustain window**)*
 **Companions:** Architecture doc §5.3 (`SiteMetrics`), §7 (logging), §8 (dashboard)
 **Purpose:** one precise definition per KPI — formula, denominator, window, units — shared by the sim, the logs, and the dashboard. This closes the gap the paired-schema rule (C6) doesn't cover: it checks that names *match*, not that they *mean the same thing*. Any change to a definition here is a schema change and travels with the C6 pair.
 
@@ -29,7 +29,7 @@ Dashboard KPI cards show **ROLL** value with **CUM** in the hover detail unless 
 uptime = 1 − (downtimeFaultSeconds + downtimeRepairSeconds) / openBaySeconds
 ```
 
-- **Denominator `openBaySeconds`** = Σ over bays of time with `isOpen == true`. Player-closed time (`downtimeClosedSeconds`) is **excluded from the denominator** — closing a bay is a capacity decision, not unreliability, and must not be a trick to inflate uptime. It's tracked and displayed separately (O3).
+- **Denominator `openBaySeconds`** = Σ over bays of time with `isOpen == true`. Player-closed time (`downtimeClosedSeconds`) is **excluded from the denominator** — closing a bay is a capacity decision, not unreliability, and must not be a trick to inflate uptime. It's tracked and displayed separately (O3). **D64:** a bay counts as closed whenever `isOpen` is false, whatever its state; a faulted bay the player closes (possible at once on *Repair upon request*) stops counting against uptime until it reopens. That is a deliberate exception to the no-trick rule: the price is the bay's capacity, and the fault is still there when it reopens.
 - Numerator components per O3: `downtimeFaultSeconds` (faulted, awaiting repair) + `downtimeRepairSeconds` (actively repairing).
 - Edge case: a fault during an active session counts its remaining scheduled session time as fault downtime *and* marks the session interrupted.
 

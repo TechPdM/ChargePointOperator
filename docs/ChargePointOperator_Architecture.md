@@ -200,7 +200,7 @@ tick()
                                                                   └→ [LEAVE] (service_interrupted — D19)
 ```
 
-**Charger bay — `AMENDED (D19)`:** deferred close/upgrade added. A close or upgrade requested while the bay is busy is *latched*, not applied — the bay stops taking new work immediately and transitions when it next reaches `idle`.
+**Charger bay — `AMENDED (D19)`:** deferred close/upgrade added. A close or upgrade requested while the bay is busy is *latched*, not applied — the bay stops taking new work immediately and transitions when it next reaches `idle`. **D64:** on `reactive`, closing a *faulted* bay applies at once: a fault has already ended the session, so nobody is plugged in, and no contractor is coming to make it idle. The bay stays faulted while closed.
 
 ```text
 [IDLE] → [ALLOCATED] → [CHARGING] ─┬→ [COMPLETE] → [IDLE]
@@ -588,7 +588,8 @@ export interface ToggleBayGroupAction extends PlayerActionBase {
   open: boolean;
   // D19: `open: false` on a busy bay latches (closeRequested) rather than applying;
   // `open: true` applies immediately. The reducer never terminates a session to
-  // satisfy a close request.
+  // satisfy a close request. D64: on `reactive`, a faulted bay closes at once
+  // (no session to protect; nobody coming to free it) and stays faulted.
 }
 
 export interface ScheduleRepairAction extends PlayerActionBase {
