@@ -60,6 +60,8 @@ Mark asked for a confetti or lightning moment when every goal is met. Options we
 
 *Code:* `src/ui/effects/frameDischarge.ts` (plain canvas, no library; the trail is capped at 420 px and the spark count scales with the border length, since the real panel is far wider than the mock); `GoalsMetEffect.tsx` lays the canvas 80 px past the panel on every side and adds `is-lit` for the glow; with reduced motion asked for it shows the glow only. `.shell` got `overflow-x: clip` so the sparks can't widen the page.
 
+*Testing it:* add `?debug=win` to the URL (e.g. `cpo.thisliquidspace.com/?debug=win`) and the effect plays at the end of every day whatever the outcome. It changes nothing else, including the score.
+
 *Also fixed:* the panel's hint read "all four goals met" (and counted misses from 4) with three goals; it now reads from `GOAL_COUNT`.
 
 *Checked:* typecheck and build. Not yet seen in the app itself.

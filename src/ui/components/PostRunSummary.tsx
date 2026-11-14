@@ -25,6 +25,15 @@ const GOAL_COPY: Record<keyof ScenarioGoals, { label: string; format: (v: number
 /** Derived so the copy cannot drift from the goal set (D44). */
 const GOAL_COUNT = Object.keys(GOAL_COPY).length;
 
+/**
+ * `?debug=win` plays the goals-met effect at the end of every day, whatever the
+ * outcome, so it can be checked without having to win. Read once at load; it
+ * changes nothing else, including the score.
+ */
+const FORCE_WIN_EFFECT =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("debug") === "win";
+
 export function PostRunSummary({
   state,
   comparison,
@@ -50,7 +59,7 @@ export function PostRunSummary({
 
   return (
     <section className={`panel post-run ${outcome.allMet ? "is-win" : "is-loss"}`}>
-      {outcome.allMet ? <GoalsMetEffect /> : null}
+      {outcome.allMet || FORCE_WIN_EFFECT ? <GoalsMetEffect /> : null}
       <div className="panel-head">
         <h2>End of day — {state.scenario.name}</h2>
         <span className="panel-hint">
