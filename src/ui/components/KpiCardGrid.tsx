@@ -122,7 +122,13 @@ export function KpiCardGrid({ state }: { state: SimulationState }): ReactElement
         label="Average wait"
         value={waitSeconds === null ? "—" : minutes(waitSeconds)}
         unit={waitSeconds === null ? "nobody plugged in" : "min"}
-        tone={waitSeconds === null ? "idle" : toneFor(waitSeconds, 300, goals.maxAvgWaitSeconds)}
+        // Green up to 70% of the goal, red past it. A fixed 300 s "good" line
+        // inverted the scale once D57 set every goal under 300 s.
+        tone={
+          waitSeconds === null
+            ? "idle"
+            : toneFor(waitSeconds, goals.maxAvgWaitSeconds * 0.7, goals.maxAvgWaitSeconds)
+        }
         detail={
           waitSeconds === null
             ? `Nobody has started charging in the last 15 minutes, so there is no wait to average. That is not a good sign when there is a queue. Across the day so far: ${minutes(cumWait)} min against a goal of ${minutes(goals.maxAvgWaitSeconds)}.`

@@ -16,6 +16,7 @@ Live at `cpo.thisliquidspace.com`, on `main` at `65f49cc`. Version still 0.2.0.
 | :-- | :-- | :-- |
 | Model | With no contract, closing a faulted bay applies at once; the bay stays faulted; closed time is not counted against uptime | Decision log D64 |
 | Interface | A pending close can be cancelled: the bay button reads **Keep open** | D64; §3 below |
+| Interface | The Average wait card's colours ran backwards (red at zero, green as the wait grew) | §2a below |
 | Docs | KPI dictionary v1.6; Architecture §4 (charger bay) and the `toggle_bay_group` type; Session Pack observer note | §4 below |
 
 ## 2. The stuck close
@@ -39,6 +40,16 @@ Mark's point, which the sim already honoured: a faulted bay is never in use. The
 
 *Checked:* typecheck clean; 177/177 tests, four new in `mechanics.test.ts` (closes at once on reactive and stays faulted; still latches on standard; uptime counts while open and not while closed, and again on reopening; repairable while closed and returns closed). The baseline never closes a bay, so the goals and gate measurements do not move. Not yet looked at in a browser.
 
+## 2a. Average wait coloured backwards
+
+*Reported:* the Average wait card was red at zero, then amber, then green as the wait rose.
+
+*Cause:* the card called `toneFor(wait, 300, goal)`: green up to 300 s, red at the scenario goal. `toneFor` reads the direction from which threshold is larger. When the roadside goal was 420 s that was right; D57 re-fitted the goals to 210 / 120 / 200 s, all under 300, so "good" sat above "bad" and higher waits read as better. A regression from the goal re-fit, missed because the UI had no check on tone direction.
+
+*Fix:* green up to 70% of the goal, red past the goal, keeping the old 300-of-420 ratio and unable to invert whatever the goal. `KpiCardGrid.tsx`. Typecheck clean.
+
+*Noticed, not changed:* the queue card is green up to pressure 0.5, but D58 put `queue_collapse` at 0.5, so the card can read green at the threshold where collapse sets in.
+
 ## 3. How many simulations have we run?
 
 Not known: nothing counts runs. The only saved output is in `runs/` from 16–18 August (four 20-seed baselines, the roadside sweep, two strategy score files). A strategy test plays 8 strategies at 3 sites, 24 runs a seed: 960 days at 40 seeds, 1,920 at 80. With the gate probes, the test suite on every run and browser play, the estimate given was the low tens of thousands of simulated days, stated as an estimate. A run counter in `runScenario` writing to a git-ignored tally was offered; not taken up.
@@ -59,4 +70,5 @@ Not known: nothing counts runs. The only saved output is in `runs/` from 16–18
 
 1. **Look at D64 in the browser:** close a faulted bay on *Repair upon request*, then check the *Keep open* button on a busy bay.
 2. Everything from 2026-11-13 §7 stands: the playtest, the narrow criterion 2 pass, maintenance near-dominance, the harsher no-contract start, the unreproduced freeze.
-3. **Watch in the playtest** whether players use closing to shield uptime from faults, now that it works.
+3. **Queue card thresholds** (green ≤ 0.5, red ≥ 1.5) predate D58's 0.5 collapse threshold; Mark's call whether to align them.
+4. **Watch in the playtest** whether players use closing to shield uptime from faults, now that it works.
