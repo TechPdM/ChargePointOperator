@@ -72,6 +72,14 @@ export function App(): ReactElement {
         </h1>
       </div>
 
+      {/* End of day: renders only once the day is scored, and goes first so
+          the result is the first thing seen, above the KPIs it summarises. */}
+      <PostRunSummary
+        state={state}
+        comparison={sim.state.comparison}
+        scoring={sim.state.scoring}
+      />
+
       {/* The board: what the site IS right now. The KPI strip answers "how is
           it going", the power bus answers "where is the capacity going", and
           the bay rank answers "what have I got" — the three things a duty
@@ -114,12 +122,6 @@ export function App(): ReactElement {
         <ChargingPolicyPanel sim={sim} />
         <MaintenancePanel sim={sim} />
       </fieldset>
-
-      <PostRunSummary
-        state={state}
-        comparison={sim.state.comparison}
-        scoring={sim.state.scoring}
-      />
 
       <div className="chart-pair">
         {/* Given the two constants they read, not the whole state: `state` is

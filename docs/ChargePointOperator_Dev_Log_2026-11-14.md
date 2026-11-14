@@ -10,13 +10,14 @@
 
 ## 1. What shipped
 
-Live at `cpo.thisliquidspace.com`, on `main` at `65f49cc`. Version still 0.2.0.
+Live at `cpo.thisliquidspace.com`, on `main` at `d8770d2`. Version still 0.2.0.
 
 | Area | Change | Where recorded |
 | :-- | :-- | :-- |
 | Model | With no contract, closing a faulted bay applies at once; the bay stays faulted; closed time is not counted against uptime | Decision log D64 |
 | Interface | A pending close can be cancelled: the bay button reads **Keep open** | D64; §3 below |
 | Interface | The Average wait card's colours ran backwards (red at zero, green as the wait grew) | §2a below |
+| Interface | The end-of-day panel moved to the top, under the run controls and above the KPIs (was below the policy panels) | Mark's request |
 | Docs | KPI dictionary v1.6; Architecture §4 (charger bay) and the `toggle_bay_group` type; Session Pack observer note | §4 below |
 
 ## 2. The stuck close
@@ -72,5 +73,6 @@ Not known: nothing counts runs. The only saved output is in `runs/` from 16–18
 
 1. **Look at D64 in the browser:** close a faulted bay on *Repair upon request*, then check the *Keep open* button on a busy bay.
 2. Everything from 2026-11-13 §7 stands: the playtest, the narrow criterion 2 pass, maintenance near-dominance, the harsher no-contract start, the unreproduced freeze.
-3. **Queue card thresholds** (green ≤ 0.5, red ≥ 1.5) predate D58's 0.5 collapse threshold; Mark's call whether to align them.
-4. **Watch in the playtest** whether players use closing to shield uptime from faults, now that it works.
+3. **Trust card colours.** Every site starts on trust 60, so the card opens green at Junction 42 (goal 55) and amber at Eastgate (70) and Kesteven (63). A pace line like the margin card's was planned; Mark is reconsidering whether trust is meant to be maintained or built, which decides it.
+4. **Queue card thresholds** (green ≤ 0.5, red ≥ 1.5) predate D58's 0.5 collapse threshold; Mark's call whether to align them.
+5. **Watch in the playtest** whether players use closing to shield uptime from faults, now that it works.
