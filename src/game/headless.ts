@@ -9,6 +9,8 @@
  *   npm run sim -- archetypes [--seeds 20]
  *   npm run sim -- strategies [--seeds 8]     — the gate criterion 2 test
  *   npm run sim -- gate   [--seeds 10]        — the Phase 4 scorecard, machine half
+ *   npm run sim -- bench  [--seeds 16] [--confirm 40] [--json out.json]
+ *                                             — the good-player benchmark: can it be won?
  *
  * All commands take --scenario roadside|commuter|destination.
  *
@@ -40,6 +42,7 @@ import {
   gatherFailureStates,
   playtestProbes,
 } from "./experiment/gateEvidence.ts";
+import { pct, runBenchmark, type SeedSetScore } from "./experiment/benchmark.ts";
 import type {
   MaintenanceLevel,
   PowerPolicy,
@@ -64,6 +67,8 @@ interface Args {
   grid?: number;
   scenario: string;
   axis?: string;
+  /** `bench`: fresh days the winning settings are scored on. */
+  confirm: number;
 }
 
 /**
@@ -93,6 +98,7 @@ function parseArgs(argv: string[]): Args {
     from: 0,
     to: 1_440,
     scenario: roadsideHub.id,
+    confirm: 40,
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -140,6 +146,9 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--axis":
         args.axis = value;
+        break;
+      case "--confirm":
+        args.confirm = Number(value);
         break;
     }
   }
@@ -541,6 +550,45 @@ function fmtDelta(v: number, unit = ""): string {
 }
 
 const args = parseArgs(process.argv.slice(2));
+/**
+ * The good-player benchmark (strategy analysis §5, item 3). Searches the good
+ * player's settings on tuning days, then scores the winner and the baseline on
+ * fresh days. `--seeds` is the tuning count, `--confirm` the fresh count.
+ */
+function commandBench(args: Args): void {
+  const scenario = findScenario(args.scenario);
+  const tuningSeeds = args.seeds === 20 ? 16 : args.seeds;
+  console.log(`\n  GOOD-PLAYER BENCHMARK — ${scenario.name}`);
+  console.log(`  tuning on ${tuningSeeds} days (t1…), scoring on ${args.confirm} fresh days (v1…)\n`);
+  const started = Date.now();
+  const result = runBenchmark(scenario, {
+    tuningSeeds,
+    validationSeeds: args.confirm,
+    onProgress: (line) => console.log(`  ${line}`),
+  });
+  const goals = scenario.goals;
+  const row = (label: string, s: SeedSetScore): string =>
+    `  ${label.padEnd(22)} ${pct(s.winRate).padStart(5)}   ` +
+    `${pct(s.goalRates.minOperatingMargin).padStart(5)} ${pct(s.goalRates.maxAvgWaitSeconds).padStart(5)} ` +
+    `${pct(s.goalRates.minTrust).padStart(5)}   £${s.meanMargin.toFixed(0).padStart(5)} ` +
+    `${(s.meanWaitSeconds).toFixed(0).padStart(4)}s ${s.meanTrust.toFixed(1).padStart(5)}`;
+  console.log(`
+  best settings: ${result.bestLabel}
+  (${result.configsTried} settings tried over ${result.passes} pass(es), ${((Date.now() - started) / 1000).toFixed(0)} s)
+
+  goals: margin ≥ £${goals.minOperatingMargin} · wait ≤ ${goals.maxAvgWaitSeconds}s · trust ≥ ${goals.minTrust}
+                          win    margin  wait trust   mean margin/wait/trust
+${row(`good player (tuning)`, result.tuning)}
+${row(`good player (fresh)`, result.validation)}
+${row(`baseline (fresh)`, result.baseline)}
+
+  Quote the fresh-days line. The tuning line is flattered by the search.`);
+  if (args.json) {
+    writeFileSync(args.json, JSON.stringify(result, null, 2));
+    console.log(`\n  wrote ${args.json}`);
+  }
+}
+
 switch (args.command) {
   case "batch":
     commandBatch(args);
@@ -559,6 +607,9 @@ switch (args.command) {
     break;
   case "gate":
     commandGate(args);
+    break;
+  case "bench":
+    commandBench(args);
     break;
   default:
     commandRun(args);

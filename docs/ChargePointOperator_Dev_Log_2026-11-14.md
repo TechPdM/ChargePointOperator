@@ -119,6 +119,10 @@ Mark asked for the site picker reversed so new players start on the easy site. I
 
 Mark's call: the destination site is now **Trevithick Garden Centre**. Changed in the scenario, code comments, README and the current docs (How It Plays, Calibration, Gate Scorecard, the roadside scenario spec, the model map and today's strategy analysis). The decision log, the dev logs, the phase findings, and the pricing and plan docs keep "Kesteven" as the name at the time. The scenario id (`destination-site-01`) is unchanged, so seeds and saved runs are unaffected.
 
+## 5d. The good-player benchmark
+
+Built item 3 of the strategy analysis: a scripted good player (`experiment/goodPlayer.ts`), a per-site search over its settings (`experiment/benchmark.ts`) and a `bench` command. It tunes on 16 days and reports on 40 fresh ones. Fresh-day win rates: **Junction 42 88%, Trevithick 83%, Eastgate 25%** (baseline 10%, 13%, 3%). Price is the main lever, and the best price is above the starting price at every site. Eastgate's margin goal is out of reach even for the good player (met 28%). Results in strategy analysis §5b (raw JSON in `runs/`, git-ignored). Five new tests. About 16 minutes for the three sites in parallel.
+
 ## 6. Open, carried forward
 
 1. **Look at D64 in the browser:** close a faulted bay on *Repair upon request*, then check the *Keep open* button on a busy bay.

@@ -1,6 +1,6 @@
 # ChargePointOperator — Strategy Analysis: Why Days End Just Short
 
-**Version:** 1.1 · **Date:** 2026-11-14 *(v1.1: §5a, how "Turned away" is calculated)*
+**Version:** 1.2 · **Date:** 2026-11-14 *(v1.2: §5b, the good-player benchmark results · v1.1: §5a, how "Turned away" is calculated)*
 **Companions:** `ChargePointOperator_Calibration.md` §7 (measured baseline) · `ChargePointOperator_Decision_Log.md` (D13, D22, D57, D59, D63) · `ChargePointOperator_Gate_Scorecard.md` (criterion 2)
 **Status:** analysis and options only. No decision taken and no code changed. The order of work is Mark's call (§5).
 
@@ -134,8 +134,41 @@ Separately, a driver also drives on if your price is above their personal ceilin
 
 The card's tooltip and the end-of-day panel split drive-ons into price or wait as the main reason (D60). The reason is whichever cost more on that driver's score, or price whenever they were over their ceiling.
 
+## 5b. The good-player benchmark (item 3) — results
+
+**Built:** `src/game/experiment/goodPlayer.ts` (the player), `src/game/experiment/benchmark.ts` (the search), `npm run sim -- bench --scenario <site>` (the command). Tests in `tests/goodPlayer.test.ts`.
+
+**What the good player does.** It uses only what the dashboard shows and the controls a person has. It never sees the random draws or a driver's hidden ceiling. Its settings:
+
+- which contract to take in the first minute;
+- a standing price, as a multiple of the starting price;
+- a markup at the peaks and a discount in the lulls;
+- a further markup while the wait forecast is over a threshold;
+- a charging limit while the forecast is over that threshold;
+- the power policy;
+- whether to call out repairs on a contract or wait for the contractor.
+
+**How it was tuned.** The search tunes on 16 days (`t1`–`t16`), changing one setting at a time and keeping any change that wins more, until a full pass changes nothing. The winning settings are then scored on 40 different days (`v1`–`v40`), alongside the baseline on the same days. Only the fresh-day figures are quoted, because a search always looks better on the days it was tuned on. The search can miss better combinations, so these win rates are a floor on what good play can do, not a ceiling.
+
+| Site | Good player wins | Baseline wins | Best settings found | Goals met by good player (margin / wait / trust) |
+| :-- | --: | --: | :-- | :-- |
+| Junction 42 | **88%** | 10% | preventive contract, price ×1.05 (£0.83), ±5% at peaks and lulls | 93% / 100% / 95% |
+| Trevithick | **83%** | 13% | no contract, price ×1.30 (£0.72), ±10% at peaks and lulls, +20% while the forecast wait is over 5 min | 90% / 100% / 88% |
+| Eastgate | **25%** | 3% | standard contract, price ×1.10 (£0.79), 90% charging limit while the forecast wait is over 5 min | **28%** / 100% / 55% |
+
+Mean results on the fresh days: Junction 42 £4,421, 142 s, trust 64.6. Trevithick £700, 18 s, trust 67.7. Eastgate £1,227, 41 s, trust 69.6. Raw output in `runs/bench-*.json` (git-ignored, so local only; re-run `bench` to regenerate).
+
+**What it shows:**
+
+1. **Junction 42 and Trevithick can be won.** Good play wins about 85% of days there. The near misses at those sites come from the settings, not from the game being impossible.
+2. **The main lever is price, and the right price is higher than the starting price.** Every site's best settings charge more than the price the day opens on. At Trevithick the starting price (£0.55) is well below the site's going rate (£0.62), and the best price is £0.72. A player who leaves the price alone, or nudges it a few pence, is playing the baseline.
+3. **Eastgate is the real problem.** Even the good player meets the £1,450 margin goal on only 28% of days, and averages £1,227. Its trust goal of 70 is also only met on half of days. These goals are out of reach, not just tight.
+4. **The static strategies undersold good play.** §2b's best fixed strategies won 60%, 45% and 20%. Letting the price follow the queue and the waves, and finding the right price level, lifts that to 88%, 83% and 25%.
+
+**Against the proposed targets (§5, item 4: baseline 10–20%, good player 60–70%):** the baseline passes at Junction 42 and Trevithick, and is below the range at Eastgate (3%). The good player is *above* the range at Junction 42 and Trevithick, and well below it at Eastgate. So the re-fit (item 5) would make Junction 42 and Trevithick slightly harder for a good player, and make Eastgate's margin and trust goals reachable.
+
 ## 6. Open
 
-1. Agree the win-rate targets for the new check (§5, item 4).
+1. Agree the win-rate targets for the new check (§5, item 4), now that §5b gives the good player's actual rates.
 2. Choose the order of work, or the quick option.
 3. Decide on item 6: should the no-contract start be a handicap or a starting point the goals allow for?
