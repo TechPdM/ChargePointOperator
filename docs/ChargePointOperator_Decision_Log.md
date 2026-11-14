@@ -426,6 +426,8 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 *Accounting (ratified by Mark):* a faulted bay counts against uptime while it is open; once closed, its time counts as closed (`downtimeClosedSeconds`), outside the uptime denominator, for as long as it stays closed, whatever its state. `accumulateBayTime` now checks `isOpen` before the fault and repair buckets.
 
+*Considered and declined:* immediate close of a faulted bay on every maintenance level. On a contract the latch stays, by Mark's call: closing a faulted bay that the contractor is about to fix is a choice worth leaving to the player to manage.
+
 *Interface:* while a close is pending, the bay's button reads **Keep open** and cancels it, as D19 already allowed; before, it kept offering Close, so a pending close could not be cancelled from the panel.
 
 *Consequences:* closing a broken bay now shields uptime, and so `reliability_spiral`, from that fault, at the cost of the bay's capacity. The KPI dictionary's "closing must not be a trick to inflate uptime" now has this exception, which is deliberate. The baseline never closes a bay, so the goals and gate measurements do not move. Tests: four in `mechanics.test.ts` (D64).
