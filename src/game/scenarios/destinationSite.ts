@@ -1,5 +1,5 @@
 /**
- * "Kesteven Garden Centre" — the destination-site archetype (O6).
+ * "Trevithick Garden Centre" — the destination-site archetype (O6).
  *
  * Prose source: scenario spec §7 — *long-dwell, low urgency, `slow_ac`-heavy —
  * exercises the third tier*.
@@ -87,7 +87,7 @@ const demandWaves: DemandWave[] = [
 
 export const destinationSite: ScenarioConfig = {
   id: "destination-site-01",
-  name: "Kesteven Garden Centre",
+  name: "Trevithick Garden Centre",
   archetype: "destination_site",
   durationSeconds: SCENARIO_DURATION_SECONDS,
   tickSeconds: TICK_SECONDS,

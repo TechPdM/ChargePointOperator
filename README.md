@@ -40,7 +40,7 @@ The dashboard:
 npm run dev
 ```
 
-It opens on Kesteven, the quietest site (the site picker lists them easiest first), on a random day; **New seed** and **Free play** pick another, and the seed shown in the top bar replays one. The **Playtest pt-1 / pt-2 / pt-3** seeds are fixed days for the playtest protocol. The version in the header and footer comes from `package.json`, with the build's commit on hover.
+It opens on Trevithick, the quietest site (the site picker lists them easiest first), on a random day; **New seed** and **Free play** pick another, and the seed shown in the top bar replays one. The **Playtest pt-1 / pt-2 / pt-3** seeds are fixed days for the playtest protocol. The version in the header and footer comes from `package.json`, with the build's commit on hover.
 
 In dev, a `[CPO]` console logger records actions, pauses, main-thread blocks and stalled frames — filter the browser console on `[CPO]`. It is compiled out of production builds.
 

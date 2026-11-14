@@ -367,7 +367,7 @@ export const TRUST = {
    * An earlier attempt simply doubled the old blanket penalty. It worked at
    * Eastgate and wrecked the other two sites — trust fell to a 5%-met wall on
    * both, because it also taxed drivers leaving long queues, which is what
-   * Kesteven's drive-ons mostly are. Splitting the two is what makes the
+   * Trevithick's drive-ons mostly are. Splitting the two is what makes the
    * penalty land on the behaviour it is meant to be about.
    *
    * **MEASURED at -0.2, -0.4 and -0.7** (20 seeds × 3 scenarios). The effect at

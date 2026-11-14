@@ -775,7 +775,7 @@ describe("drivers take the bay that suits their car (D50)", () => {
     ({ maxChargeRateKw }) as SimulationState["vehicles"][string];
 
   it("a car that can use the rapid gets it, not the first AC post", () => {
-    // Kesteven: seven 22 kW posts, then the one 150 kW rapid as post 8. Bay
+    // Trevithick: seven 22 kW posts, then the one 150 kW rapid as post 8. Bay
     // order used to put a nearly empty car on post 1 with the rapid idle.
     const bays = Object.values(createInitialState(destinationSite, "s1").chargers);
     expect(chooseBay(car(100), bays)?.id).toBe("bay-8");

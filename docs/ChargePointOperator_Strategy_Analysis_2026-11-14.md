@@ -22,14 +22,14 @@ All runs are on `main` at `576fba7`, using the headless sim (`node --import tsx 
 | :-- | --: | --: | --: | --: |
 | Junction 42 | 38% | 50% | 25% | **8%** |
 | Eastgate | 18% | 95% | 20% | **12%** |
-| Kesteven | 23% | 68% | 43% | **12%** |
+| Trevithick | 23% | 68% | 43% | **12%** |
 
 ### 2b. The best built-in strategy at each site, 20 seeds per cell
 
 | Site | Best strategy | Win rate |
 | :-- | :-- | --: |
 | Junction 42 | premium + preventive | 60% |
-| Kesteven | premium (and premium + preventive, wave pricing) | 45% |
+| Trevithick | premium (and premium + preventive, wave pricing) | 45% |
 | Eastgate | as shipped (nothing tested does better) | **20%** |
 
 At Eastgate, raising the price lifts margin but costs trust, and both goals (£1,450, trust 70) sit above what the site normally makes.
@@ -119,9 +119,9 @@ score = 2.0 × urgency
       + 0.3 × (trust − 50) ÷ 25
 ```
 
-- **Urgency** is drawn per driver. Low-battery drivers are 0.9–1.0, commuters 0.3–0.5. At Kesteven everyone's urgency is cut to 70%.
+- **Urgency** is drawn per driver. Low-battery drivers are 0.9–1.0, commuters 0.3–0.5. At Trevithick everyone's urgency is cut to 70%.
 - **Wait** is the wait the sim forecasts: it works through the queue against when each working bay will free up. Broken and closed bays aren't counted, so a fault makes the forecast jump straight away. Each driver then misjudges the forecast by up to ±35% either way.
-- **Price** is measured against the site's going rate (£0.79 at Junction 42, £0.72 at Eastgate, £0.62 at Kesteven), not against the price you start on.
+- **Price** is measured against the site's going rate (£0.79 at Junction 42, £0.72 at Eastgate, £0.62 at Trevithick), not against the price you start on.
 - **Trust** above 50 makes drivers more willing to stay, and below 50 less willing.
 
 Separately, a driver also drives on if your price is above their personal ceiling, whatever their score. That ceiling is a base for their type plus a premium that rises with how far they'd have to drive to the next charger (D42).
@@ -130,7 +130,7 @@ Separately, a driver also drives on if your price is above their personal ceilin
 - **Each drive-on costs trust:** −0.15, plus a further −0.2 if the price was above that driver's ceiling (D45). So drive-ons pull trust down, which makes more people drive on.
 - **High prices also put people off before they arrive** (the arrival-rate elasticity, D21). Those drivers never appear, so they don't count as turned away.
 
-**Typical levels:** about 36% of arrivals at Junction 42, 30% at Eastgate and 44% at Kesteven (calibration §7). Kesteven is highest because its drivers are in no hurry and its chargers are slow, so even a short queue looks long. Now that new players start at Kesteven, a lot of drive-ons there is normal, not a sign of playing badly.
+**Typical levels:** about 36% of arrivals at Junction 42, 30% at Eastgate and 44% at Trevithick (calibration §7). Trevithick is highest because its drivers are in no hurry and its chargers are slow, so even a short queue looks long. Now that new players start at Trevithick, a lot of drive-ons there is normal, not a sign of playing badly.
 
 The card's tooltip and the end-of-day panel split drive-ons into price or wait as the main reason (D60). The reason is whichever cost more on that driver's score, or price whenever they were over their ceiling.
 

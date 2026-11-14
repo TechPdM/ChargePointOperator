@@ -65,7 +65,7 @@ The bases are **derived, not chosen**: each is the old ceiling (0.95 / 1.10 / 1.
 
 **The archetype reference price** is still where each archetype starts grumbling, but **D43 removed it from `siteScore`**, which now uses the *site's* reference. It survives only as the anchor the bases were sanity-checked against.
 
-**Detour ranges, per scenario (D42):** Junction 42 `[8, 30]` · Kesteven `[5, 18]` · Eastgate `[2, 7]` sim-minutes, justified against real UK rapid-charger spacing. The range's *width* is direction of approach — the next rapid is ahead of you or behind you — which is what makes refusal a curve rather than a step.
+**Detour ranges, per scenario (D42):** Junction 42 `[8, 30]` · Trevithick `[5, 18]` · Eastgate `[2, 7]` sim-minutes, justified against real UK rapid-charger spacing. The range's *width* is direction of approach — the next rapid is ahead of you or behind you — which is what makes refusal a curve rather than a step.
 
 **Effective charging power (D14, D15):** `effectivePowerKw = min(bayAllocatedKw, vehicle.maxChargeRateKw) × taper(soc)` where **taper = 1.0 below 0.80 SOC, 0.4 at/above 0.80 SOC** (two-segment first guess). **Since D47 it applies:** drivers targeting above 0.80 charge their last stretch at 40% speed. Before D47 no driver targeted above 0.80, so it never did. Charging is otherwise flat (no curve), by choice (D47).
 
@@ -108,7 +108,7 @@ The tiers used to price the same call-out at £300 / £200 / £150, which paid p
 | :-- | --: | --: | :-- |
 | Junction 42 (corridor, 3.7 faults/day) | 2.90 goals | **3.40 goals** | buying reliability pays where things break |
 | Eastgate (commuter, 2.1 faults/day) | 2.70 | 2.90 | marginal |
-| Kesteven (destination, 1.5 faults/day) | **3.00** | 2.40 | **a waste of money on a site that rarely breaks** |
+| Trevithick (destination, 1.5 faults/day) | **3.00** | 2.40 | **a waste of money on a site that rarely breaks** |
 
 Before D33 the dominant-strategy test returned two winners, both containing `preventive`. It now returns **three distinct winners** — `preventive`, `premium+preventive`, `premium` — and preventive alone is the third-worst strategy on the quiet site.
 
@@ -143,7 +143,7 @@ siteScore = a × urgencyScore
 
 **Re-computed for D43**, at Junction 42 and £0.79 — which **is** the corridor's reference price, so the price term is exactly zero here and these intercepts are urgency and trust alone. They previously carried a per-archetype price offset (+0.224 / +0.192 / +0.168) that had no business being site-independent, which is why commuters were shown shedding at ~9 sim-min and now hold out to ~13.
 
-**These intercepts are now site-specific.** The same table at Eastgate (reference £0.72) or Kesteven (£0.62) has different numbers at the same £0.79, which is the entire point of D43. A commuter at £0.85 scores 0.46 at the corridor, 0.07 at Eastgate and −0.49 at Kesteven, against a threshold of 0.15 — accepted at one site, refused at the other two.
+**These intercepts are now site-specific.** The same table at Eastgate (reference £0.72) or Trevithick (£0.62) has different numbers at the same £0.79, which is the entire point of D43. A commuter at £0.85 scores 0.46 at the corridor, 0.07 at Eastgate and −0.49 at Trevithick, against a threshold of 0.15 — accepted at one site, refused at the other two.
 
 **Price and patience are now coupled.** Walk-away time used to be fixed per archetype; a commuter now holds out ~13 sim-min at the going rate, ~7 at 6p over, and will not queue at all 16p over.
 
@@ -184,11 +184,11 @@ Measured over 20 seeds (`s1`–`s20`) on **2026-11-13**, after D46–D59, Juncti
 | Cumulative operating margin | **£4,074** [£3,457 · £4,196] | £3,701 | D47's larger sessions add kWh; D52 removed ~£330 of fees |
 | End trust | **54.1** [47.5 · 58.5] | 49.7 | fewer faults and shorter waits, against more drive-ons |
 
-Eastgate p50: margin £1,238 · wait 1.5 min · trust 68.2 · drive-ons 30%. Kesteven p50: margin £412 · wait 2.9 min · trust 63.1 · drive-ons 44%.
+Eastgate p50: margin £1,238 · wait 1.5 min · trust 68.2 · drive-ons 30%. Trevithick p50: margin £412 · wait 2.9 min · trust 63.1 · drive-ons 44%.
 
-**What moved, in one line:** shorter queue tolerance moved overload from the queue to the entrance (drive-ons up, waits halved), and halved faults lifted uptime and trust. Kesteven sheds the most at the gate: its drivers are unhurried (urgency ×0.7) and its posts are slow, so a short queue already looks long.
+**What moved, in one line:** shorter queue tolerance moved overload from the queue to the entrance (drive-ons up, waits halved), and halved faults lifted uptime and trust. Trevithick sheds the most at the gate: its drivers are unhurried (urgency ×0.7) and its posts are slow, so a short queue already looks long.
 
-**Difficulty floor check (D13):** **85%** at Junction 42 (£4,000 / 210 s / 55), **80%** at Eastgate (£1,450 / 120 s / 70) and Kesteven (£450 / 200 s / 63), the D57 goals as adjusted by D59. At Eastgate the wait goal is met 19/20 by design and margin and trust carry the floor (D57). Eastgate and Kesteven sit **exactly** on the bar, so re-measure after any change.
+**Difficulty floor check (D13):** **85%** at Junction 42 (£4,000 / 210 s / 55), **80%** at Eastgate (£1,450 / 120 s / 70) and Trevithick (£450 / 200 s / 63), the D57 goals as adjusted by D59. At Eastgate the wait goal is met 19/20 by design and margin and trust carry the floor (D57). Eastgate and Trevithick sit **exactly** on the bar, so re-measure after any change.
 
 The habit still holds — set goals from this table's own distribution rather than from paper, which is what OPEN-3 established and D36 re-applied.
 

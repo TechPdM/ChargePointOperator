@@ -93,7 +93,7 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 
 **This site has real pricing power, and that is a fact about its geography.** The nearest alternative rapid is 8–30 sim-minutes away depending on which way you are heading, so a driver here will pay a premium rather than detour — and the local going rate is £0.79, which is what they measure your price against. Measured over 20 seeds, **margin peaks at £0.90**, and putting the list price up 15% is worth **+£197**.
 
-**That answer does not transfer.** The same measurement puts the optimum at £0.75 at Eastgate, where the chargers on the next street mean a 15% rise *loses* £364 a day, and at £0.70 at Kesteven. Before D42/D43 all three sites peaked at £0.85 and "put the price up" was correct everywhere on day one — pricing was a lookup, not a decision.
+**That answer does not transfer.** The same measurement puts the optimum at £0.75 at Eastgate, where the chargers on the next street mean a 15% rise *loses* £364 a day, and at £0.70 at Trevithick. Before D42/D43 all three sites peaked at £0.85 and "put the price up" was correct everywhere on day one — pricing was a lookup, not a decision.
 
 **Failure states** are defined in the KPI dictionary (D24) and detected every tick. They don't end the run; they're recorded so gate criterion 3 is a count rather than an opinion.
 

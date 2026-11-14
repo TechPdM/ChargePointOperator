@@ -115,6 +115,10 @@ Mark suspected the game had become almost impossible to win. Measured and writte
 
 Mark asked for the site picker reversed so new players start on the easy site. It now lists Kesteven, Eastgate, Junction 42, and the game opens on Kesteven. Interface only (`PICKER_ORDER` in `scenarios/index.ts`); the CLI and gate tests keep the old order. Note from §5a: by measured win rate under good play, Junction 42 is the most winnable (60%), Kesteven next (45%) and Eastgate least (20%); Kesteven is the gentlest to play, not the easiest to win. Typecheck clean.
 
+## 5c. Kesteven renamed Trevithick
+
+Mark's call: the destination site is now **Trevithick Garden Centre**. Changed in the scenario, code comments, README and the current docs (How It Plays, Calibration, Gate Scorecard, the roadside scenario spec, the model map and today's strategy analysis). The decision log, the dev logs, the phase findings, and the pricing and plan docs keep "Kesteven" as the name at the time. The scenario id (`destination-site-01`) is unchanged, so seeds and saved runs are unaffected.
+
 ## 6. Open, carried forward
 
 1. **Look at D64 in the browser:** close a faulted bay on *Repair upon request*, then check the *Keep open* button on a busy bay.

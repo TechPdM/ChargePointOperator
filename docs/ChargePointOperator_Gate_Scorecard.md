@@ -31,9 +31,9 @@ Filling those rows from self-play or from a model's judgement would produce a nu
 
 ## Criterion 2 — no dominant strategy · **PASS (machine half), narrowly** · *re-issued 2026-11-13, D61 then D62*
 
-Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for the top contenders at Junction 42 and Kesteven. Measured against the D46–D60 model and the goals as of D59. Mean goals met out of 3:
+Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for the top contenders at Junction 42 and Trevithick. Measured against the D46–D60 model and the goals as of D59. Mean goals met out of 3:
 
-| Strategy | Junction 42 | Eastgate | Kesteven |
+| Strategy | Junction 42 | Eastgate | Trevithick |
 | :-- | --: | --: | --: |
 | as-shipped | 1.13 | 1.32 | 1.32 |
 | undercut | 0.00 | 0.00 | 0.00 |
@@ -44,13 +44,13 @@ Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for t
 | throughput+preventive | 1.35 | 1.00 | 1.18 |
 | **wave-pricing** *(D55)* | 2.20 | 1.35 | 2.25 |
 
-*(80 seeds for premium, preventive, premium+preventive and wave-pricing at Junction 42, and premium, premium+preventive and wave-pricing at Kesteven; 40 otherwise.)*
+*(80 seeds for premium, preventive, premium+preventive and wave-pricing at Junction 42, and premium, premium+preventive and wave-pricing at Trevithick; 40 otherwise.)*
 
 | Site | Winner | Not measurably behind it |
 | :-- | :-- | :-- |
 | Junction 42 | `premium+preventive` | **`wave-pricing`** (0.15 behind, *t*=1.35) |
 | Eastgate | `preventive` | **`wave-pricing`** (*t*=0.39), `as-shipped` (*t*=0.72) |
-| Kesteven | `premium` | `premium+preventive` (*t*=0.48), **`wave-pricing`** (0.15 behind, *t*=1.84) |
+| Trevithick | `premium` | `premium+preventive` (*t*=0.48), **`wave-pricing`** (0.15 behind, *t*=1.84) |
 
 **Verdict under D62: PASS.** Three distinct winners, and no strategy is both the best somewhere and credible everywhere.
 
@@ -62,7 +62,7 @@ Eight policies × three archetypes × **40 seeds**, re-run at **80 seeds** for t
 
 **Still outstanding:** the tester half — whether people propose ≥2 credible strategies, and whether they find the wave-pricing rule. That is the real test of whether it is a skill or a solved puzzle.
 
-*Previous issues:* 2026-11-13 morning, D46–D58 with the pre-D59 baseline: PASS narrowly, `wave-pricing` ruled out only at Kesteven (*t*=2.11). v1.2 (D42–D45, seven standing policies): PASS, winners `premium+preventive` / `preventive` / `premium+preventive`.
+*Previous issues:* 2026-11-13 morning, D46–D58 with the pre-D59 baseline: PASS narrowly, `wave-pricing` ruled out only at Trevithick (*t*=2.11). v1.2 (D42–D45, seven standing policies): PASS, winners `premium+preventive` / `preventive` / `premium+preventive`.
 
 ## Criterion 3 — failure modes reachable · **PASS, 5 of 5**
 

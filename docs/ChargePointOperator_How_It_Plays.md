@@ -82,7 +82,7 @@ Worked from the formulas in §3 for a mid-range driver, at the site's reference 
 | Price over reference at which they refuse **even with a free bay** | ~12p | ~33p | never; the hard ceiling comes first |
 | Hard ceiling at Junction 42 (19-min detour) | £0.95 | £1.10 | £1.50 |
 | Hard ceiling at Eastgate (4½-min detour) | £0.84 | £1.07 | £1.47 |
-| Hard ceiling at Kesteven (11½-min detour) | £0.89 | £1.09 | £1.49 |
+| Hard ceiling at Trevithick (11½-min detour) | £0.89 | £1.09 | £1.49 |
 
 - **Commuters are the price-and-queue-sensitive majority**: about 12p over the going rate and they won't stop even to an empty forecourt, and they won't join more than a 5-minute queue. Their high value of time means a long detour buys a real premium (15p at Junction 42), but Eastgate's chargers are 2–7 minutes apart, so there it buys almost nothing. That gap is what D42 built.
 - **En-route drivers tolerate a longer queue and a real price.** Their low value of time and big energy demand keep the detour premium small, so their ceiling barely changes between sites. They are also the ones charging past 80%, where it gets slow.
@@ -99,7 +99,7 @@ Arrivals per day before price thinning, and the mix across the day:
 | :-- | --: | :-- | :-- | --: |
 | Junction 42 | ~430 | 45% / 39% / 16% | — | ~36% |
 | Eastgate | ~200 | 76% / 17% / 7%, in two sharp commute spikes | patience ×0.8 (a commuter gives up after ~6½ min) | ~30% |
-| Kesteven | ~126 | 27% / 60% / 13%, daytime only | patience ×1.5, urgency ×0.7: unhurried shoppers | ~44% |
+| Trevithick | ~126 | 27% / 60% / 13%, daytime only | patience ×1.5, urgency ×0.7: unhurried shoppers | ~44% |
 
 The mix moves through the day: panic-heavy overnight, commuter-heavy at the commute peaks, en-route-heavy at midday. So the right price at 08:00 is not the right price at 13:00, and the measurement says that matters (§9, item 2).
 
@@ -123,7 +123,7 @@ Charging is modelled by **energy, not duration**. Nothing decides in advance how
 | En-route, 25→100%, 250 kW car on a 350 kW ultra | 45 kWh | ~15 min |
 | …same car with a 90% limit | 39 kWh | ~12 min |
 | Panic, 7→70%, 100 kW car on a 150 kW rapid | 38 kWh | ~22 min |
-| Commuter, 45→85%, on a Kesteven 22 kW AC post | 24 kWh | ~78 min |
+| Commuter, 45→85%, on a Trevithick 22 kW AC post | 24 kWh | ~78 min |
 
 The 80%+ stretch is where the time goes: the last 5% of the commuter's charge takes 3 of their 11 minutes. **That is what the charging limit trades against.** Charging is otherwise flat — no curve before 80% — by choice (D47), which keeps sessions short and the day's pace unchanged.
 
@@ -136,12 +136,12 @@ The 80%+ stretch is where the time goes: the last 5% of the commuter's charge ta
 | Lever | What it does | What it costs you | When it matters |
 | :-- | :-- | :-- | :-- |
 | **Price** (£0.45–£1.20/kWh) | More per kWh. Fewer arrivals, and fewer of those stay. *(The connection fee is £0 and hidden, D52.)* | Volume. Every drive-on costs trust, and drivers turned away by **price** cost extra (D45). | Always. **The strongest single lever**, and worth moving through the day (§9, item 2). |
-| **Power policy** — equal share / fast-first / finish-soonest-first / manual | Decides who gets the grid when it runs short. Creates no kilowatts. | — | Only when the cap binds. Since D48 `queue_relief` serves no more drivers than equal share, but fewer give up in the queue. `fast_first` is a trap that starves marginal bays. Inert at Kesteven by design. |
+| **Power policy** — equal share / fast-first / finish-soonest-first / manual | Decides who gets the grid when it runs short. Creates no kilowatts. | — | Only when the cap binds. Since D48 `queue_relief` serves no more drivers than equal share, but fewer give up in the queue. `fast_first` is a trap that starves marginal bays. Inert at Trevithick by design. |
 | **Charging limit** (off / 90% / 75% / 50%, D49) | Stops cars early, so bays turn over faster. 90% trims the slowest stretch for en-route drivers filling up; 75% cuts almost everyone. **The only lever that raises the throughput ceiling under a binding cap** (D14). | kWh sold, so revenue. −0.1 trust for each driver cut short. | When the queue is the problem and energy is not the money. |
-| **Maintenance level** — Repair upon request / Standard contract / Preventive contract. **You start with no contract (D63).** | Fault rate ×1.25 / ×1.0 / ×0.5, repair time ×1.2 / ×1.0 / ×0.7, and a contractor who repairs faults unasked after 30 / 15 min on the two contracts (D53). | £0 / £25 / £150 a day standing. Repairs £200; calling one out yourself on a contract £300 (D59). | Busy sites with heavy hardware. Loses money on a quiet site (Kesteven). |
+| **Maintenance level** — Repair upon request / Standard contract / Preventive contract. **You start with no contract (D63).** | Fault rate ×1.25 / ×1.0 / ×0.5, repair time ×1.2 / ×1.0 / ×0.7, and a contractor who repairs faults unasked after 30 / 15 min on the two contracts (D53). | £0 / £25 / £150 a day standing. Repairs £200; calling one out yourself on a contract £300 (D59). | Busy sites with heavy hardware. Loses money on a quiet site (Trevithick). |
 | **Call out a repair** | Starts the repair now rather than waiting for the contractor. On reactive, nobody else will. | £200 on reactive; **£300 on a contract**, against the contractor's £200 (D59) | Every fault on reactive; on a contract, when 15–30 minutes of a lost bay is worth £100 — at a peak, or with several bays down. |
 | **Open / close bays** | Takes capacity out of service. A busy bay closes when it next goes idle; while it waits, the button reads *Keep open* and cancels. With no contract, a faulted bay closes at once and stays faulted: it drops off the Faults panel and stops counting against uptime until reopened (D64). A closed bay costs nothing to run and can't fault (D54). | Capacity | Small savings on a quiet site or overnight (at most ~£50 a day per bay on the corridor). |
-| **Upgrade a charger** (rapid 150 kW → ultra-rapid 350 kW for £75,000; at Kesteven also AC 22 kW → rapid for £35,000) | More power per bay, used only by cars faster than 150 kW (D50 sends them there) | Out of £100,000 starting cash. Comes out of cash, **not** the margin goal; it is judged by `margin_trap` instead. | Mostly a trap: it buys nothing at peaks, where the grid, not the charger, is the limit (Scenario §5a). |
+| **Upgrade a charger** (rapid 150 kW → ultra-rapid 350 kW for £75,000; at Trevithick also AC 22 kW → rapid for £35,000) | More power per bay, used only by cars faster than 150 kW (D50 sends them there) | Out of £100,000 starting cash. Comes out of cash, **not** the margin goal; it is judged by `margin_trap` instead. | Mostly a trap: it buys nothing at peaks, where the grid, not the charger, is the limit (Scenario §5a). |
 
 ## 7. What you are scored on, and what pushes back
 
@@ -178,7 +178,7 @@ Trust can move at most ±5 in any rolling hour, so it is slow to recover. It fee
 
 The same rules on three different sites. Gate criterion 2 needs the right answer to change between them.
 
-| | **Junction 42 Services** (corridor) | **Eastgate Park & Charge** (commuter) | **Kesteven Garden Centre** (destination) |
+| | **Junction 42 Services** (corridor) | **Eastgate Park & Charge** (commuter) | **Trevithick Garden Centre** (destination) |
 | :-- | :-- | :-- | :-- |
 | Hardware | 4 × 150 kW + 2 × 350 kW | 6 × 150 kW | 7 × 22 kW AC + 1 × 150 kW |
 | Grid cap | 650 kW (50% of nameplate) | 450 kW | 350 kW |
@@ -210,10 +210,10 @@ Observations from the code and the measured findings, offered as the agenda for 
 4. **Maintenance is close to dominant.** `preventive` is part of every site's best strategy, and contractor repairs (D53) now make the higher tiers more convenient as well as more reliable.
 5. **Calling out a repair is now a judgement, not a reflex (D59).** On a contract it costs £300 against the contractor's £200, so it pays only when 15–30 minutes of a lost bay is worth £100. Whether players read it that way is a playtest question.
 6. **Trust responds slowly.** Capped at ±5 an hour and spread over many small events, its cause and effect may be hard to read within a five-minute day. That is gate criterion 1's question.
-7. **Overload now shows at the entrance, not in the queue.** About a third of drivers turn away at the corridor and Eastgate under baseline play, and 44% at Kesteven, where unhurried drivers meet slow posts. Since D60 the **Served · turned away** card shows the count, the 15-minute share and the reasons (price, wait, queue full). Whether players connect it to their price is a playtest question.
+7. **Overload now shows at the entrance, not in the queue.** About a third of drivers turn away at the corridor and Eastgate under baseline play, and 44% at Trevithick, where unhurried drivers meet slow posts. Since D60 the **Served · turned away** card shows the count, the 15-minute share and the reasons (price, wait, queue full). Whether players connect it to their price is a playtest question.
 8. **Sessions are probably short.** Flat charging below 80% gives DC sessions of about 8–22 minutes. Real UK rapid sessions are believed to run nearer half an hour, mostly because of the charging curve. *Not checked against a source.* Kept flat by choice (D47) to keep the day's pace; a realistic curve is a Phase 5 option and would mean rescaling demand.
 9. **No overheads and no overstay.** No plug-in time, no losses, and a bay frees the minute a car finishes. Bay-blocking and idle fees are a real operator lever the game doesn't have.
-10. **Driver types are the same on every site** apart from the mix, the detour range and the patience and urgency multipliers. A Kesteven shopper arrives as empty as a motorway driver.
+10. **Driver types are the same on every site** apart from the mix, the detour range and the patience and urgency multipliers. A Trevithick shopper arrives as empty as a motorway driver.
 
 ## 10. Where the documents and the code disagree
 
