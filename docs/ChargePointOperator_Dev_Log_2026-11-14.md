@@ -69,8 +69,6 @@ Mark asked for a confetti or lightning moment when every goal is met. Options we
 
 *Checked:* typecheck and build; Mark checked the fixed flash with `?debug=win` ("flash looks good") and took it to mobile.
 
-*Tried and dropped:* seals and hamsters in the effect (a hamster running ahead of the current, critters flung out at the discharge), then a slower version of them. Built on the review page only, never in the game; Mark removed both.
-
 ## 2c. Smaller interface changes
 
 - **Speed buttons** were a joined segmented strip and felt cramped. Now 3 px apart (the stylesheet has no spacing step under `--gap`'s 10 px; 3 px is already used and matches `--radius`), each with its own border and corners.
