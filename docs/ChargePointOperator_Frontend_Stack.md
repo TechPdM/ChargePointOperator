@@ -97,9 +97,11 @@ Only plain data crosses the boundary (the scenario goes over as an id and is loo
 
 **Seeds.** First load, New seed and Free play take a random `s1`–`s9999` from `src/ui/seeds.ts`; the playtest seeds `pt-1`–`pt-3` are fixed (`experiment/gateEvidence.ts`).
 
+**Goals-met celebration (2026-11-14).** On a day where every goal is met, `PostRunSummary` mounts `GoalsMetEffect`: a canvas laid 80 px past the panel on every side, sized explicitly (a canvas is a replaced element, so `inset` alone leaves it at its intrinsic size), running `effects/frameDischarge.ts` once, about 2.8 s, then adding `is-lit` for the border glow. It measures the panel's own border box. Reduced motion gets the glow only. `.shell` clips horizontal overflow so the sparks cannot widen the page. `?debug=win` plays it at the end of any day and adds a *Replay effect* button to the panel header. The end-of-day panel renders at the top, under the run controls.
+
 ## 6. Components
 
-18 files under `src/ui/components/` — the 15-component MVP cut, `PostRunSummary`, and the shared `Panel` and `chart` modules — plus `src/ui/format.ts` and the two hooks. Conventions visible throughout:
+20 files under `src/ui/components/` — the 15-component MVP cut, `PostRunSummary`, `AboutBanner`, `GoalsMetEffect`, and the shared `Panel` and `chart` modules — plus `src/ui/format.ts`, the two hooks, and `src/ui/effects/frameDischarge.ts`. Conventions visible throughout:
 
 - **One frame component.** `Panel` (title, optional hint, optional tone, `wide`) wraps almost every box on screen; `Empty` is the shared empty state. Twelve of the components import it.
 - **Props are explicit and inline.** Components take a destructured object literal type and return `ReactElement`; there are no exported `Props` interfaces.

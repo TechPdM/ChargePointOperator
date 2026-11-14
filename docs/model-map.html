@@ -551,8 +551,8 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
       flag: true },
 
     { id: "baytoggle", band: "b", g: B[5], label: "Bay open / close", sub: "toggle_bay_group", kind: "power",
-      blurb: "Closing a busy bay latches and lands the moment it next reaches idle. A closed bay costs nothing to run and cannot fault, scripted faults included (D54). Closed time is tracked but kept out of the uptime denominator — capacity decisions are not unreliability.",
-      formula: "closeRequested = true   → applied at next idle (D19)\nopex, standing charge   × open bays / all bays (D54)\nclosed bay              no random or scripted fault\ndowntimeClosedSeconds accrues, excluded from uptime",
+      blurb: "Closing a busy bay latches and lands the moment it next reaches idle. With no contract a faulted bay closes at once and stays faulted (D64). A closed bay costs nothing to run and cannot fault, scripted faults included (D54). Closed time, faulted or not, is tracked but kept out of the uptime denominator — capacity decisions are not unreliability.",
+      formula: "closeRequested = true   → applied at next idle (D19)\nfaulted + reactive      → closed at once, fault kept (D64)\nopex, standing charge   × open bays / all bays (D54)\nclosed bay              no random or scripted fault\ndowntimeClosedSeconds accrues, excluded from uptime",
       consts: [["latency", "until idle"], ["counts against uptime", "no"], ["latched bay", "still open, still costs"]],
       src: "src/game/actions/playerActions.ts:99 · faults.ts:63, 132 · economics.ts:23" },
 
@@ -629,7 +629,7 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
 
     { id: "faults", band: "c", g: C2[2], label: "resolveFaultsAndRepairs", sub: "hazard · contractor", kind: "fault",
       blurb: "A per-tick hazard that integrates to roughly the spec's failure probability over one session. Only bays actually delivering power can fault randomly. On a contract, a fault that has stood for the response time is repaired by the contractor unasked (D53). Scripted faults ignore maintenance but skip a closed bay (D54).",
-      formula: "1. repairs due      → idle\n2. contract (D53)   faulted ≥ contractResponseSeconds\n                    → beginRepair(\"contract\"), £200\n3. scripted         skip closed or down bays (D54)\n4. random           charging bays only\n\np = ((1 − reliabilityBase) / max(1, expectedSessionTicks))\n    × faultProbabilityMultiplier\nrepair = repairSecondsMean × repairTimeMultiplier",
+      formula: "1. repairs due      → idle\n2. contract (D53)   faulted ≥ contractResponseSeconds, open bays only (D64)\n                    → beginRepair(\"contract\"), £200\n3. scripted         skip closed or down bays (D54)\n4. random           charging bays only\n\np = ((1 − reliabilityBase) / max(1, expectedSessionTicks))\n    × faultProbabilityMultiplier\nrepair = repairSecondsMean × repairTimeMultiplier",
       consts: [["connector", "0.40"], ["power module", "0.25"], ["cooling", "0.20"], ["software", "0.15"], ["contractor response", "1,800 s · 900 s · none"], ["repair path", "shared, repairs.ts"]],
       src: "src/game/systems/faults.ts:18, 26 · repairs.ts:32",
       notes: ["Idle and queueing bays never fault randomly, so closing bays lowers the fault rate as well as capacity.",

@@ -8,6 +8,7 @@
 
 - [ ] `npm run dev`, dashboard open at the Junction 42 site, seed set to **Playtest pt-1**
 - [ ] Speed on **1×** (the day takes 5 real minutes; do not speed it up for them)
+- [ ] The address has **no `?debug=win`** (it plays the win effect whatever the result)
 - [ ] This sheet, a timer, and somewhere to write
 - [ ] Tester is **not** you. At least one of your three should be neither a gamer nor an EV person
 

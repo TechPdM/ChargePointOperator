@@ -1,6 +1,6 @@
 # ChargePointOperator — How the Game Works
 
-**Date:** 2026-11-13 · **Read from:** the code after the D46–D63 revision (v0.2.0)
+**Date:** 2026-11-14 · **Read from:** the code after the D46–D64 revision (v0.2.0)
 **Status:** a description of the game **as built**, like `model-map.html`. It specifies nothing. Where it disagrees with the code, the code is right; where it disagrees with a canonical document, §10 lists the difference so it can be settled there.
 
 This is the plain-language account: what the player does, what pushes back, and where the decisions are meant to be. The formulas are here only where they explain a decision. For every variable and path, open `model-map.html`.
@@ -50,7 +50,7 @@ Each tick runs the same pipeline, in this order (`core/tick.ts`, Architecture §
 4. **Placed or queued.** The driver takes the free bay that charges their car fastest (D50). If none is free they queue (capacity 12), first come first served. If the queue is full, they leave.
 5. **Power is shared out.** The grid cap is split across charging bays by your power policy. Each bay gets no more than the charger or the car can take.
 6. **Sessions advance.** Energy flows, and a car finishes when it reaches its target charge, or your charging limit if lower.
-7. **Faults and repairs.** Only bays that are delivering power can fault, at a rate set by the hardware and your maintenance level (about 2 random faults a day on the corridor, D51). A fault ends the session in progress. On a maintenance contract the contractor starts the repair after 30 min (standard) or 15 min (preventive), D53. Each scenario also has **one scripted fault** at a fixed time, which is the designed "something just went wrong" moment; it skips a bay you have closed.
+7. **Faults and repairs.** Only bays that are delivering power can fault, at a rate set by the hardware and your maintenance level (about 2 random faults a day on the corridor, D51). A fault ends the session in progress. On a maintenance contract the contractor starts the repair after 30 min (standard) or 15 min (preventive), D53; a bay you have closed is left alone until you reopen it (D64). Each scenario also has **one scripted fault** at a fixed time, which is the designed "something just went wrong" moment; it skips a bay you have closed.
 8. **Queue abandonment.** Once a driver has waited past their patience, the chance they leave rises over 10 minutes to 50% a minute.
 9. **Money and reputation update**, then failure states are detected and invariants checked.
 
@@ -140,7 +140,7 @@ The 80%+ stretch is where the time goes: the last 5% of the commuter's charge ta
 | **Charging limit** (off / 90% / 75% / 50%, D49) | Stops cars early, so bays turn over faster. 90% trims the slowest stretch for en-route drivers filling up; 75% cuts almost everyone. **The only lever that raises the throughput ceiling under a binding cap** (D14). | kWh sold, so revenue. −0.1 trust for each driver cut short. | When the queue is the problem and energy is not the money. |
 | **Maintenance level** — Repair upon request / Standard contract / Preventive contract. **You start with no contract (D63).** | Fault rate ×1.25 / ×1.0 / ×0.5, repair time ×1.2 / ×1.0 / ×0.7, and a contractor who repairs faults unasked after 30 / 15 min on the two contracts (D53). | £0 / £25 / £150 a day standing. Repairs £200; calling one out yourself on a contract £300 (D59). | Busy sites with heavy hardware. Loses money on a quiet site (Kesteven). |
 | **Call out a repair** | Starts the repair now rather than waiting for the contractor. On reactive, nobody else will. | £200 on reactive; **£300 on a contract**, against the contractor's £200 (D59) | Every fault on reactive; on a contract, when 15–30 minutes of a lost bay is worth £100 — at a peak, or with several bays down. |
-| **Open / close bays** | Takes capacity out of service. A busy bay closes when it next goes idle. A closed bay costs nothing to run and can't fault (D54). | Capacity | Small savings on a quiet site or overnight (at most ~£50 a day per bay on the corridor). |
+| **Open / close bays** | Takes capacity out of service. A busy bay closes when it next goes idle; while it waits, the button reads *Keep open* and cancels. With no contract, a faulted bay closes at once and stays faulted: it drops off the Faults panel and stops counting against uptime until reopened (D64). A closed bay costs nothing to run and can't fault (D54). | Capacity | Small savings on a quiet site or overnight (at most ~£50 a day per bay on the corridor). |
 | **Upgrade a charger** (rapid 150 kW → ultra-rapid 350 kW for £75,000; at Kesteven also AC 22 kW → rapid for £35,000) | More power per bay, used only by cars faster than 150 kW (D50 sends them there) | Out of £100,000 starting cash. Comes out of cash, **not** the margin goal; it is judged by `margin_trap` instead. | Mostly a trap: it buys nothing at peaks, where the grid, not the charger, is the limit (Scenario §5a). |
 
 ## 7. What you are scored on, and what pushes back

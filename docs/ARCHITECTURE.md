@@ -40,14 +40,14 @@ The sim core is the system. It has three hosts that run the **same code**: the d
 
 ### Size
 
-About 14.4k lines of TypeScript/TSX/CSS, measured on 2026-11-13 after D46–D60:
+About 15.1k lines of TypeScript/TSX/CSS, measured on 2026-11-14 after D64:
 
 | Area | Files | Lines |
 | :-- | --: | --: |
-| `src/game/` (sim core + CLI) | 38 | ~7,400 |
-| `src/ui/`, `src/app/`, `src/main.tsx` | 24 | ~2,960 |
-| `src/styles/app.css` | 1 | ~1,640 |
-| `tests/` | 8 | ~2,400 (170 test cases) |
+| `src/game/` (sim core + CLI) | 38 | ~7,420 |
+| `src/ui/`, `src/app/`, `src/main.tsx` | 30 | ~3,450 |
+| `src/styles/app.css` | 1 | ~1,720 |
+| `tests/` | 8 | ~2,500 (178 test cases) |
 
 ---
 
@@ -226,7 +226,8 @@ React 19 function components in `StrictMode`, mounted from `src/main.tsx`. The d
 
 - Each panel is its own file in `ui/components/`. `Panel` is the common frame. `chart.tsx` holds hand-rolled SVG plot primitives: one axis per plot, nulls drawn as gaps, crosshair readout.
 - `memo` is used only on the charts and the event log. They take scalar props because `state` is a new object every tick.
-- A `<fieldset disabled>` locks every control once the day is scored.
+- A `<fieldset disabled>` locks every control once the day is scored. The end-of-day panel then appears at the top, under the run controls.
+- On a goals-met day the end-of-day panel plays a canvas celebration (`GoalsMetEffect`, `ui/effects/frameDischarge.ts`); `?debug=win` forces it on any day for testing.
 - Styling is one hand-written `app.css`. Custom properties act as design tokens, layouts use CSS Grid, there are five breakpoints and a `prefers-reduced-motion` block. Fonts are system fonts, so nothing is fetched at runtime. `tests/contrast.test.ts` parses the stylesheet and checks WCAG AA contrast ratios.
 
 ---

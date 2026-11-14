@@ -277,12 +277,12 @@ closeOutRun(simState)     // NEW (D18/D19): after the final tick — finalize st
 
 The model had `schedule_repair`, `repairSecondsMean`, maintenance multipliers and a fault/repair downtime split, but never said what triggers a repair. Without that, `downtimeFaultSeconds` and `downtimeRepairSeconds` are indistinguishable and baseline uptime is a coin flip. Pinned:
 
-- **AMENDED (D53):** on `reactive` maintenance a faulted bay stays `faulted` **indefinitely** until the player (or the baseline actor) issues `schedule_repair`. On `standard` / `preventive` the contractor starts the repair once the fault has stood 30 / 15 min (`MaintenanceProfile.contractResponseSeconds`), emitting `charger.repair_started` with `dispatched_by: "contract"` and no `repair_scheduled`, which stays the player's decision marker. Both paths share `systems/repairs.ts`, so duration and cost cannot drift.
+- **AMENDED (D53):** on `reactive` maintenance a faulted bay stays `faulted` **indefinitely** until the player (or the baseline actor) issues `schedule_repair`. On `standard` / `preventive` the contractor starts the repair once the fault has stood 30 / 15 min (`MaintenanceProfile.contractResponseSeconds`), emitting `charger.repair_started` with `dispatched_by: "contract"` and no `repair_scheduled`, which stays the player's decision marker. **D64:** the contractor skips a closed bay; once reopened, a fault that has stood past the response time is dispatched at once. Both paths share `systems/repairs.ts`, so duration and cost cannot drift.
 - `schedule_repair` moves the bay `faulted → repairing`, stamps `repairScheduledAtSecond`, sets `repairDueAtSecond = now + round(repairSecondsMean × maintenanceRepairTimeMultiplier)`, and debits the per-repair cost **immediately**.
 - `repairing → idle` when `secondsElapsed >= repairDueAtSecond`.
 - **No concurrency limit** in MVP — all six bays can repair simultaneously. A technician-availability constraint is a Phase 5 mechanic, not a silent MVP rule.
 - `schedule_repair` on a bay that is not `faulted` is a **no-op** (logged at `warn`, no cost). The UI should disable the control rather than rely on this.
-- Downtime accounting: `faulted` accrues `downtimeFaultSeconds`, `repairing` accrues `downtimeRepairSeconds`, `isOpen == false` accrues `downtimeClosedSeconds`. A bay can only be in one of the three.
+- Downtime accounting: `isOpen == false` accrues `downtimeClosedSeconds` whatever the bay's state (D64: a closed faulted bay is not counted against uptime); otherwise `faulted` accrues `downtimeFaultSeconds` and `repairing` accrues `downtimeRepairSeconds`. A bay can only be in one of the three.
 
 The baseline actor's repair behaviour is pinned separately by D22: it calls `schedule_repair` on the tick a fault is detected.
 
