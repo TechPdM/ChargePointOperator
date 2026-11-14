@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { cumulativeMargin } from "../../game/systems/economics.ts";
 import { evaluateGoals } from "../../game/systems/scoring.ts";
 import { FAILURE_STATE_COPY, minutes, money } from "../format.ts";
@@ -27,7 +27,8 @@ const GOAL_COUNT = Object.keys(GOAL_COPY).length;
 
 /**
  * `?debug=win` plays the goals-met effect at the end of every day, whatever the
- * outcome, so it can be checked without having to win. Read once at load; it
+ * outcome, and adds a Replay effect button to the panel header, so it can be
+ * checked without having to win. Read once at load; it
  * changes nothing else, including the score.
  */
 const FORCE_WIN_EFFECT =
@@ -44,6 +45,8 @@ export function PostRunSummary({
   /** The baseline is still running. The column is coming, not missing. */
   scoring?: boolean;
 }): ReactElement | null {
+  // Bumped by the debug Replay button; re-keying the effect remounts it, which plays it again.
+  const [effectRun, setEffectRun] = useState(0);
   if (state.running) return null;
 
   const outcome = evaluateGoals(state);
@@ -59,7 +62,7 @@ export function PostRunSummary({
 
   return (
     <section className={`panel post-run ${outcome.allMet ? "is-win" : "is-loss"}`}>
-      {outcome.allMet || FORCE_WIN_EFFECT ? <GoalsMetEffect /> : null}
+      {outcome.allMet || FORCE_WIN_EFFECT ? <GoalsMetEffect key={effectRun} /> : null}
       <div className="panel-head">
         <h2>End of day — {state.scenario.name}</h2>
         <span className="panel-hint">
@@ -68,6 +71,16 @@ export function PostRunSummary({
             if (missed === 0) return `all ${GOAL_COUNT} goals met`;
             return `${missed} of ${GOAL_COUNT} goals missed`;
           })()}
+          {FORCE_WIN_EFFECT ? (
+            <button
+              type="button"
+              className="mini post-run-replay"
+              title="Play the goals-met effect again (?debug=win)"
+              onClick={() => setEffectRun((n) => n + 1)}
+            >
+              Replay effect
+            </button>
+          ) : null}
         </span>
       </div>
 
