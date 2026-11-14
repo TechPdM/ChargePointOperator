@@ -49,7 +49,8 @@ export function resolveFaultsAndRepairs(ctx: TickContext): void {
   const response = maintenance.contractResponseSeconds;
   if (response !== undefined) {
     for (const bay of bayList(state)) {
-      if (bay.state !== "faulted" || bay.faultedAtSecond === undefined) continue;
+      // D64: a closed bay is off the contractor's list until it reopens.
+      if (bay.state !== "faulted" || bay.faultedAtSecond === undefined || !bay.isOpen) continue;
       if (now - bay.faultedAtSecond >= response) beginRepair(ctx, bay, "contract");
     }
   }

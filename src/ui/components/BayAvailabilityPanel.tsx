@@ -60,6 +60,8 @@ function BayRow({ bay, sim }: { bay: ChargerBay; sim: Simulation }): ReactElemen
         : bay.pendingUpgradeType
           ? "upgrading when it frees"
           : null;
+  // D64: a closed bay keeps its fault; say so, or reopening it is a surprise.
+  const stillBroken = !bay.isOpen && bay.state === "faulted";
   const upgrade = bay.pendingUpgradeType ? undefined : upgradePathFor(sim.state.sim, bay);
   const upgradeKw = upgrade ? CHARGER_SPECS[upgrade.to].maxPowerKw : 0;
   const affordable = upgrade !== undefined && canAffordUpgrade(sim.state.sim, upgrade);
@@ -120,6 +122,9 @@ function BayRow({ bay, sim }: { bay: ChargerBay; sim: Simulation }): ReactElemen
       </span>
 
       {pending ? <span className="bay-pending">Pending — {pending}</span> : null}
+      {stillBroken ? (
+        <span className="bay-pending">Still faulted — it will need a repair when reopened</span>
+      ) : null}
     </li>
   );
 }

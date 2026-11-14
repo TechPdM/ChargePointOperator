@@ -36,6 +36,8 @@ Mark's point, which the sim already honoured: a faulted bay is never in use. The
 - The bay stays faulted while closed, can be repaired while closed, and comes back closed. Reopening it unrepaired brings the fault back.
 - Uptime: a faulted bay counts against uptime while open; once closed, its time counts as closed (`downtimeClosedSeconds`), outside the uptime denominator. So closing a broken bay now shields uptime and `reliability_spiral`, at the cost of its capacity. Recorded as a deliberate exception to the KPI dictionary's "closing must not be a trick to inflate uptime".
 
+*Follow-up, same day:* Mark asked that a closed bay's fault leave the Faults panel and have no effect until reopened, with the fault still there on reopening. Uptime and running costs were already handled. Added: the Faults panel lists open bays only; the Bays panel row reads "Still faulted — it will need a repair when reopened"; the contractor skips closed bays (found while checking: switching to a contract with a closed faulted bay would have repaired and charged for a bay the player could no longer see). One more test, 178/178.
+
 *Code:* `toggle_bay_group` in `src/game/actions/playerActions.ts` (faulted + reactive applies at once); `accumulateBayTime` in `src/game/systems/scoring.ts` checks `isOpen` before the fault and repair buckets; `BayAvailabilityPanel.tsx` button and panel note.
 
 *Checked:* typecheck clean; 177/177 tests, four new in `mechanics.test.ts` (closes at once on reactive and stays faulted; still latches on standard; uptime counts while open and not while closed, and again on reopening; repairable while closed and returns closed). The baseline never closes a bay, so the goals and gate measurements do not move. Not yet looked at in a browser.

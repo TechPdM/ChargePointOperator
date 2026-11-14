@@ -426,6 +426,8 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 *Accounting (ratified by Mark):* a faulted bay counts against uptime while it is open; once closed, its time counts as closed (`downtimeClosedSeconds`), outside the uptime denominator, for as long as it stays closed, whatever its state. `accumulateBayTime` now checks `isOpen` before the fault and repair buckets.
 
+*Out of view while closed (Mark, same day):* a closed bay's fault leaves the Faults panel and its counts; the bay's row in the Bays panel says it is still faulted and will need a repair when reopened. The contractor skips a closed bay, so taking out a contract while one is closed does not repair (or charge for) a bay the player cannot see; on reopening, a fault that has stood past the response time is dispatched at once. Nothing about a closed faulted bay affects the day until it is reopened, and then the fault is back in full.
+
 *Considered and declined:* immediate close of a faulted bay on every maintenance level. On a contract the latch stays, by Mark's call: closing a faulted bay that the contractor is about to fix is a choice worth leaving to the player to manage.
 
 *Interface:* while a close is pending, the bay's button reads **Keep open** and cancels it, as D19 already allowed; before, it kept offering Close, so a pending close could not be cancelled from the panel.

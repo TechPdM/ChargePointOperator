@@ -25,7 +25,12 @@ const FAULT_COPY: Record<string, string> = {
 export function FaultsAndRepairsPanel({ sim }: { sim: Simulation }): ReactElement {
   const state = sim.state.sim;
   const now = state.clock.secondsElapsed;
-  const down = bayList(state).filter((b) => b.state === "faulted" || b.state === "repairing");
+  // D64: a closed bay is out of the player's hands until reopened, so its fault
+  // leaves this panel. The fault itself stays on the bay and returns here when
+  // the bay is opened again.
+  const down = bayList(state).filter(
+    (b) => b.isOpen && (b.state === "faulted" || b.state === "repairing"),
+  );
   const waiting = down.filter((b) => b.state === "faulted");
   const profile = MAINTENANCE[state.site.policy.maintenanceLevel];
   // D59: on a contract, calling out jumps the contractor and costs more.

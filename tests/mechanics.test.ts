@@ -976,6 +976,19 @@ describe("closing a faulted bay with no contract (D64)", () => {
     expect(s.site.metrics.downtimeFaultSeconds).toBeGreaterThan(faultBefore);
   });
 
+  it("the contractor leaves a closed faulted bay alone until it reopens", () => {
+    let s = queueAction(faulted("reactive"), { type: "toggle_bay_group", bayIds: ["bay-3"], open: false });
+    s = advance(s, 1);
+    s = queueAction(s, { type: "set_maintenance_level", level: "standard" });
+    s = advance(s, 60);
+    expect(s.chargers["bay-3"]?.state).toBe("faulted");
+
+    // Reopened, the fault has stood well past the response time: dispatched at once.
+    s = queueAction(s, { type: "toggle_bay_group", bayIds: ["bay-3"], open: true });
+    s = advance(s, 2);
+    expect(s.chargers["bay-3"]?.state).toBe("repairing");
+  });
+
   it("can still be repaired while closed, and comes back closed", () => {
     let s = queueAction(faulted("reactive"), { type: "toggle_bay_group", bayIds: ["bay-3"], open: false });
     s = advance(s, 1);
