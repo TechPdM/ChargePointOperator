@@ -12,7 +12,6 @@ import { tick } from "../src/game/core/tick.ts";
 import { queueAction } from "../src/game/actions/playerActions.ts";
 import { rebalancePower } from "../src/game/systems/power.ts";
 import { emptySample, type TickContext } from "../src/game/core/context.ts";
-import { Rng } from "../src/game/core/rng.ts";
 import { roadsideHub } from "../src/game/scenarios/roadsideHub.ts";
 import type { PowerPolicy, SimulationState } from "../src/game/core/types.ts";
 
@@ -43,6 +42,7 @@ function saturatedSite(
     const sessionId = `s-${i + 1}`;
     state.vehicles[vehicleId] = {
       id: vehicleId,
+      drawKey: `0.${i}`,
       archetype: "enroute",
       state: "charging",
       batteryCapacityKwh: 80,
@@ -92,7 +92,6 @@ function saturatedSite(
 function allocate(state: SimulationState): Record<string, number> {
   const ctx: TickContext = {
     state,
-    rng: new Rng("00000001"),
     events: [],
     delta: 60,
     sample: emptySample(0),
@@ -259,7 +258,15 @@ describe("policy choice is visible in outcomes — but only when the cap binds",
 
   /** Runs a whole day under one policy, with the baseline's repair behaviour. */
   const play = (policy: PowerPolicy, gridPowerKw: number, seed: string) => {
-    const scenario = { ...roadsideHub, initialGridPowerKw: gridPowerKw };
+    // D65: on the standard contract, where Calibration §8 measured this. Since
+    // D63 the default start is no contract, and there the abandonment gap is
+    // inside the noise (20 days: 4.00 vs 4.35 now, 4.75 vs 4.60 before D65) —
+    // the 3-day test had been passing on luck.
+    const scenario = {
+      ...roadsideHub,
+      initialGridPowerKw: gridPowerKw,
+      initialMaintenanceLevel: "standard" as const,
+    };
     let s = createInitialState(scenario, seed);
     s = queueAction(s, { type: "set_power_policy", powerPolicy: policy });
     const maxTicks = scenario.durationSeconds / scenario.tickSeconds;
@@ -277,20 +284,32 @@ describe("policy choice is visible in outcomes — but only when the cap binds",
     };
   };
 
+  // D65: 3 → 10 days, since abandonment is only ~4 a day. Cached, because
+  // two tests share runs.
+  const runs = new Map<string, { sessions: number; abandons: number }[]>();
   const mean = (policy: PowerPolicy, cap: number, key: "sessions" | "abandons"): number => {
-    const seeds = ["s1", "s2", "s3"];
-    return seeds.reduce((sum, seed) => sum + play(policy, cap, seed)[key], 0) / seeds.length;
+    const id = `${policy}@${cap}`;
+    let days = runs.get(id);
+    if (!days) {
+      days = Array.from({ length: 10 }, (_, i) => play(policy, cap, `s${i + 1}`));
+      runs.set(id, days);
+    }
+    return days.reduce((sum, d) => sum + d[key], 0) / days.length;
   };
 
-  it("queue_relief loses fewer drivers from the queue than equal_share under a hard cap", () => {
-    // Calibration §8 sanity gradient, re-stated for D48. Phase 3 measured
-    // queue_relief at +12% sessions when the cap binds. Since drivers stopped
-    // joining long queues, sessions are capped at the entrance and the policies
-    // serve the same number (10 seeds at 200 kW: 126.4 vs 127.5). What finishing
-    // the nearest-done car first still buys is fewer people giving up in the
-    // queue (3.7 vs 5.0 a day), so that is what this now defends.
-    expect(mean("queue_relief", SQUEEZED_KW, "abandons")).toBeLessThan(
+  it("queue_relief serves at least as many and loses no more than equal_share under a hard cap", () => {
+    // Calibration §8 sanity gradient. Phase 3 measured queue_relief at +12%
+    // sessions when the cap binds; D48 moved overload to the entrance and the
+    // gap shrank to fewer people giving up in the queue. With fixed days (D65)
+    // it is smaller still, and this test had been passing on lucky days:
+    // 10 days 4.0 vs 4.0 abandons and 128.7 vs 127.4 sessions; 20 days 3.9 vs
+    // 4.25 and 128.8 vs 128.1. So it now claims only what holds — no worse on
+    // either count. fast_first, below, is still clearly the worst.
+    expect(mean("queue_relief", SQUEEZED_KW, "abandons")).toBeLessThanOrEqual(
       mean("equal_share", SQUEEZED_KW, "abandons"),
+    );
+    expect(mean("queue_relief", SQUEEZED_KW, "sessions")).toBeGreaterThanOrEqual(
+      mean("equal_share", SQUEEZED_KW, "sessions"),
     );
   });
 

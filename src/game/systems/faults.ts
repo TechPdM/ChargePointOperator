@@ -9,6 +9,7 @@
 
 import { MAINTENANCE, TRUST } from "../core/calibration.ts";
 import { bayList, dataOf, emit, round, type TickContext } from "../core/context.ts";
+import { drawFor, wearLimitFor, type Rng } from "../core/rng.ts";
 import type { ChargerBay, FaultCategory } from "../core/types.ts";
 import { applyUpgrade, syncOpenBayIds } from "../actions/playerActions.ts";
 import { interruptSession } from "./charging.ts";
@@ -75,14 +76,22 @@ export function resolveFaultsAndRepairs(ctx: TickContext): void {
       session.expectedSessionTicks,
       maintenance.faultProbabilityMultiplier,
     );
-    if (ctx.rng.bool(p)) {
-      faultBay(ctx, bay, pickCategory(ctx), false);
+    // D65: wear against the bay's budget, not a coin toss each minute. The
+    // hazard is the same, so the average fault rate is unchanged; what changes
+    // is that a fault moves a few minutes when play changes, not in or out.
+    bay.wear += p;
+    if (bay.wear >= bay.wearLimit) {
+      const kind = drawFor(state.rngSeed, "fault-kind", bay.id, bay.wearFaults);
+      bay.wearFaults += 1;
+      bay.wear = 0;
+      bay.wearLimit = wearLimitFor(state.rngSeed, bay.id, bay.wearFaults);
+      faultBay(ctx, bay, pickCategory(kind), false);
     }
   }
 }
 
-function pickCategory(ctx: TickContext): FaultCategory {
-  return ctx.rng.pick<FaultCategory>([
+function pickCategory(rng: Rng): FaultCategory {
+  return rng.pick<FaultCategory>([
     ["connector_fault", 0.4],
     ["power_module_fault", 0.25],
     ["cooling_fault", 0.2],

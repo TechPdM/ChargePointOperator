@@ -217,6 +217,7 @@ describe("invariant 7 still bites after the D39 prune", () => {
     const s = closedOut(1, [departed("v-1")]);
     s.vehicles["v-2"] = {
       id: "v-2",
+      drawKey: "0.1",
       archetype: "commuter",
       state: "queueing",
       batteryCapacityKwh: 60,

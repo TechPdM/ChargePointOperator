@@ -39,7 +39,6 @@ import { detectAlerts, detectFailureStates } from "../validation/failureStates.t
 import { checkInvariants, type InvariantMode } from "../validation/invariants.ts";
 import { EVENT_RING_SIZE, SNAPSHOT_CADENCE_SECONDS } from "./calibration.ts";
 import { dataOf, emit, emptySample, type TickContext } from "./context.ts";
-import { Rng } from "./rng.ts";
 import type { PendingLogEvent } from "../logging/schema.ts";
 import type { SimulationState } from "./types.ts";
 
@@ -67,10 +66,8 @@ export function tick(state: SimulationState, options: TickOptions = {}): TickRes
     draft.scenario.durationSeconds - draft.clock.secondsElapsed,
   );
 
-  const rng = new Rng(draft.rngState);
   const ctx: TickContext = {
     state: draft,
-    rng,
     events: [],
     delta,
     sample: emptySample(draft.clock.secondsElapsed),
@@ -107,7 +104,6 @@ export function tick(state: SimulationState, options: TickOptions = {}): TickRes
     closeOutRun(ctx);
   }
 
-  draft.rngState = rng.state;
   appendToRing(draft, ctx.events);
 
   return { state: draft, events: ctx.events };

@@ -15,6 +15,7 @@ import {
   PRICE_MULTIPLIER_MIN,
 } from "../core/calibration.ts";
 import { dataOf, emit, round, type TickContext } from "../core/context.ts";
+import { drawFor, poissonFromUniform, type Rng } from "../core/rng.ts";
 import { getActiveWave } from "../core/selectors.ts";
 import type { DemandWave, VehicleAgent, VehicleArchetype } from "../core/types.ts";
 
@@ -64,10 +65,16 @@ export function spawnArrivals(ctx: TickContext): void {
   );
   // One tick is one sim-minute, so the per-minute rate is the Poisson mean.
   const lambda = wave.arrivalRatePerMinute * multiplier * (ctx.delta / 60);
-  const count = ctx.rng.poisson(lambda);
+  // D65: one stream per minute. The count comes from the first number, so a
+  // dearer price thins out the same cars rather than drawing different ones,
+  // and each car's details come from the numbers after it.
+  const tickNo = state.clock.tick;
+  const draws = drawFor(state.rngSeed, "arrivals", tickNo);
+  const count = poissonFromUniform(lambda, draws.next());
 
   for (let i = 0; i < count; i++) {
-    const vehicle = createVehicle(ctx, wave);
+    const drawKey = `${tickNo}.${i}`;
+    const vehicle = createVehicle(ctx, wave, drawFor(state.rngSeed, "car", drawKey), drawKey);
     state.vehicles[vehicle.id] = vehicle;
     state.site.metrics.funnel.arrived += 1;
     ctx.sample.arrivals += 1;
@@ -90,38 +97,43 @@ export function spawnArrivals(ctx: TickContext): void {
   }
 }
 
-function pickArchetype(ctx: TickContext, wave: DemandWave): VehicleArchetype {
-  return ctx.rng.pick<VehicleArchetype>([
+function pickArchetype(rng: Rng, wave: DemandWave): VehicleArchetype {
+  return rng.pick<VehicleArchetype>([
     ["commuter", wave.commuterMix],
     ["enroute", wave.enrouteMix],
     ["panic_low_soc", wave.panicMix],
   ]);
 }
 
-function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
+function createVehicle(
+  ctx: TickContext,
+  wave: DemandWave,
+  rng: Rng,
+  drawKey: string,
+): VehicleAgent {
   const { state } = ctx;
-  const archetype = pickArchetype(ctx, wave);
+  const archetype = pickArchetype(rng, wave);
   const p = ARCHETYPES[archetype];
 
   // D46: the car is drawn from one range whatever the driver type.
-  const batteryCapacityKwh = ctx.rng.range(VEHICLE_BATTERY_KWH[0], VEHICLE_BATTERY_KWH[1]);
-  const maxChargeRateKw = ctx.rng.range(
+  const batteryCapacityKwh = rng.range(VEHICLE_BATTERY_KWH[0], VEHICLE_BATTERY_KWH[1]);
+  const maxChargeRateKw = rng.range(
     VEHICLE_MAX_CHARGE_RATE_KW[0],
     VEHICLE_MAX_CHARGE_RATE_KW[1],
   );
-  const currentSoc = ctx.rng.range(p.arrivalSoc[0], p.arrivalSoc[1]);
+  const currentSoc = rng.range(p.arrivalSoc[0], p.arrivalSoc[1]);
   // D47: how full this driver wants to leave, from their type's range.
-  const targetSoc = ctx.rng.range(p.targetSoc[0], p.targetSoc[1]);
+  const targetSoc = rng.range(p.targetSoc[0], p.targetSoc[1]);
   // D42: this driver's own alternative. Drawn per vehicle rather than fixed per
   // site, because direction of approach decides whether the next rapid is ahead
   // of you or behind you — which is what makes the refusal a curve and not the
   // shared cliff every site used to share.
   const [detourMin, detourMax] = state.scenario.detourMinutes;
-  const detourMinutes = ctx.rng.range(detourMin, detourMax);
+  const detourMinutes = rng.range(detourMin, detourMax);
   // Site type shapes who turns up and how they behave once they do.
   const urgencyScore = Math.min(
     1,
-    ctx.rng.range(p.urgency[0], p.urgency[1]) * (state.scenario.urgencyMultiplier ?? 1),
+    rng.range(p.urgency[0], p.urgency[1]) * (state.scenario.urgencyMultiplier ?? 1),
   );
   const patienceSeconds = Math.round(
     p.patienceSeconds * (state.scenario.patienceMultiplier ?? 1),
@@ -141,6 +153,7 @@ function createVehicle(ctx: TickContext, wave: DemandWave): VehicleAgent {
 
   return {
     id,
+    drawKey,
     archetype,
     state: "arriving",
     batteryCapacityKwh,

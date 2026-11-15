@@ -3,7 +3,7 @@
  */
 
 import { CHARGER_SPECS } from "./calibration.ts";
-import { Rng } from "./rng.ts";
+import { seedToUint32, toRngState, wearLimitFor } from "./rng.ts";
 import type {
   ChargerBay,
   DemandFunnel,
@@ -72,6 +72,8 @@ function initialEconomics(scenario: ScenarioConfig): SiteEconomics {
 }
 
 export function createInitialState(scenario: ScenarioConfig, seed: string): SimulationState {
+  // D65: every draw is keyed off this; nothing advances it.
+  const rngSeed = toRngState(seedToUint32(seed));
   const chargers: Record<string, ChargerBay> = {};
   for (const entry of scenario.bays) {
     chargers[entry.id] = {
@@ -85,6 +87,9 @@ export function createInitialState(scenario: ScenarioConfig, seed: string): Simu
       closeRequested: false,
       lifetimeSessions: 0,
       lifetimeKwh: 0,
+      wear: 0,
+      wearLimit: wearLimitFor(rngSeed, entry.id, 0),
+      wearFaults: 0,
     };
   }
 
@@ -114,7 +119,7 @@ export function createInitialState(scenario: ScenarioConfig, seed: string): Simu
       scenarioSecondsRemaining: scenario.durationSeconds,
     },
     scenario,
-    rngState: Rng.fromSeed(seed).state,
+    rngSeed,
     site,
     chargers,
     vehicles: {},

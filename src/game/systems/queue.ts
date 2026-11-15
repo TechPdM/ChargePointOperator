@@ -9,6 +9,7 @@ import {
   TRUST,
 } from "../core/calibration.ts";
 import { dataOf, emit, round, type TickContext } from "../core/context.ts";
+import { drawFor } from "../core/rng.ts";
 import {
   chooseBay,
   getCompatibleIdleBays,
@@ -85,7 +86,7 @@ export function processQueueAbandonment(ctx: TickContext): void {
     const waited = state.clock.secondsElapsed - entry.queuedAtSecond;
     const p = abandonProbability(waited, vehicle.demand.patienceSeconds);
 
-    if (p > 0 && ctx.rng.bool(p)) {
+    if (p > 0 && drawFor(state.rngSeed, "abandon", vehicle.drawKey, state.clock.tick).bool(p)) {
       state.site.metrics.funnel.abandonedQueue += 1;
       ctx.sample.queueAbandons += 1;
       ctx.trustDeltaRaw += TRUST.abandon;

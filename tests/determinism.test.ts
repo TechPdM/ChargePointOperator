@@ -121,14 +121,14 @@ describe("run determinism (invariant 9)", () => {
     expect(a.finalStateHash).not.toBe(plain.finalStateHash);
   });
 
-  it("rngState matches tick-for-tick between two runs of the same seed", () => {
+  it("state matches tick-for-tick between two runs of the same seed", () => {
     let a = createInitialState(roadsideHub, "s3");
     let b = createInitialState(roadsideHub, "s3");
     for (let i = 0; i < 200; i++) {
       a = tick(a).state;
       b = tick(b).state;
       // Localises any divergence to a tick rather than "somewhere in 1,440".
-      expect(`${i}:${a.rngState}`).toBe(`${i}:${b.rngState}`);
+      expect(`${i}:${hashState(a)}`).toBe(`${i}:${hashState(b)}`);
     }
   });
 
@@ -146,5 +146,54 @@ describe("run determinism (invariant 9)", () => {
     const snapshot = hashState(before);
     tick(before);
     expect(hashState(before)).toBe(snapshot);
+  });
+});
+
+/**
+ * D65: a seed is a fixed day. Before D65 one shared stream meant a single
+ * price change could reshuffle the rest of the day's cars and faults.
+ */
+describe("fixed days (D65)", () => {
+  /** Each minute's arrivals, as the fixed details of each car, in order. */
+  function arrivalsUnder(price: number | undefined, seed = "s2"): string[][] {
+    let state = createInitialState(roadsideHub, seed);
+    if (price !== undefined) state.site.policy.pricePerKwh = price;
+    const minutes: string[][] = [];
+    for (let i = 0; i < 900; i++) {
+      const result = tick(state);
+      state = result.state;
+      minutes.push(
+        result.events
+          .filter((e) => e.event_name === "vehicle.arrived")
+          .map((e) => JSON.stringify([e.data?.["battery_capacity_kwh"], e.data?.["detour_minutes"]])),
+      );
+    }
+    return minutes;
+  }
+
+  it("a higher price thins out the same cars rather than drawing new ones", () => {
+    const list = arrivalsUnder(undefined);
+    const dear = arrivalsUnder(1.1);
+    const count = (m: string[][]) => m.reduce((n, cars) => n + cars.length, 0);
+    expect(count(dear)).toBeLessThan(count(list));
+    // Every minute, the dearer day's cars are the first few of the list-price day's.
+    dear.forEach((cars, minute) => expect(list[minute]?.slice(0, cars.length)).toEqual(cars));
+  });
+
+  it("an hour at a different price leaves the rest of the day's cars alone", () => {
+    const policy = (p: number) => (state: { clock: { tick: number } }): PlayerActionDraft[] =>
+      state.clock.tick === 600
+        ? [{ type: "set_price", pricePerKwh: p }]
+        : state.clock.tick === 660
+          ? [{ type: "set_price", pricePerKwh: 0.79 }]
+          : [];
+    const keysAfter = (p: number): string[] => {
+      const run = runScenario({ scenario: roadsideHub, seed: "s2", policy: policy(p), collectLog: false });
+      return Object.values(run.finalState.vehicles)
+        .filter((v) => Number(v.drawKey.split(".")[0]) > 700)
+        .map((v) => v.drawKey)
+        .sort();
+    };
+    expect(keysAfter(0.89)).toEqual(keysAfter(0.79));
   });
 });

@@ -1,8 +1,19 @@
 /**
- * The only source of randomness in the sim (D26).
+ * The only source of randomness in the sim (D26, amended by D65).
  *
- * One global mulberry32 stream, drawn in pipeline order. Never create a
- * per-system stream: they reorder under refactoring and break replay silently.
+ * **Keyed draws (D65).** Every random draw comes from its own short mulberry32
+ * stream, seeded from the run's seed plus a key naming what the draw is for:
+ * `arrivals` and the minute; `fault`, the bay and the minute; `perceive` or
+ * `abandon` and the car. Nothing is drawn "next" from a shared stream, so a
+ * player's action can no longer shift every later draw: a seed is a fixed day.
+ * The same cars come (fewer of them when the price is higher), and a bay that
+ * is charging at 14:05 gets the same luck at 14:05 whatever happened before.
+ *
+ * D26's rule was "never create a per-system stream: they reorder under
+ * refactoring and break replay silently". That was about streams drawn in
+ * order. A keyed draw has no order to break — moving code around cannot change
+ * which numbers it gets — which is the stronger form of the same guarantee.
+ *
  * `Math.random()`, `Date.now()` and `new Date()` are banned in `game/`.
  */
 
@@ -101,6 +112,42 @@ export class Rng {
     if (!last) throw new Error("Rng.pick called with an empty list");
     return last[0];
   }
+}
+
+/**
+ * A stream for one purpose (D65). `seedKey` is `state.rngSeed`; `parts` name
+ * the draw, e.g. `drawFor(seed, "fault", "bay-3", 845)`. Same key, same numbers.
+ */
+export function drawFor(seedKey: string, ...parts: (string | number)[]): Rng {
+  return new Rng(seedToUint32(`${seedKey}|${parts.join("|")}`));
+}
+
+/**
+ * How much wear a bay takes before its next random fault (D65): an
+ * exponential draw with mean 1, keyed by the bay and how many random faults it
+ * has had. Summing a per-minute hazard against it faults at the same average
+ * rate as testing that hazard each minute.
+ */
+export function wearLimitFor(seedKey: string, bayId: string, faultIndex: number): number {
+  return -Math.log(1 - drawFor(seedKey, "wear", bayId, faultIndex).next());
+}
+
+/**
+ * A Poisson count from one uniform number, by inverting the cumulative
+ * distribution (D65). The count rises with `lambda` for a fixed `u`, which is
+ * what makes a price change thin out the same arrivals rather than draw new ones.
+ */
+export function poissonFromUniform(lambda: number, u: number): number {
+  if (lambda <= 0) return 0;
+  let k = 0;
+  let p = Math.exp(-lambda);
+  let cumulative = p;
+  while (u >= cumulative && k < 1_000) {
+    k += 1;
+    p *= lambda / k;
+    cumulative += p;
+  }
+  return k;
 }
 
 /**

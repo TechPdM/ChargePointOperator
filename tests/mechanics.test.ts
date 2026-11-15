@@ -40,6 +40,7 @@ function vehicle(archetype: VehicleArchetype, urgency: number): VehicleAgent {
   const p = ARCHETYPES[archetype];
   return {
     id: "v-test",
+    drawKey: "0.0",
     archetype,
     state: "arriving",
     batteryCapacityKwh: 60,
@@ -231,6 +232,8 @@ describe("D19 — interruption and deferred bay transitions", () => {
     if (!bay || !session) throw new Error("expected a charging bay with a session");
     bay.spec = { ...bay.spec, reliabilityBase: 0 };
     session.expectedSessionTicks = 1;
+    // D65: a fault fires when wear reaches the bay's budget, so empty it.
+    bay.wearLimit = 0;
     session.requestedKwh = 1e6; // don't let it complete before it can fault
     // Stepped by hand rather than through `advance`, to keep this tick's
     // events: a concluded session is dropped from `state.sessions`, so the log

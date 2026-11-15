@@ -16,6 +16,7 @@ import {
   WAIT_PERCEPTION_NOISE,
 } from "../core/calibration.ts";
 import { dataOf, emit, round, type TickContext } from "../core/context.ts";
+import { drawFor } from "../core/rng.ts";
 import { getProjectedWait } from "../core/selectors.ts";
 import type { SimulationState, VehicleAgent } from "../core/types.ts";
 import { departVehicle } from "./vehicles.ts";
@@ -61,7 +62,11 @@ export function evaluateDemandAcceptance(ctx: TickContext): void {
     // Perfect information made every arrival read the true wait and drive on,
     // which capped the queue and left abandonment doing no work at all.
     const perceivedWait =
-      trueWait * ctx.rng.range(1 - WAIT_PERCEPTION_NOISE, 1 + WAIT_PERCEPTION_NOISE);
+      trueWait *
+      drawFor(state.rngSeed, "perceive", vehicle.drawKey).range(
+        1 - WAIT_PERCEPTION_NOISE,
+        1 + WAIT_PERCEPTION_NOISE,
+      );
     vehicle.expectedWaitSeconds = perceivedWait;
 
     const score = siteScore(

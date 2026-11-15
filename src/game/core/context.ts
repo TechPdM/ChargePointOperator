@@ -6,13 +6,11 @@
  * touched, which is what makes `state = tick(state)` pure in the sense D4 means.
  */
 
-import type { Rng } from "./rng.ts";
 import type { PendingLogEvent, LogEventName, LogLevel, LogValue } from "../logging/schema.ts";
 import type { ChargerBay, SimulationState, TickSample, VehicleAgent } from "./types.ts";
 
 export interface TickContext {
   state: SimulationState;
-  rng: Rng;
   events: PendingLogEvent[];
   delta: number;
   /** Accumulates this tick's raw counters; pushed onto the ring at KPI time. */

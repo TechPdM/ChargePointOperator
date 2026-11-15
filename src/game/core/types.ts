@@ -281,6 +281,18 @@ export interface ChargerBay {
 
   lifetimeSessions: number;
   lifetimeKwh: number;
+
+  /**
+   * D65: the bay's wear budget. Wear builds up by the per-minute fault hazard
+   * while the bay is charging; when it reaches `wearLimit` the bay faults, and
+   * a new limit is drawn from the seed. Same average fault rate as a coin toss
+   * each minute, but a change in play shifts *when* a fault lands rather than
+   * deciding *whether* it does.
+   */
+  wear: number;
+  wearLimit: number;
+  /** Random faults so far today; picks this bay's next wear limit. */
+  wearFaults: number;
 }
 
 export interface VehicleDemand {
@@ -292,6 +304,12 @@ export interface VehicleDemand {
 
 export interface VehicleAgent {
   id: Id;
+  /**
+   * The minute it arrived and its place in that minute's arrivals (D65). Its
+   * own random draws are keyed off this, not off `id`: ids are handed out in
+   * order, so one car fewer earlier in the day would shift every later id.
+   */
+  drawKey: string;
   archetype: VehicleArchetype;
   state: VehicleState;
   batteryCapacityKwh: number;
@@ -531,7 +549,8 @@ export interface SimulationState {
   clock: GameClock;
   scenario: ScenarioConfig;
   /** mulberry32 uint32 as 8 lowercase hex chars (D26). */
-  rngState: string;
+  /** The seed, hashed. Every random draw is keyed off it (D65); it never changes. */
+  rngSeed: string;
   site: Site;
   chargers: Record<Id, ChargerBay>;
   vehicles: Record<Id, VehicleAgent>;
