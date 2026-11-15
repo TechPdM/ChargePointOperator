@@ -1,6 +1,6 @@
 # ChargePointOperator — How the Game Works
 
-**Date:** 2026-11-14 · **Read from:** the code after the D46–D64 revision (v0.2.0)
+**Date:** 2026-11-15 · **Read from:** the code after the D46–D66 revision (v0.2.0). *D67, the goal re-fit, is in progress: §7 and §8 still show the D57/D59 goals.*
 **Status:** a description of the game **as built**, like `model-map.html`. It specifies nothing. Where it disagrees with the code, the code is right; where it disagrees with a canonical document, §10 lists the difference so it can be settled there.
 
 This is the plain-language account: what the player does, what pushes back, and where the decisions are meant to be. The formulas are here only where they explain a decision. For every variable and path, open `model-map.html`.
@@ -50,9 +50,11 @@ Each tick runs the same pipeline, in this order (`core/tick.ts`, Architecture §
 4. **Placed or queued.** The driver takes the free bay that charges their car fastest (D50). If none is free they queue (capacity 12), first come first served. If the queue is full, they leave.
 5. **Power is shared out.** The grid cap is split across charging bays by your power policy. Each bay gets no more than the charger or the car can take.
 6. **Sessions advance.** Energy flows, and a car finishes when it reaches its target charge, or your charging limit if lower.
-7. **Faults and repairs.** Only bays that are delivering power can fault, at a rate set by the hardware and your maintenance level (about 2 random faults a day on the corridor, D51). A fault ends the session in progress. On a maintenance contract the contractor starts the repair after 30 min (standard) or 15 min (preventive), D53; a bay you have closed is left alone until you reopen it (D64). Each scenario also has **one scripted fault** at a fixed time, which is the designed "something just went wrong" moment; it skips a bay you have closed.
+7. **Faults and repairs.** Only bays that are delivering power can fault, at a rate set by the hardware and your maintenance level (about 2 random faults a day on the corridor, D51). Since D65 each bay has a **wear budget** drawn from the seed: wear builds up while it charges, and it faults when the budget runs out. The average rate is the same as before, but playing differently moves a fault by a few minutes rather than deciding whether it happens. A fault ends the session in progress. On a maintenance contract the contractor starts the repair after 30 min (standard) or 15 min (preventive), D53; a bay you have closed is left alone until you reopen it (D64). Each scenario also has **one scripted fault** at a fixed time, which is the designed "something just went wrong" moment; it skips a bay you have closed.
 8. **Queue abandonment.** Once a driver has waited past their patience, the chance they leave rises over 10 minutes to 50% a minute.
 9. **Money and reputation update**, then failure states are detected and invariants checked.
+
+**A seed is a fixed day (D65).** The seed (shown in the top bar, e.g. `s4821`) decides who turns up and how the bays wear. Every random draw is tied to what it is for (this minute's arrivals, this bay's wear, this driver's patience) rather than taken in turn from one shared stream. So replaying a seed is a fair second attempt: the same cars arrive (fewer of them if your price is higher), and the same bays break at about the same times. Before D65, one hour at a different price could reshuffle the rest of the day: on one measured seed it changed the day's faults from 4 to 2 and took the day from no goals to all three, by luck rather than by the price.
 
 ## 4. The drivers
 
@@ -140,7 +142,7 @@ The 80%+ stretch is where the time goes: the last 5% of the commuter's charge ta
 | **Charging limit** (off / 90% / 75% / 50%, D49) | Stops cars early, so bays turn over faster. 90% trims the slowest stretch for en-route drivers filling up; 75% cuts almost everyone. **The only lever that raises the throughput ceiling under a binding cap** (D14). | kWh sold, so revenue. −0.1 trust for each driver cut short. | When the queue is the problem and energy is not the money. |
 | **Maintenance level** — Repair upon request / Standard contract / Preventive contract. **You start with no contract (D63).** | Fault rate ×1.25 / ×1.0 / ×0.5, repair time ×1.2 / ×1.0 / ×0.7, and a contractor who repairs faults unasked after 30 / 15 min on the two contracts (D53). | £0 / £25 / £150 a day standing. Repairs £200; calling one out yourself on a contract £300 (D59). | Busy sites with heavy hardware. Loses money on a quiet site (Trevithick). |
 | **Call out a repair** | Starts the repair now rather than waiting for the contractor. On reactive, nobody else will. | £200 on reactive; **£300 on a contract**, against the contractor's £200 (D59) | Every fault on reactive; on a contract, when 15–30 minutes of a lost bay is worth £100 — at a peak, or with several bays down. |
-| **Open / close bays** | Takes capacity out of service. A busy bay closes when it next goes idle; while it waits, the button reads *Keep open* and cancels. With no contract, a faulted bay closes at once and stays faulted: it drops off the Faults panel and stops counting against uptime until reopened (D64). A closed bay costs nothing to run and can't fault (D54). | Capacity | Small savings on a quiet site or overnight (at most ~£50 a day per bay on the corridor). |
+| **Open / close bays** | Takes capacity out of service. A busy bay closes when it next goes idle; while it waits, the button reads *Keep open* and cancels. With no contract, a faulted bay closes at once and stays faulted: it drops off the Faults panel, stops counting against uptime and **stops draining trust** until reopened (D64, D66). A closed bay costs nothing to run and can't fault (D54). | Capacity | Small savings on a quiet site or overnight (at most ~£50 a day per bay on the corridor). With no contract, closing a broken bay you won't pay to repair. |
 | **Upgrade a charger** (rapid 150 kW → ultra-rapid 350 kW for £75,000; at Trevithick also AC 22 kW → rapid for £35,000) | More power per bay, used only by cars faster than 150 kW (D50 sends them there) | Out of £100,000 starting cash. Comes out of cash, **not** the margin goal; it is judged by `margin_trap` instead. | Mostly a trap: it buys nothing at peaks, where the grid, not the charger, is the limit (Scenario §5a). |
 
 ## 7. What you are scored on, and what pushes back
@@ -155,14 +157,24 @@ The 80%+ stretch is where the time goes: the last 5% of the commuter's charge ta
 | :-- | --: |
 | Served with under 5 min wait | +0.1 |
 | Served after a longer wait | −0.05 |
-| Driver drives on, for any reason | −0.15 |
+| Driver drives on, for any reason | −0.075 *(halved by D66; was −0.15)* |
 | …and it was the price | further −0.2 |
 | Driver gives up in the queue | −1.5 |
 | Fault mid-session / on an idle bay | −2.0 / −0.5 |
 | Driver cut short by your charging limit | −0.1 |
 | Each hour uptime stays above 98% | +0.5 |
+| **Each hour a broken bay is left open** (D66) | **−2**, per bay, until it is repaired or closed |
+| **Each hour below the starting level with no broken bay open** (D66) | **closes a quarter of the gap** back towards 60 |
 
-Trust can move at most ±5 in any rolling hour, so it is slow to recover. It feeds back into every arrival's decision, which is what makes reputation a resource rather than a score.
+Trust can move at most ±5 in any rolling hour. It feeds back into every arrival's decision, which is what makes reputation a resource rather than a score.
+
+**How trust behaves since D66.** Three findings from the strategy analysis (2026-11-14) led to the change:
+
+- **Drive-ons were the biggest drain by far.** Removing their penalty lifted end-of-day trust by 20 points at Junction 42 (about 150 drivers drive on there a day), 8 at Trevithick and 6 at Eastgate, against 2–5 for faults. Many of those drivers are not the operator's doing: 44% drive on at a well-run Trevithick because they are in no hurry. So the penalty was halved, but the extra for pricing someone away stays.
+- **Trust never recovered.** It was a running total with nothing pulling it back, so a loss at 10:00 was still 7–11 points down at midnight. Now, while trust is below 60 and no broken bay is open, it closes a quarter of the gap each hour: the same knock is about 1 point down by midnight. Recovery only lifts trust back towards the start; above it, trust is still something you build.
+- **Neglect has to hurt.** A site left broken now crashes trust: each broken bay left open costs 2 an hour, and recovery stops until it is repaired or closed. With nobody repairing, trust crashes on every measured day at Junction 42 and Trevithick and on 13 of 20 at Eastgate. A well-run site barely notices (under a point).
+
+The feedback loop from trust to drive-ons turned out to be small (a 10-point loss adds 0–3 drive-ons in a day) and was left alone.
 
 **Five failure states** are detected and logged but never end the day (D41). Each one is the shape of a classic mistake, and since D48 none of them is reached by competent play:
 
@@ -172,7 +184,7 @@ Trust can move at most ±5 in any rolling hour, so it is slow to recover. It fee
 | `power_choke` | Grid ≥95% drawn with 3+ queued, for 30 min | Price cut floods the forecourt |
 | `reliability_spiral` | Uptime <85% with 3+ bays down, for an hour | Faults left unrepaired on reactive |
 | `margin_trap` | You spent capital and met no more goals than doing nothing would have (judged against the same-seed baseline at close) | Early £75k upgrade |
-| `trust_crash` | Trust below 40 and falling | Underpricing |
+| `trust_crash` | Trust below 40 and falling | Broken bays left open (D66); underpricing |
 
 ## 8. The three sites
 
@@ -185,7 +197,7 @@ The same rules on three different sites. Gate criterion 2 needs the right answer
 | Starting price / reference | £0.79 / £0.79 | £0.72 / £0.72 | £0.55 / £0.62 |
 | Detour to next charger | 8–30 min (captive) | 2–7 min (competitive) | 5–18 min |
 | Drivers | Mixed, panic overnight, high volume | Commuter-heavy, less patient (×0.8) | Patient (×1.5), less urgent |
-| Goals: margin / wait / trust (D57, D59) | £4,000 / 3.5 min / 55 | £1,450 / 2 min / 70 | £450 / 3.3 min / 63 |
+| Goals: margin / wait / trust (D57, D59; **being re-fitted, D67**) | £4,000 / 3.5 min / 55 | £1,450 / 2 min / 70 | £450 / 3.3 min / 63 |
 | What it teaches | You have pricing power, so use it; every goal bites | You have no pricing power; margin and trust are the hard goals | Ships underpriced; maintenance alone doesn't pay here |
 | Best strategy measured (40–80 seeds) | premium + preventive (wave-pricing level) | preventive (wave-pricing level) | premium (wave-pricing level) |
 
@@ -193,7 +205,7 @@ The day's shape on the corridor: a sparse, panic-heavy night, then the morning c
 
 ## 9. Where the core mechanic is strong, and where it is thin
 
-Observations from the code and the measured findings, offered as the agenda for the playtest, not as verdicts. Updated for D46–D58.
+Observations from the code and the measured findings, offered as the agenda for the playtest, not as verdicts. Updated for D46–D66.
 
 **Strong:**
 
@@ -201,19 +213,22 @@ Observations from the code and the measured findings, offered as the agenda for 
 - **Playing the day is rewarded (D55).** A strategy that only moves price with the demand waves is the best measured at Eastgate and close to the best elsewhere, without touching maintenance. The game is not only a configuration puzzle.
 - **Each failure state is a recognisable mistake**, and none is reached by competent play.
 - **The price decision depends on the site** (D42/D43): the same rise earns money on the corridor and loses it at Eastgate.
+- **Good play wins, when the goals are reachable.** The good-player benchmark (strategy analysis §5b) uses only what the dashboard shows. Before D65/D66 it won 88% of days at Junction 42 and 83% at Trevithick, against 10–13% for doing nothing. Its best settings charge **more than the starting price at every site**: price is the lever, and finding the right level is left for the player to discover. At Eastgate it won only 25%, because the margin goal was out of reach; that, and the goals generally, is what D67 re-fits.
+- **A seed is a fixed day (D65)**, so a replay is a fair second attempt and a near miss can be tried again.
 
 **Thin, or not yet tested:**
 
-1. **Price carries most of the game.** It controls congestion, margin and (through rejections) trust all at once. Power policy now only changes how many give up in the queue, the upgrade is a designed trap, and closing bays saves little.
+1. **Price carries most of the game.** It controls congestion, margin and (through rejections) trust all at once. The upgrade is a designed trap and closing bays saves little. **Power policy barely matters now** except to avoid *Big bays first*: on fixed days, *Finish soonest first* and *Share equally* tie (about one more driver served a day, and the same number giving up). *Big bays first* still loses far more from the queue.
 2. **A simple pricing rule is near-best everywhere (D61, D62).** "Price up at the peaks, down in the lulls" can't be ruled out at any site, but it is the best at none: a different strategy wins each site. D62 counts that as an all-rounder rather than a dominant strategy, so criterion 2 passes narrowly. It is also the skill the game should teach, and a manual one (about 8 changes a day). The playtest will show whether players find it, and whether it feels like a skill or a solved puzzle.
 3. **Two of the three goals get easier as you serve fewer people.** An empty forecourt has a perfect average wait (D44). With waits now short, this decided Eastgate: the first goal fit failed criterion 2 because of it, and the passing fit sets the wait goal where the baseline always meets it (D57). The verdict is a claim about goal values as much as mechanics.
 4. **Maintenance is close to dominant.** `preventive` is part of every site's best strategy, and contractor repairs (D53) now make the higher tiers more convenient as well as more reliable.
 5. **Calling out a repair is now a judgement, not a reflex (D59).** On a contract it costs £300 against the contractor's £200, so it pays only when 15–30 minutes of a lost bay is worth £100. Whether players read it that way is a playtest question.
-6. **Trust responds slowly.** Capped at ±5 an hour and spread over many small events, its cause and effect may be hard to read within a five-minute day. That is gate criterion 1's question.
+6. **Trust responds slowly.** Capped at ±5 an hour and spread over many small events, its cause and effect may be hard to read within a five-minute day. That is gate criterion 1's question. D66 made it recoverable and made neglect obvious; whether players feel the difference is for the playtest.
 7. **Overload now shows at the entrance, not in the queue.** About a third of drivers turn away at the corridor and Eastgate under baseline play, and 44% at Trevithick, where unhurried drivers meet slow posts. Since D60 the **Served · turned away** card shows the count, the 15-minute share and the reasons (price, wait, queue full). Whether players connect it to their price is a playtest question.
 8. **Sessions are probably short.** Flat charging below 80% gives DC sessions of about 8–22 minutes. Real UK rapid sessions are believed to run nearer half an hour, mostly because of the charging curve. *Not checked against a source.* Kept flat by choice (D47) to keep the day's pace; a realistic curve is a Phase 5 option and would mean rescaling demand.
 9. **No overheads and no overstay.** No plug-in time, no losses, and a bay frees the minute a car finishes. Bay-blocking and idle fees are a real operator lever the game doesn't have.
 10. **Driver types are the same on every site** apart from the mix, the detour range and the patience and urgency multipliers. A Trevithick shopper arrives as empty as a motorway driver.
+11. **Luck still matters, but it is fair now.** Faults are the biggest single factor in a day's margin and trust (40-day correlation −0.81 with margin before D65). D65 doesn't reduce that: a 6-fault day is still a hard day. It makes it the *same* hard day on every replay. Narrowing the spread of faults was considered and not chosen.
 
 ## 10. Where the documents and the code disagree
 
