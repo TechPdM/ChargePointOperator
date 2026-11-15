@@ -1,6 +1,6 @@
 # ChargePointOperator — KPI Dictionary
 
-**Version:** 1.6 · **Date:** 2026-11-14 *(**v1.6: D64 — a closed bay counts as closed whatever its state, so closing a faulted bay takes its fault out of uptime.** · **v1.5: D58 `queue_collapse` and `queue_overload` at pressure 0.5; D60 turned-away KPI and its funnel split.** · v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24 · **v1.4: D31 — `queue_collapse` thresholds set from the measured joint distribution, and its abandonment arm reads the sustain window**)*
+**Version:** 1.7 · **Date:** 2026-11-15 *(**v1.7: D66 — trust recovers while below the start and no open bay is faulted, and each faulted bay left open drains it; D67 goals.** · **v1.6: D64 — a closed bay counts as closed whatever its state, so closing a faulted bay takes its fault out of uptime.** · **v1.5: D58 `queue_collapse` and `queue_overload` at pressure 0.5; D60 turned-away KPI and its funnel split.** · v1.1: cash/margin goal roles per D10 · v1.2: final-review fixes · v1.3: readiness-review fixes — utilization numerator, charge-start denominator, funnel buckets per D19, failure-state definitions per D24 · **v1.4: D31 — `queue_collapse` thresholds set from the measured joint distribution, and its abandonment arm reads the sustain window**)*
 **Companions:** Architecture doc §5.3 (`SiteMetrics`), §7 (logging), §8 (dashboard)
 **Purpose:** one precise definition per KPI — formula, denominator, window, units — shared by the sim, the logs, and the dashboard. This closes the gap the paired-schema rule (C6) doesn't cover: it checks that names *match*, not that they *mean the same thing*. Any change to a definition here is a schema change and travels with the C6 pair.
 
@@ -20,7 +20,7 @@ Dashboard KPI cards show **ROLL** value with **CUM** in the hover detail unless 
 `economics.cash`. Updated per tick: `Δcash = revenue − energyCost − maintenanceCost − opexAccrual − capex` (must reconcile — invariant 6). Units: £. **Not a win goal (D10):** with a realistic £50k starting float, cash only matters as the bankruptcy fail condition (< £0); the scored economic goal is operating margin.
 
 ### Trust — `INST`
-`metrics.trust`, 0–100, start 60. Moves only by the deltas in Calibration §5, clamped to ±5 per sim-hour. Not derived — it *is* state. Goal basis: end-of-run value.
+`metrics.trust`, 0–100, start 60. Moves only by the deltas in Calibration §5, clamped to ±5 per sim-hour. Not derived — it *is* state. Goal basis: end-of-run value. **D66:** below 60, and with no open bay faulted, it recovers a quarter of the gap each sim-hour; each faulted bay left open costs 2 per sim-hour until it is repaired or closed. So a bad patch heals once dealt with, and a site left broken crashes.
 
 ### Uptime — `ROLL` (card) / `CUM` (goal)
 **Definition:** fraction of *open, serviceable* bay-time actually available to charge.

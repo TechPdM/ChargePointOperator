@@ -40,14 +40,14 @@ The sim core is the system. It has three hosts that run the **same code**: the d
 
 ### Size
 
-About 15.1k lines of TypeScript/TSX/CSS, measured on 2026-11-14 after D64:
+About 16.0k lines of TypeScript/TSX/CSS, measured on 2026-11-15 after D67:
 
 | Area | Files | Lines |
 | :-- | --: | --: |
-| `src/game/` (sim core + CLI) | 38 | ~7,420 |
+| `src/game/` (sim core + CLI) | 40 | ~8,100 |
 | `src/ui/`, `src/app/`, `src/main.tsx` | 30 | ~3,450 |
-| `src/styles/app.css` | 1 | ~1,720 |
-| `tests/` | 8 | ~2,500 (178 test cases) |
+| `src/styles/app.css` | 1 | ~1,730 |
+| `tests/` | 9 | ~2,690 (187 test cases) |
 
 ---
 
@@ -108,7 +108,7 @@ src/
     scenarios/             roadsideHub (MVP) · commuterHub · destinationSite · lookup
     logging/               NDJSON event schema · logger · run manifest · replay
     validation/            per-tick invariants · failure-state + alert detection · trace mode
-    experiment/            baseline/passive actors · run comparison · sweeps · strategy/dominance tests · gate evidence
+    experiment/            baseline/passive actors · good player + benchmark (D67) · run comparison · sweeps · strategy/dominance tests · gate evidence
     headless.ts            CLI entry point
   ui/
     hooks/                 useSimulation (the store) · useGameLoop (real time → ticks)
@@ -136,7 +136,7 @@ tick(state: SimulationState, options?): { state: SimulationState; events: Pendin
 
 - **Immutable in, immutable out.** `tick()` runs `structuredClone(state)` into a draft and runs every system over that draft through a shared `TickContext` (`core/context.ts`). It returns the new state and the events emitted during the tick. The input is never touched.
 - **Player actions are queued, not applied.** `queueAction(state, action)` adds the action to `state.pendingActions`. The next tick drains the queue as its first step. Input is continuous, with no turn or decision window.
-- **One root state.** `SimulationState` (`core/types.ts`) holds the clock, the scenario config, the RNG position, the site (policy, economics, metrics), the chargers, the vehicles, the queue, the sessions, pending actions, a 400-entry event ring and append-only histories. It is plain JSON-serialisable data, with no classes and no functions.
+- **One root state.** `SimulationState` (`core/types.ts`) holds the clock, the scenario config, the hashed seed every random draw is keyed off (D65), the site (policy, economics, metrics), the chargers, the vehicles, the queue, the sessions, pending actions, a 400-entry event ring and append-only histories. It is plain JSON-serialisable data, with no classes and no functions.
 
 ### 4.2 Tick pipeline
 
@@ -158,7 +158,7 @@ Same scenario + same seed + same action stream ⇒ **bit-identical final state h
 
 | Mechanism | Implementation |
 | :-- | :-- |
-| PRNG | `mulberry32`, **one global stream** drawn in pipeline order. Its position is serialised in `state.rngState` (8 hex chars), read at the top of each tick and written back at the end. |
+| PRNG | `mulberry32`, **keyed draws** (D65). `state.rngSeed` (the seed hashed to 8 hex chars) never changes; each draw gets its own stream from `drawFor(rngSeed, purpose, …key)` — arrivals by minute, each car by `drawKey`, wear by bay. So a seed is a fixed day: an action can't shift later draws. Random faults come from a per-bay wear budget (`wearLimitFor`). |
 | Seeds | Strings (`"s1"`, `"pt-1"`), hashed to a uint32 with FNV-1a. |
 | State hash | FNV-1a over canonical JSON (sorted keys), excluding `eventLog` (`core/rng.ts`). |
 | Timestep | Fixed. `deltaSeconds` is always `scenario.tickSeconds` (60s), giving 1,440 ticks per day. Speed changes ticks per real second, never the tick size. |
@@ -194,8 +194,9 @@ Same scenario + same seed + same action stream ⇒ **bit-identical final state h
 - `baselinePolicy` / `passivePolicy` — reference operators. The dashboard scores the player against a passive run on the same seed.
 - `compareRuns.ts` — run summaries, played-vs-baseline deltas, p10/mean/p90 statistics.
 - `sweep.ts`, `strategies.ts`, `gateEvidence.ts` — parameter sweeps, dominant-strategy tests across all three archetypes, and the machine-measurable gate criteria.
+- `goodPlayer.ts`, `benchmark.ts` (D67) — a scripted good player that uses only what the dashboard shows; a per-site search over its settings (tuned on one set of days, scored on another); and the winnability check, which replays each site's stored settings: a good player must usually win and the baseline usually lose.
 
-`headless.ts` exposes these as subcommands (`run`, `batch`, `trace`, `sweep`, `archetypes`, `strategies`, `gate`), with policy-override flags (`--price`, `--power`, `--maintenance`, `--partial`, `--grid`, `--scenario`). Batch work is single-threaded and synchronous. A day takes roughly 1–2s.
+`headless.ts` exposes these as subcommands (`run`, `batch`, `trace`, `sweep`, `archetypes`, `strategies`, `gate`, `bench`, `winnable`), with policy-override flags (`--price`, `--power`, `--maintenance`, `--partial`, `--grid`, `--scenario`). Batch work is single-threaded and synchronous. A day takes roughly 1–2s.
 
 ---
 

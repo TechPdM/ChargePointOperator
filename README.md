@@ -2,7 +2,7 @@
 
 A dashboard-first simulation game about running one EV charging site under pressure. You set price, power policy, charging limits, maintenance level and which bays are open; the queue, the grid cap and the faults do the rest.
 
-**Status: Phase 4 — the gate, blocked on people.** After the D46–D62 model revision, criteria 2, 3 and 4 are scored and pass; criterion 2 narrowly, under the D62 reading (an adaptive pricing rule is near-best everywhere but best nowhere). Criteria 1 and 5 need three external testers and cannot be measured any other way. See `docs/ChargePointOperator_Gate_Scorecard.md`.
+**Status: Phase 4 — the gate, blocked on people.** After the D46–D67 model revision, criteria 2, 3 and 4 are scored and pass, and so does the D67 winnability check: a scripted good player wins 63–85% of days at each site, doing nothing 1–9%. A seed is a fixed day (D65), so a replay is a fair second attempt. Criteria 1 and 5 need three external testers and cannot be measured any other way. See `docs/ChargePointOperator_Gate_Scorecard.md`.
 
 The design documents are canonical and come first:
 
@@ -22,7 +22,9 @@ The design documents are canonical and come first:
 | `docs/ChargePointOperator_Phase1_Findings.md` | what the first 20-seed batch actually measured |
 | `docs/ChargePointOperator_Phase3_Findings.md` | the sweeps, the three archetypes, and the dominant-strategy test |
 | `docs/ChargePointOperator_PricingModel_Discovery.md` | why profit alone cannot be the objective yet — measured, nothing decided |
-| `docs/ChargePointOperator_Dev_Log_*.md` | what actually happened, one file per working day — latest 2026-11-14 (D64, the goals-met celebration, interface fixes) |
+| `docs/ChargePointOperator_Strategy_Analysis_2026-11-14.md` | why days ended just short of the goals, the good-player benchmark, and what D65–D67 changed |
+| `docs/ChargePointOperator_How_It_Plays.md` | the game as built, in plain language |
+| `docs/ChargePointOperator_Dev_Log_*.md` | what actually happened, one file per working day — latest 2026-11-15 (D65–D67: fixed days, trust, goals fitted against a good player) |
 
 Where code and documents disagree, the documents win — fix the document first, then the code.
 
@@ -98,6 +100,13 @@ The machine-measurable half of the gate scorecard:
 npm run sim -- gate --seeds 8
 ```
 
+Can each site be won (D67)? The good player's stored settings against the baseline, 40 days a site; and the search that finds those settings (10–20 minutes a site):
+
+```bash
+npm run sim -- winnable --seeds 40
+npm run sim -- bench --scenario commuter --seeds 16 --confirm 40
+```
+
 Tests and typecheck:
 
 ```bash
@@ -125,11 +134,11 @@ src/ui/
   effects/     frameDischarge, the goals-met celebration (?debug=win to see it on any day)
   hooks/       useSimulation (store) · useGameLoop (fixed timestep)
 src/app/       App.tsx — the §8.1 layout
-tests/         178 tests, each pinned to the document that defines the rule
+tests/         187 tests, each pinned to the document that defines the rule
 ```
 
 ## Three rules the code is held to
 
 - **No control without a mechanic**, and no field without a reader. A field with no formula behind it is a control with no mechanic wearing a different hat.
 - **Schema changes travel in pairs.** The action union, the event catalogue, the dashboard bindings and the systems that consume them change together — invariant 8 makes drift a test failure. The KPI dictionary is canonical for *meaning*; matching names are not matching definitions.
-- **Determinism is load-bearing.** One seeded PRNG stream, a fixed timestep, no wall-clock in sim state. Same seed plus same action stream ⇒ same final state hash, and a run replays from its own log.
+- **Determinism is load-bearing.** Seeded, keyed random draws (D65: a seed is a fixed day, whatever the player does), a fixed timestep, no wall-clock in sim state. Same seed plus same action stream ⇒ same final state hash, and a run replays from its own log.

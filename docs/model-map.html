@@ -370,7 +370,7 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
     <span><b>60&nbsp;s</b> tick · <b>1,440</b> ticks per run</span>
     <span><b>3</b> scenarios · <b>3</b> scored goals</span>
     <span><b>7</b> player levers · <b>11</b> tick systems</span>
-    <span>read from <b>src/game</b> at <b>model-revision-d46</b> · D46–D60</span>
+    <span>read from <b>src/game</b> at <b>model-revision-d46</b> · D46–D67</span>
   </div>
 </header>
 
@@ -518,7 +518,7 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
       consts: [["PRICE_MIN", "0.45"], ["PRICE_MAX", "1.20"]],
       src: "src/game/core/calibration.ts:189",
       notes: ["Three channels means no single number describes this model's price elasticity — the three compose, and only one of them is labelled elasticity.",
-              "It also moves trust: every drive-on costs −0.15, and one over the driver's ceiling a further −0.20."],
+              "It also moves trust: every drive-on costs −0.075 (D66; was −0.15), and one over the driver's ceiling a further −0.20."],
       flag: true },
 
     { id: "fee", band: "b", g: B[1], label: "Connection fee", sub: "policy.connectionFee", kind: "money",
@@ -566,8 +566,8 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
 
     /* --- C1: demand mechanisms --------------------------------------- */
     { id: "spawn", band: "c", g: C1[0], label: "spawnArrivals", sub: "Poisson(λ) · priceMultiplier()", kind: "price",
-      blurb: "Channel one. The wave's rate is scaled by a linear price response, clamped, and used as the mean of a Poisson draw. One tick is one sim-minute, so the per-minute rate is the mean directly.",
-      formula: "raw = 1 − (ε × (p − ref)) / ref\nmultiplier = clamp(raw, 0.3, 1.5)\nλ = arrivalRatePerMinute × multiplier × (delta / 60)\ncount = Poisson(λ)\nsample.arrivals += count   (D60)",
+      blurb: "Channel one. The wave's rate is scaled by a linear price response, clamped, and used as the mean of a Poisson draw. One tick is one sim-minute, so the per-minute rate is the mean directly. Since D65 the count comes from one number keyed by the minute, inverted through the Poisson distribution, so a higher price thins out the same cars rather than drawing new ones.",
+      formula: "raw = 1 − (ε × (p − ref)) / ref\nmultiplier = clamp(raw, 0.3, 1.5)\nλ = arrivalRatePerMinute × multiplier × (delta / 60)\nu = drawFor(seed, \"arrivals\", tick).next()      (D65)\ncount = poissonFromUniform(λ, u)\ncar i ← drawFor(seed, \"car\", \"tick.i\")   drawKey\nsample.arrivals += count   (D60)",
       consts: [["PRICE_MULTIPLIER_MIN", "0.30"], ["PRICE_MULTIPLIER_MAX", "1.50"], ["ε", "per wave"]],
       src: "src/game/systems/arrivals.ts:21, 55",
       notes: ["The clamp is symmetric about 1.0 but the price range is not symmetric about ref — at PRICE_MIN the multiplier is nowhere near 1.5."] },
@@ -628,8 +628,8 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
       flag: true },
 
     { id: "faults", band: "c", g: C2[2], label: "resolveFaultsAndRepairs", sub: "hazard · contractor", kind: "fault",
-      blurb: "A per-tick hazard that integrates to roughly the spec's failure probability over one session. Only bays actually delivering power can fault randomly. On a contract, a fault that has stood for the response time is repaired by the contractor unasked (D53). Scripted faults ignore maintenance but skip a closed bay (D54).",
-      formula: "1. repairs due      → idle\n2. contract (D53)   faulted ≥ contractResponseSeconds, open bays only (D64)\n                    → beginRepair(\"contract\"), £200\n3. scripted         skip closed or down bays (D54)\n4. random           charging bays only\n\np = ((1 − reliabilityBase) / max(1, expectedSessionTicks))\n    × faultProbabilityMultiplier\nrepair = repairSecondsMean × repairTimeMultiplier",
+      blurb: "A per-tick hazard that integrates to roughly the spec's failure probability over one session, summed into each bay's wear (D65): the bay faults when its wear reaches a budget drawn from the seed. Only bays actually delivering power accrue wear. On a contract, a fault that has stood for the response time is repaired by the contractor unasked (D53). Scripted faults ignore maintenance but skip a closed bay (D54).",
+      formula: "1. repairs due      → idle\n2. contract (D53)   faulted ≥ contractResponseSeconds, open bays only (D64)\n                    → beginRepair(\"contract\"), £200\n3. scripted         skip closed or down bays (D54)\n4. random           charging bays only (D65: wear budget)\n\nh = ((1 − reliabilityBase) / max(1, expectedSessionTicks))\n    × faultProbabilityMultiplier\nwear += h\nif wear ≥ wearLimit → fault; wear = 0;\n   wearLimit = Exp(1) keyed by (bay, faults so far)\nrepair = repairSecondsMean × repairTimeMultiplier",
       consts: [["connector", "0.40"], ["power module", "0.25"], ["cooling", "0.20"], ["software", "0.15"], ["contractor response", "1,800 s · 900 s · none"], ["repair path", "shared, repairs.ts"]],
       src: "src/game/systems/faults.ts:18, 26 · repairs.ts:32",
       notes: ["Idle and queueing bays never fault randomly, so closing bays lowers the fault rate as well as capacity.",
@@ -650,9 +650,9 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
       src: "src/game/systems/economics.ts:17" },
 
     { id: "trustupd", band: "c", g: C2[5], label: "updateTrust", sub: "deltas → clamp ±5 / hr", kind: "trust",
-      blurb: "Sums everything that happened to reputation this tick and applies it against a rolling one-hour budget, so no single bad hour can move trust more than five points.",
-      formula: "if ROLL uptime > 98%  → +0.5 × delta/3600\n\nwindowSum = Σ trustDelta over rolling 3,600 s\napplied   = clamp(raw, −5 − windowSum, +5 − windowSum)\ntrust     = clamp(trust + applied, 0, 100)",
-      consts: [["clampPerWindow", "±5"], ["window", "3,600 s rolling"], ["drive-on", "−0.15"], ["…if over ceiling", "−0.20 extra"], ["abandon", "−1.50"], ["fault mid-session", "−2.00"], ["fault idle", "−0.50"], ["completion", "0.00"], ["fast (<300 s)", "+0.10"], ["slow", "−0.05"], ["capped charge", "−0.10"], ["uptime >98%", "+0.5 / hr"]],
+      blurb: "Sums everything that happened to reputation this tick and applies it against a rolling one-hour budget, so no single bad hour can move trust more than five points. Since D66 trust recovers towards its start while no open bay is faulted, and each faulted bay left open drains it.",
+      formula: "if ROLL uptime > 98%  → +0.5 × delta/3600\nbroken = open faulted bays\nraw += broken × −2 × delta/3600              (D66)\nif trust < start and broken == 0             (D66)\n   raw += (start − trust) × (1 − 0.75^(delta/3600))\n\nwindowSum = Σ trustDelta over rolling 3,600 s\napplied   = clamp(raw, −5 − windowSum, +5 − windowSum)\ntrust     = clamp(trust + applied, 0, 100)",
+      consts: [["clampPerWindow", "±5"], ["window", "3,600 s rolling"], ["drive-on", "−0.075 (D66)"], ["…if over ceiling", "−0.20 extra"], ["abandon", "−1.50"], ["fault mid-session", "−2.00"], ["fault idle", "−0.50"], ["completion", "0.00"], ["fast (<300 s)", "+0.10"], ["slow", "−0.05"], ["capped charge", "−0.10"], ["uptime >98%", "+0.5 / hr"], ["broken bay open", "−2 / hr (D66)"], ["recovery", "25% of gap / hr (D66)"]],
       src: "src/game/systems/trust.ts:14 · calibration.ts:319",
       notes: ["Clamping is silent, so clamp hits are counted separately. A climbing counter means the underlying deltas are wrong."],
       flag: true },
@@ -740,14 +740,14 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
     /* --- F: goals ------------------------------------------------------- */
     { id: "gtrust", band: "f", g: F[0], label: "minTrust", sub: "trust ≥ target", kind: "trust",
       blurb: "Trust at midnight against the site's floor.",
-      formula: "Junction 42   ≥ 55\nEastgate      ≥ 70\nTrevithick      ≥ 63",
-      consts: [["roadsideHub", "55"], ["commuterHub", "70"], ["destinationSite", "63"]],
+      formula: "Junction 42   ≥ 55\nEastgate      ≥ 73   (D67)\nTrevithick      ≥ 63",
+      consts: [["roadsideHub", "55"], ["commuterHub", "73"], ["destinationSite", "63"]],
       src: "src/game/scenarios/*.ts · scoring.ts:148" },
 
     { id: "gmargin", band: "f", g: F[1], label: "minOperatingMargin", sub: "cumMargin ≥ target", kind: "money",
       blurb: "Cumulative margin at midnight against the site's floor.",
-      formula: "Junction 42   ≥ £4,000\nEastgate      ≥ £1,450   (D59)\nTrevithick      ≥ £450     (D59)",
-      consts: [["roadsideHub", "£4,000"], ["commuterHub", "£1,450"], ["destinationSite", "£450"]],
+      formula: "Junction 42   ≥ £4,550   (D67)\nEastgate      ≥ £1,200   (D67)\nTrevithick      ≥ £475     (D67)",
+      consts: [["roadsideHub", "£4,550"], ["commuterHub", "£1,200"], ["destinationSite", "£475"]],
       src: "src/game/scenarios/*.ts · scoring.ts:149" },
 
     { id: "gwait", band: "f", g: F[2], label: "maxAvgWaitSeconds", sub: "cumAvgWait ≤ target", kind: "wait",
@@ -823,7 +823,7 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
     { f: "econ",     t: "margin", c: "money", l: "4 terms" },
 
     /* trust channel */
-    { f: "admit",    t: "trustupd", c: "trust", l: "−0.15 drive-on · −0.20 if price" },
+    { f: "admit",    t: "trustupd", c: "trust", l: "−0.075 drive-on · −0.20 if price" },
     { f: "abandon",  t: "trustupd", c: "trust", l: "−1.50" },
     { f: "advance",  t: "trustupd", c: "trust", l: "+0.10 fast · −0.05 slow" },
     { f: "faults",   t: "trustupd", c: "trust", l: "−2.00 mid-session · −0.50 idle" },
@@ -891,7 +891,7 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
 
     { sev: "calibration", chan: "trust", node: "trustupd",
       title: "Trust responds slowly",
-      body: "Most deltas are small — −0.15 a drive-on, +0.1 a fast completion — and the net movement in any rolling hour is clamped to ±5. Over a five-minute real day that spreads cause and effect thin.",
+      body: "Most deltas are small — −0.075 a drive-on, +0.1 a fast completion — and the net movement in any rolling hour is clamped to ±5. Since D66 a loss recovers once no broken bay is open, and a broken bay left open drains 2 an hour. Over a five-minute real day that spreads cause and effect thin.",
       also: "Whether a player can read why their reputation moved, within one day, is gate criterion 1's question. Trust also reaches admission only through the d-term, worth ±0.6 of score across the full 0–100 range.",
       where: "trust.ts:29 · calibration.ts:319" },
 
@@ -907,7 +907,7 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
      ====================================================================== */
   const ENTS = [
     { name: "SimulationState", card: "root", desc: "Deep-cloned every tick. Anything in here is copied 1,440 times per run.",
-      fields: [["clock: GameClock", ""], ["scenario: ScenarioConfig", ""], ["rngState: string", "8 hex, mulberry32"],
+      fields: [["clock: GameClock", ""], ["scenario: ScenarioConfig", ""], ["rngSeed: string", "8 hex; every draw keyed off it (D65)"],
                ["site: Site", "singleton"], ["chargers: Record<Id, ChargerBay>", ""], ["vehicles: Record<Id, VehicleAgent>", "on site only"],
                ["queue: QueueEntry[]", ""], ["sessions: Record<Id, ChargingSession>", "active only"],
                ["departedVehicles: DepartedVehicle[]", "flattened"], ["tickSamples: TickSample[]", "ring, 60"],

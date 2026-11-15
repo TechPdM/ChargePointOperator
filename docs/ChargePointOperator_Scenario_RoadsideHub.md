@@ -77,13 +77,13 @@ Measured under the baseline (20 seeds, after D46–D55): **~280 drivers served**
 
 Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. **v2.0 change (D10):** the cash-floor goal is replaced by an operating-margin goal; with a £50k float, "end richer than you started" measured nothing.
 
-**Win (all three at end of run)** — *three, not four, since **D44** removed `minSessionsCompleted`. Values re-fitted by **D57** after D46–D55; they supersede £3,200 / 420 s / 55 (D42/D43) and the £2,200 / 480 s / 110 set carried through D36.*
+**Win (all three at end of run)** — *three, not four, since **D44** removed `minSessionsCompleted`. Margin re-fitted by **D67** (2026-11-15) against a good-player benchmark as well as the baseline: a good player wins 63% of days and the baseline 1%. Earlier: £4,000 / 210 s / 55 (D57), £3,200 / 420 s / 55 (D42/D43), £2,200 / 480 s / 110 (D36).*
 
 | Goal | Value |
 | :-- | :-- |
-| `minOperatingMargin` | ≥ **£4,000** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *from the measured 20-seed baseline spread £2,983–£4,493, p50 £4,006; met on 50%* |
-| `maxAvgWaitSeconds` | ≤ **210** (3.5 sim-min, CUM) — *p50 211 s; met on 45%. Was 420 s, before D48 halved waits* |
-| `minTrust` | ≥ **55** — *unchanged through five re-fits; met on 55%* |
+| `minOperatingMargin` | ≥ **£4,550** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *D67. Baseline p50 £3,893, met on 3% (40 seeds); good player met it on ~63% of unseen days* |
+| `maxAvgWaitSeconds` | ≤ **210** (3.5 sim-min, CUM) — *baseline p50 3.6 min, met on 33%. Was 420 s, before D48 halved waits* |
+| `minTrust` | ≥ **55** — *unchanged through six re-fits. Since D66 the baseline meets it on 40/40 days (p50 62); it now catches neglect, not ordinary play. Raising it is open (D67)* |
 
 **`minSessionsCompleted` is gone (D44).** Driver count is not a measure an operator manages to. `sessionsCompleted` is still reported on the dashboard, on the **Served · turned away** card (D60). The card's colour judges the share of drivers turning away (a reputation event, D45), never the count served, because a colour on the count would be the scorecard claiming that serving more people is better.
 

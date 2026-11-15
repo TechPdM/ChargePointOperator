@@ -51,6 +51,11 @@ Ask for think-aloud. **Stay silent.** Answer any question with "what do you thin
 - **The £300 call-out.** On a contract, calling a repair out yourself costs £300 against the contractor's £200. Note whether they see the price difference and whether they ever choose to wait.
 - **Turned away vs queue.** Overload now shows mostly as drivers turning away at the entrance, on the *Served · turned away* card, rather than as a long queue. Note whether they connect a high turned-away figure to their price or to a busy forecourt.
 
+**Two more, added 2026-11-15 for D65–D67** (observer notes only; the frozen script is unchanged):
+
+- **Trust now recovers, and neglect crashes it (D66).** Trust climbs back towards 60 while no broken bay is open; each broken bay left open drains it until repaired or closed. Note whether they notice trust recovering after a bad patch, and whether a crash makes them look for the broken bay.
+- **Replays are fair (D65).** The same seed brings the same cars and the same breakdowns whatever they do. If they replay a seed, note whether they try the same day differently, and whether they find the price lever: every site's best price is above its starting price, and the game doesn't say so.
+
 - [ ] **Save run** before restarting
 
 ---

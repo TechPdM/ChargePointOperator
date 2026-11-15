@@ -73,12 +73,12 @@ D4 promises replay and invariant 9 tests it, but a promise needs mechanisms. The
 
 | Concern | Rule |
 | :-- | :-- |
-| **PRNG** | `mulberry32`. State is a single uint32, serialised into `SimulationState.rngState` as 8 lowercase hex chars. **One global stream**, drawn in pipeline order — never per-system streams, which reorder under refactoring and break replay silently. |
+| **PRNG** — `AMENDED (D65)` | `mulberry32`, but **keyed, not sequential**. `SimulationState.rngSeed` is the seed hashed to 8 hex chars and never changes. Every draw comes from its own short stream, `drawFor(rngSeed, purpose, …key)`: arrivals by minute; each car by minute and place in that minute (`VehicleAgent.drawKey`); perception and abandonment by car; wear and fault kind by bay. A seed is therefore a fixed day: a player's action cannot shift later draws. *Was:* one global stream drawn in pipeline order, with per-system streams banned because they reorder under refactoring. A keyed draw has no order to break, so the guarantee holds in a stronger form. |
 | **Seed** | `string` everywhere (so `pt-1` is a legal seed). Hashed to the initial uint32 with FNV-1a. Numeric-looking seeds are still strings. |
 | **State hash** | FNV-1a over canonical JSON: object keys sorted, `eventLog` excluded (it's a ring buffer, not state). |
 | **Timestep** | **Fixed.** `deltaSeconds` is always `scenario.tickSeconds` (60). The UI speed control changes how many ticks run per real second and *never* the tick size. A variable timestep breaks replay on the first frame-rate hiccup. |
 
-`Math.random()`, `Date.now()` and `new Date()` are banned in `game/` outside tests. `rng.ts` is the only randomness source; wall-clock lives only in the run manifest (C11).
+`Math.random()`, `Date.now()` and `new Date()` are banned in `game/` outside tests. `rng.ts` (`drawFor`, `wearLimitFor`, `poissonFromUniform`) is the only randomness source; wall-clock lives only in the run manifest (C11).
 
 ---
 
@@ -242,7 +242,8 @@ while simState.running:
         if sessionComplete(charger.session):                             // AMENDED (C4):
             finalizeSession(charger.session, metrics)                    // maintenanceLevel
             charger.state = IDLE                                         // is now a policy
-        else if randomFaultOccurs(charger, site.policy.maintenanceLevel):
+        else if wearReachesBudget(charger, site.policy.maintenanceLevel):  // AMENDED (D65): wear += per-tick hazard;
+                                                                          // fault when wear ≥ wearLimit (Exp(1), keyed by bay)
             // AMENDED (D19): detach BEFORE faulting, or invariant 4 fires every time.
             interruptSession(charger.session, metrics)   // completed=false,
             markLeave(charger.vehicle, "service_interrupted")  // interruptedByFault=true
@@ -793,12 +794,15 @@ margin                   = revenue - energyCost - maintenanceCost
                            - (opexPerSimDay * simDayFraction * openBayShare)  // D54: closed bays cost nothing
                            // standing maintenance is scaled by openBayShare too
 
-// --- trust (D30, D45) ---
+// --- trust (D30, D45, D66) ---
 trustDelta               = + fastCompletionBonus (wait < 300 s)   or  slowCompletionPenalty
                            + uptimeBonus (ROLL uptime > 98%)
-                           - siteRejection (any drive-on) - priceRejectionExtra (price over their ceiling)
+                           - siteRejection (any drive-on; −0.075 since D66) - priceRejectionExtra (price over their ceiling)
                            - abandonPenalty - faultPenalty (mid-session / idle)
                            - partialChargePenalty                                 // D14
+                           - 2/sim-hr × openFaultedBays                           // D66: until repaired or closed
+                           + 25%/sim-hr × (initialTrust − trust)                  // D66: only if below start
+                                                                                  //      and no open bay faulted
                          clamped to ±5 over a rolling 3,600 sim-second window
 ```
 
