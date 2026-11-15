@@ -17,6 +17,7 @@
 | Goals | Re-fitted at all three sites against a good-player benchmark as well as the baseline | D67 |
 | Tooling | `npm run sim -- winnable`, and a winnability section in `gate`; `bench --fresh-prefix` | D67 |
 | Docs | Decision log D65–D67; Calibration v4.2 (§7 re-measured); strategy analysis v1.3 (§5c); How It Plays (dated 2026-11-15) | — |
+| Docs sync | Architecture, `docs/ARCHITECTURE.md`, KPI dictionary v1.7, scenario spec, model map, README, Plan, Session Pack; gate scorecard v2.3 from a 40-seed `gate` run (criteria 2–4 and winnability all pass; criterion 2 no longer narrow, `trust_crash` 4 → 11 runs) | `9c1561c` |
 
 ## 2. How the session went
 
@@ -53,6 +54,7 @@ Good-player rates are over 80 unseen days (Trevithick 40). Each 40-day figure ca
 
 - **The search runs take time.** One `bench` is 10–20 minutes a site; the iterative fit took about 75 minutes with the three sites in parallel. The scratch fit script is not in the repo; `bench` and `winnable` are.
 - **`tsx` in the sandbox:** `npx tsx` can't open its IPC pipe inside the Claude sandbox. `node --import tsx <file>` works.
+- **Model map line references** (`src:` fields) were not re-checked; the blocks changed by D65–D66 were rewritten, but other blocks' line numbers may have drifted.
 - **zsh doesn't word-split** `$var` in a `for` loop, which broke one batch launch. Pass the arguments explicitly.
 
 ## 6. Open, carried forward
