@@ -475,7 +475,7 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 *The check.* `npm run sim -- winnable` (and a section of `gate`) replays each site's stored good-player settings (`WINNABILITY` in `benchmark.ts`) on 40 days of their own: the good player must win at least 55% (75% at Trevithick) and the baseline at most 20%. After any change to the model or a goal, re-run `bench` and update the stored settings before trusting it. The good player is found by a one-setting-at-a-time search, so its win rate is a floor on what good play can do, not a ceiling.
 
-*Observed, not acted on.* Junction 42's trust goal (55) no longer bites under baseline play: D66 lifted baseline trust there to ~62, and the baseline meets it on 40/40 days. The site is still hard through margin. Raising it to ~60 is open.
+*Kept, by Mark's call.* Junction 42's trust goal (55) no longer bites under baseline play: D66 lifted baseline trust there to ~62, and the baseline meets it on 40/40 days. The site is still hard through margin. Raising it to ~60 was offered and declined: it now catches neglect rather than ordinary play, and that is enough.
 
 *Consequences.* D13 still passes (baseline fails ≥1 goal on 100% / 83% / 93% of days). Gate criterion 2 passes at 40 seeds with a different best strategy at each site. The calibration sheet's §7 is re-measured (v4.2).
 

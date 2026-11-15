@@ -198,7 +198,7 @@ Eastgate p50: margin £1,176 · wait 1.6 min · trust 69.3 · drive-ons 62 a day
 
 **Winnability (D67), the other side of D13:** the good-player benchmark wins **63%** at Junction 42 and **66%** at Eastgate (80 fresh days each), and **85%** at Trevithick (40 days). The baseline wins 1%, 9% and 5%.
 
-*Note:* Junction 42's trust goal no longer bites for the baseline (met 40/40) since D66 lifted its trust. The site is hard through margin. Raising it to ~60 is open (D67).
+*Note:* Junction 42's trust goal no longer bites for the baseline (met 40/40) since D66 lifted its trust. The site is hard through margin. Kept at 55 by Mark's call (D67).
 
 The habit still holds: set goals from measured distributions rather than from paper (OPEN-3, D36). D67 adds the second distribution, a good player's, to fit against.
 

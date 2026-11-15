@@ -83,7 +83,7 @@ Goal values are first guesses (C9) — CUM definitions per the KPI dictionary. *
 | :-- | :-- |
 | `minOperatingMargin` | ≥ **£4,550** CUM (revenue − energy − maintenance − opex; capex excluded per D12) — *D67. Baseline p50 £3,893, met on 3% (40 seeds); good player met it on ~63% of unseen days* |
 | `maxAvgWaitSeconds` | ≤ **210** (3.5 sim-min, CUM) — *baseline p50 3.6 min, met on 33%. Was 420 s, before D48 halved waits* |
-| `minTrust` | ≥ **55** — *unchanged through six re-fits. Since D66 the baseline meets it on 40/40 days (p50 62); it now catches neglect, not ordinary play. Raising it is open (D67)* |
+| `minTrust` | ≥ **55** — *unchanged through six re-fits. Since D66 the baseline meets it on 40/40 days (p50 62); it now catches neglect, not ordinary play. Kept at 55 by Mark's call (D67)* |
 
 **`minSessionsCompleted` is gone (D44).** Driver count is not a measure an operator manages to. `sessionsCompleted` is still reported on the dashboard, on the **Served · turned away** card (D60). The card's colour judges the share of drivers turning away (a reputation event, D45), never the count served, because a colour on the count would be the scorecard claiming that serving more people is better.
 

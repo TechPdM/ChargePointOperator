@@ -209,5 +209,5 @@ A tighter Eastgate wait goal (75 s) was tried first. It made wave pricing a cont
 1. ~~Agree the win-rate targets~~ — set by Mark, §5c.
 2. ~~Choose the order of work~~ — done, §5c.
 3. ~~The no-contract start~~ — settled by the fit, §5c.
-4. **Junction 42's trust goal** (55) no longer bites for the baseline. Raise it to ~60, or leave the site hard through margin alone?
+4. ~~Junction 42's trust goal~~ — stays at 55 (Mark, 2026-11-15): it catches neglect, and the site stays hard through margin.
 5. **Playtest** the new goals and trust rules: do near misses now feel like near misses, and does trust read as recoverable?

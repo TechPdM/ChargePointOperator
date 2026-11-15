@@ -59,6 +59,6 @@ Good-player rates are over 80 unseen days (Trevithick 40). Each 40-day figure ca
 
 ## 6. Open, carried forward
 
-1. **Junction 42's trust goal:** raise to ~60, or leave the site hard through margin alone? (D67)
-2. **Playtest** the new goals and trust rules: do near misses feel like near misses, does trust read as recoverable, and do players find the price lever?
+1. ~~Junction 42's trust goal~~ — **stays at 55** (Mark, 2026-11-15). It catches neglect; the site stays hard through margin.
+2. **Playtest** the new goals and trust rules (Mark is playing the deployed version and will report back): do near misses feel like near misses, does trust read as recoverable, and do players find the price lever?
 3. From 2026-11-14 §6: trust card colours, queue card thresholds, closing bays to shield uptime.
