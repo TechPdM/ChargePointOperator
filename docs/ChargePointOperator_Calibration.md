@@ -1,6 +1,6 @@
 # ChargePointOperator — Calibration Sheet & Assumptions Register
 
-**Version:** 4.1 · **Date:** 2026-11-13 *(**v4.1: D59 call-out premium; D58 `queue_collapse` threshold; §7 re-measured with the D59 baseline.** · **v4.0: D46–D55 — uniform cars, driver target spread, shorter queue tolerance and patience, charging limit off/90/75/50, bay choice, faults halved, connection fee £0, contract repairs, closed bays cost nothing. §7 measured ranges are stale until the D57 re-measure.** · v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites** · **v3.4: D42–D45 — §3 gains the detour-derived ceiling, per-archetype value of time and the per-site detour ranges; §5's worked example re-computed and made site-specific; §7 re-measured (and barely moved, which is itself the finding); §8's price gradient becomes `up-then-down`; §9 gains A8 (2014 prices, not uprated) and A9 (detour is a range, not a road network); goals are three, not four**)*
+**Version:** 4.2 · **Date:** 2026-11-15 *(**v4.2: D65 fixed days (keyed draws, faults from a wear budget); D66 trust (drive-on −0.075, recovery, broken-bay drain); D67 goals fitted against the good-player benchmark; §7 re-measured.** · **v4.1: D59 call-out premium; D58 `queue_collapse` threshold; §7 re-measured with the D59 baseline.** · **v4.0: D46–D55 — uniform cars, driver target spread, shorter queue tolerance and patience, charging limit off/90/75/50, bay choice, faults halved, connection fee £0, contract repairs, closed bays cost nothing. §7 measured ranges are stale until the D57 re-measure.** · v2.0: rebuilt for ratified D8/D10/D14/D15 · v2.1: night-duration figure made precise · v2.2: readiness-review fixes — D21 admission/elasticity formulas with worked examples, archetype reference prices, fault model made well-formed, §4a maintenance-dominance arithmetic, §7 ranges re-derived · **v3.0: Phase 1 measurement — §7 ranges replaced by measured values (OPEN-3 closed), §4a maintenance dominance confirmed empirically, D13 floor measured as failing · v3.1: D30 trust rebalance and D31 perceived-wait noise — §5 rewritten, §7 re-measured, OPEN-4 and OPEN-5 closed · **v3.2: OPEN-2 resolved — flat call-out cost and a realistic preventive standing charge; OPEN-6 resolved — charging limits re-scoped** · **v3.3: §7 re-measured after the D35–D37 re-rating — every row of the table moved; the comparison column now carries the pre-re-rating measurement instead of the v2.2 paper guess, and the D13 paragraph is rewritten because `minTrust` is now the goal that bites** · **v3.4: D42–D45 — §3 gains the detour-derived ceiling, per-archetype value of time and the per-site detour ranges; §5's worked example re-computed and made site-specific; §7 re-measured (and barely moved, which is itself the finding); §8's price gradient becomes `up-then-down`; §9 gains A8 (2014 prices, not uprated) and A9 (detour is a range, not a road network); goals are three, not four**)*
 **Companions:** `ChargePointOperator_Plan.md` (C9, O7), `ChargePointOperator_Architecture.md` (§6, §9.3), `ChargePointOperator_Decision_Log.md` (D8–D26)
 **Status of every number: FIRST GUESS** — chosen for plausible ratios and gradients so Phase 1 has something to assert against and Phase 3 something to tune. When a value proves wrong, change it here first, then in code. Currency £ (realistic magnitudes — D10).
 
@@ -154,7 +154,9 @@ That ordering is the design intent made checkable: commuters shed first — righ
 | Fault model | Per-tick `P(fault) = (1 − reliabilityBase) / expectedSessionTicks × maintenanceMultiplier`, evaluated only on `charging` bays, where `expectedSessionTicks = max(1, round(session.estimatedDurationSeconds / 60))` — **that session's own** estimate, taken at start. Integrates to ≈ `1 − reliabilityBase` per session, which is what `reliabilityBase` is supposed to mean. Plus the scripted fault (scenario spec §4), which no maintenance level prevents |
 | Abandonment | 0 while `waited < patience`; then ramps linearly to 0.5/tick over the next 600 s |
 | Trust — start / bounds | 60 / clamp 0–100, max ±5 over a **rolling** 3,600 sim-second window |
-| Trust deltas *(rebalanced — **D30**)* | abandon −1.5 · fault mid-session −2.0 · fault idle −0.5 · **completion 0** · **wait < 300 s: +0.1 · wait ≥ 300 s: −0.05** (exclusive, not cumulative) · uptime (ROLL) > **98%** sustained +0.5/sim-hr · **drive-on −0.15, plus a further −0.2 when the price was above what that driver would pay (D45)** · partial-charge-capped session −0.1 (D14) |
+| Trust deltas *(rebalanced — **D30**, **D66**)* | abandon −1.5 · fault mid-session −2.0 · fault idle −0.5 · **completion 0** · **wait < 300 s: +0.1 · wait ≥ 300 s: −0.05** (exclusive, not cumulative) · uptime (ROLL) > **98%** sustained +0.5/sim-hr · **drive-on −0.075** *(D66; was −0.15)*, plus a further −0.2 when the price was above what that driver would pay (D45) · partial-charge-capped session −0.1 (D14) · **each faulted bay left open −2/sim-hr until repaired or closed (D66)** |
+| **Trust recovery** *(D66)* | While trust is below the starting level **and no open bay is faulted**, it closes **25% of the gap per sim-hour**, inside the ±5 clamp. One-way: never pulls trust down |
+| **Randomness** *(D65)* | Every draw is keyed off the seed and what it is for (arrivals per minute; each car by minute and place; perception and abandonment per car; wear per bay). Random faults: each bay draws a wear budget (exponential, mean 1) and faults when the per-tick hazard, summed over charging minutes, reaches it |
 | **Detour premium clamp** *(D42)* | `DETOUR_PREMIUM_MAX` **£0.40**. Measured: binds on 0.60% of corridor drivers (13 of 2,174 over 5 seeds) and on nobody at the other two sites, where the largest premium reached is £0.266 and £0.117. It catches the extreme tail — a 10 kWh top-up after a 30-minute detour — without collapsing anyone onto a shared ceiling |
 | Perceived-wait noise *(new — **D31**)* | `perceivedWait = trueWait × U(0.65, 1.35)` — each arrival judges the wait it can see, and misjudges it (A4) |
 
@@ -166,31 +168,39 @@ That ordering is the design intent made checkable: commuters shed first — righ
 
 Wave table lives in `ChargePointOperator_Scenario_RoadsideHub.md` §3 (single source — includes the D8 overnight hours).
 
-## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3) · **re-measured for D46–D55 (v4.0)**
+## 7. Output ranges — baseline policy · **MEASURED** (closes OPEN-3) · **re-measured for D65–D67 (v4.2)**
 
 Baseline (D22, amended by D59) = list price flat, **`standard`** maintenance, `equal_share` power, all bays open, charging limit **off**, no upgrades. Faults are repaired by the **D53 contractor** after 30 min; on `reactive` the baseline calls the repair out on the tick the fault is detected.
 
-Measured over 20 seeds (`s1`–`s20`) on **2026-11-13**, after D46–D59, Junction 42. The middle column is the previous measurement (v3.4, after D42–D45).
+Measured over 40 seeds (`s1`–`s40`) on **2026-11-15**, after D65–D67. **Every seed is a different day from v4.1's** (D65 changed how draws are made), so compare distributions, not seeds. The middle column is v4.1 (20 seeds, 2026-11-13).
 
-| KPI | **Measured** p50 [p10 · p90] | v3.4 mean | If a change moves it, suspect (in order) |
+| KPI — Junction 42 | **Measured** p50 [p10 · p90] | v4.1 p50 | If a change moves it, suspect (in order) |
 | :-- | :-- | :-- | :-- |
-| Arrivals/day | **~430** | 432 | `DEMAND_SCALE` (D36), then wave rates and elasticity |
-| Drive-ons at the entrance | **35.7%** [31.7 · 38.1] | 24% (97/day) | **D48's shorter queue tolerance** — overload now leaves at the gate |
-| Avg wait | **3.6 sim-min** [3.1 · 3.9] | 6.6 | D48/D49, then peaks vs capacity |
-| Abandonment rate | **1.1%** [0.4 · 1.6] | 1.3% | patience (D49) |
-| Uptime | **97.1%** [95.0 · 98.1] | 95.9% | D51 halved faults; D59's baseline waits up to 30 min for the contractor |
-| Faults/day (incl. scripted) | **3** [2 · 5] | 6.55 | D51 |
-| Sessions completed | **273** [261 · 286] | 324 | downstream of drive-ons |
-| Cumulative operating margin | **£4,074** [£3,457 · £4,196] | £3,701 | D47's larger sessions add kWh; D52 removed ~£330 of fees |
-| End trust | **54.1** [47.5 · 58.5] | 49.7 | fewer faults and shorter waits, against more drive-ons |
+| Arrivals/day | **435** [411 · 462] | ~430 | `DEMAND_SCALE` (D36), then wave rates and elasticity |
+| Drive-ons at the entrance | **148** a day (34%) | 35.7% | D48's queue tolerance |
+| Avg wait | **3.6 sim-min** [3.2 · 4.0] | 3.6 | D48/D49, then peaks vs capacity |
+| Abandonment rate | **1.1%** [0.6 · 1.7] | 1.1% | patience (D49) |
+| Uptime | **96.3%** [94.8 · 98.1] | 97.1% | faults and the contractor's 30 min |
+| Faults/day (incl. scripted) | **4** [2 · 6], mean 3.70 | 3 | D51; D65's wear budget keeps the mean (3.55 before) |
+| Sessions completed | **279** [268 · 295] | 273 | downstream of drive-ons |
+| Cumulative operating margin | **£3,893** [£3,528 · £4,323] | £4,074 | sessions × price |
+| End trust | **62.0** [58.8 · 64.5] | 54.1 | **D66**: drive-on penalty halved, recovery |
 
-Eastgate p50: margin £1,238 · wait 1.5 min · trust 68.2 · drive-ons 30%. Trevithick p50: margin £412 · wait 2.9 min · trust 63.1 · drive-ons 44%.
+Eastgate p50: margin £1,176 · wait 1.6 min · trust 69.3 · drive-ons 62 a day. Trevithick p50: margin £392 · wait 3.2 min · trust 65.6 · drive-ons 61 a day.
 
-**What moved, in one line:** shorter queue tolerance moved overload from the queue to the entrance (drive-ons up, waits halved), and halved faults lifted uptime and trust. Trevithick sheds the most at the gate: its drivers are unhurried (urgency ×0.7) and its posts are slow, so a short queue already looks long.
+**Goals (D67) and how often each is met by the baseline:**
 
-**Difficulty floor check (D13):** **85%** at Junction 42 (£4,000 / 210 s / 55), **80%** at Eastgate (£1,450 / 120 s / 70) and Trevithick (£450 / 200 s / 63), the D57 goals as adjusted by D59. At Eastgate the wait goal is met 19/20 by design and margin and trust carry the floor (D57). Eastgate and Trevithick sit **exactly** on the bar, so re-measure after any change.
+| Site | Goals: margin / wait / trust | Margin | Wait | Trust | D13 floor (fails ≥1) |
+| :-- | :-- | --: | --: | --: | --: |
+| Junction 42 | £4,550 / 210 s / 55 | 3% | 33% | **100%** | 100% |
+| Eastgate | £1,200 / 120 s / 73 | 45% | 98% | 20% | 83% |
+| Trevithick | £475 / 200 s / 63 | 10% | 57% | 85% | 93% |
 
-The habit still holds — set goals from this table's own distribution rather than from paper, which is what OPEN-3 established and D36 re-applied.
+**Winnability (D67), the other side of D13:** the good-player benchmark wins **63%** at Junction 42 and **66%** at Eastgate (80 fresh days each), and **85%** at Trevithick (40 days). The baseline wins 1%, 9% and 5%.
+
+*Note:* Junction 42's trust goal no longer bites for the baseline (met 40/40) since D66 lifted its trust. The site is hard through margin. Raising it to ~60 is open (D67).
+
+The habit still holds: set goals from measured distributions rather than from paper (OPEN-3, D36). D67 adds the second distribution, a good player's, to fit against.
 
 ### 7a. Where the pre-measurement estimates came from — **read before tuning anything**
 

@@ -459,6 +459,26 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 *Consequences.* Baseline trust ends higher everywhere (20 days: Junction 42 ≈ 63, was ≈ 52; Eastgate ≈ 70; Trevithick ≈ 66), so the trust goals are re-fitted in D67. Tests: two new in `mechanics.test.ts` (recovers while running, not with a broken bay; a broken open bay drains and closing it stops the drain); the drive-on test now pins 0.075; the failure-states close-out test re-picked its disaster days; the power-policy test allows half a driver a day of slack, since the two policies now tie.
 
+**D67 — Goals are fitted so a good player usually wins, and a "can it be won?" check guards it.** *(2026-11-15, targets set by Mark)* Amends D13 and D57. D13 only bounded the game from one side: the passive baseline must fail at least one goal on ≥80% of days. Nothing checked that good play could win, and D57's goals, each set near the baseline's median, had drifted out of reach: before D65/D66 the good-player benchmark won 88% at Junction 42 and 83% at Trevithick but only 25% at Eastgate, where the margin goal was met on 28% of days even with good play.
+
+*Targets (Mark):* Trevithick, the starting site, stays easy, with the good player winning about 85%. Eastgate and Junction 42 sit at 60–70%. The baseline wins at most 20% everywhere.
+
+*The good player* (`experiment/goodPlayer.ts`) acts only on what the dashboard shows, through the player's own controls: contract, standing price, wave and queue markups, charging limit while the queue builds, power policy, call-outs. Its settings are searched per site (`experiment/benchmark.ts`, `npm run sim -- bench`), tuned on one set of days and scored on others.
+
+*The fit, after D65 and D66.* Fitting goals moves the best play, so the fit was repeated (fit, re-tune, re-fit) until it settled, then checked on 80 days no fit had used. The wait goals were held: a tighter Eastgate wait goal (75 s) was tried first and made wave pricing a contender everywhere, failing gate criterion 2, as a 90 s goal had in D57.
+
+| Site | Goals before (D57/D59) | **Goals now** | Good player | Baseline |
+| :-- | :-- | :-- | --: | --: |
+| Junction 42 | £4,000 / 210 s / 55 | **£4,550** / 210 s / 55 | 63% (80 days) | 1% |
+| Eastgate | £1,450 / 120 s / 70 | **£1,200** / 120 s / **73** | 66% (80 days) | 9% |
+| Trevithick | £450 / 200 s / 63 | **£475** / 200 s / 63 | 85% (40 days) | 5% |
+
+*The check.* `npm run sim -- winnable` (and a section of `gate`) replays each site's stored good-player settings (`WINNABILITY` in `benchmark.ts`) on 40 days of their own: the good player must win at least 55% (75% at Trevithick) and the baseline at most 20%. After any change to the model or a goal, re-run `bench` and update the stored settings before trusting it. The good player is found by a one-setting-at-a-time search, so its win rate is a floor on what good play can do, not a ceiling.
+
+*Observed, not acted on.* Junction 42's trust goal (55) no longer bites under baseline play: D66 lifted baseline trust there to ~62, and the baseline meets it on 40/40 days. The site is still hard through margin. Raising it to ~60 is open.
+
+*Consequences.* D13 still passes (baseline fails ≥1 goal on 100% / 83% / 93% of days). Gate criterion 2 passes at 40 seeds with a different best strategy at each site. The calibration sheet's §7 is re-measured (v4.2).
+
 ## Open
 
 **OPEN-4 — Trust deltas are net-positive; trust runs to the ceiling. — `CLOSED 2026-08-16 by D30`** *(raised Phase 1; closed same day)* Baseline trust now ends at 56.4 [49.6 · 62.2], in the calibrated 45–70 band. Original entry, for the record: Measured baseline trust ends at **96.3 mean, 8/20 seeds pinned at 100**, against an expected 45–70. The Calibration §5 deltas sum strongly positive under competent play (~+64/day from completions alone, +12 from the uptime bonus, against roughly −16 of penalties); the rolling ±5 clamp limits the *rate* but never the sign. **Three consequences:** `minTrust` is unscoreable; `trust_crash` is unreachable, putting gate criterion 3 at risk; and — the serious one — `siteScore` carries `+0.3 × (trust − 50)/25`, so at trust 100 every arrival gets **+0.6** rather than the +0.12 the admission formula was calibrated around, inflating acceptance, utilization and sessions. **This is a model change, so it lands here before it lands in the sheet.** Candidate fix (findings §5.1): drop the flat completion bonus to 0, keep only the fast-completion bonus, and raise the uptime-bonus threshold to 98% — leaving trust flat under good operation and falling under bad. Do not simply tighten the clamp; the clamp is a rate limit and the problem is the sign. **Decide before re-setting any goal**, since trust feeds admission and therefore every other number.

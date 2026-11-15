@@ -117,12 +117,14 @@ export function runBenchmark(
   options: {
     tuningSeeds: number;
     validationSeeds: number;
+    /** Prefix for the fresh days. Change it to check on days a goal fit used. */
+    validationPrefix?: string;
     maxPasses?: number;
     onProgress?: (line: string) => void;
   },
 ): BenchmarkResult {
   const tuning = seedList("t", options.tuningSeeds);
-  const validation = seedList("v", options.validationSeeds);
+  const validation = seedList(options.validationPrefix ?? "v", options.validationSeeds);
   const log = options.onProgress ?? (() => {});
   const cache = new Map<string, SearchStep>();
 
@@ -178,4 +180,101 @@ function fmt(s: SeedSetScore): string {
 
 export function pct(v: number): string {
   return `${Math.round(v * 100)}%`;
+}
+
+/**
+ * The winnability check (D67) — the other half of D13.
+ *
+ * D13 says the passive baseline must usually lose. This says a good player must
+ * usually win. Each site carries the good player's settings the `bench` search
+ * found for it, so the check replays them rather than re-running a search
+ * (about 15 minutes a site). After changing the model or a goal, re-run
+ * `bench` and update the settings here before trusting this check.
+ *
+ * Targets (Mark, 2026-11-15): Trevithick is the starting site and stays easy,
+ * about 85%; Eastgate and Junction 42 sit at 60–70%. The baseline stays at or
+ * under 20% everywhere. The minimums below leave room for day-to-day noise.
+ */
+export interface WinnabilityTarget {
+  settings: GoodPlayerSettings;
+  /** The good player must win at least this share of days. */
+  goodMin: number;
+  /** The band the goals were fitted to, for the report. */
+  goodBand: [number, number];
+  /** The baseline must win at most this share. */
+  baselineMax: number;
+}
+
+export const WINNABILITY: Record<string, WinnabilityTarget> = {
+  "roadside-hub-01": {
+    settings: {
+      ...DEFAULT_GOOD_PLAYER,
+      maintenance: "preventive",
+      priceMultiplier: 1.1,
+      queueMarkup: 0.2,
+      peakChargeLimit: 0.9,
+      queueWaitSeconds: 300,
+      powerPolicy: "queue_relief",
+    },
+    goodMin: 0.55,
+    goodBand: [0.6, 0.7],
+    baselineMax: 0.2,
+  },
+  "commuter-hub-01": {
+    settings: {
+      ...DEFAULT_GOOD_PLAYER,
+      maintenance: "preventive",
+      priceMultiplier: 1.1,
+      powerPolicy: "queue_relief",
+    },
+    goodMin: 0.55,
+    goodBand: [0.6, 0.7],
+    baselineMax: 0.2,
+  },
+  "destination-site-01": {
+    settings: {
+      ...DEFAULT_GOOD_PLAYER,
+      maintenance: "reactive",
+      priceMultiplier: 1.25,
+    },
+    goodMin: 0.75,
+    goodBand: [0.8, 0.9],
+    baselineMax: 0.2,
+  },
+};
+
+export interface WinnabilityResult {
+  scenarioId: string;
+  scenarioName: string;
+  target: WinnabilityTarget;
+  good: SeedSetScore;
+  baseline: SeedSetScore;
+  pass: boolean;
+}
+
+/** Days `g1…gN`: separate from the search's `t`, `v` and `w` days. */
+export function checkWinnability(scenario: ScenarioConfig, seeds: number): WinnabilityResult {
+  const target = WINNABILITY[scenario.id];
+  if (!target) throw new Error(`No winnability target for ${scenario.id}`);
+  const days = seedList("g", seeds);
+  const good = scorePolicy(scenario, goodPlayerPolicy(target.settings), days);
+  const baseline = scorePolicy(scenario, baselinePolicy, days);
+  return {
+    scenarioId: scenario.id,
+    scenarioName: scenario.name,
+    target,
+    good,
+    baseline,
+    pass: good.winRate >= target.goodMin && baseline.winRate <= target.baselineMax,
+  };
+}
+
+export function describeWinnability(r: WinnabilityResult): string {
+  const [lo, hi] = r.target.goodBand;
+  return (
+    `     ${r.scenarioName.padEnd(26)} good player ${pct(r.good.winRate).padStart(4)}` +
+    ` (needs ≥${pct(r.target.goodMin)}, fitted ${pct(lo)}–${pct(hi)})` +
+    ` · baseline ${pct(r.baseline.winRate).padStart(4)} (needs ≤${pct(r.target.baselineMax)})` +
+    `  ${r.pass ? "PASS" : "FAIL"}`
+  );
 }

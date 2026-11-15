@@ -9,7 +9,8 @@
  *   npm run sim -- archetypes [--seeds 20]
  *   npm run sim -- strategies [--seeds 8]     — the gate criterion 2 test
  *   npm run sim -- gate   [--seeds 10]        — the Phase 4 scorecard, machine half
- *   npm run sim -- bench  [--seeds 16] [--confirm 40] [--json out.json]
+ *   npm run sim -- winnable [--seeds 40]     — good player usually wins, baseline usually loses (D67)
+ *   npm run sim -- bench  [--seeds 16] [--confirm 40] [--fresh-prefix v] [--json out.json]
  *                                             — the good-player benchmark: can it be won?
  *
  * All commands take --scenario roadside|commuter|destination.
@@ -42,7 +43,13 @@ import {
   gatherFailureStates,
   playtestProbes,
 } from "./experiment/gateEvidence.ts";
-import { pct, runBenchmark, type SeedSetScore } from "./experiment/benchmark.ts";
+import {
+  checkWinnability,
+  describeWinnability,
+  pct,
+  runBenchmark,
+  type SeedSetScore,
+} from "./experiment/benchmark.ts";
 import type {
   MaintenanceLevel,
   PowerPolicy,
@@ -69,6 +76,8 @@ interface Args {
   axis?: string;
   /** `bench`: fresh days the winning settings are scored on. */
   confirm: number;
+  /** `bench`: seed prefix for those fresh days (default `v`). */
+  freshPrefix?: string;
 }
 
 /**
@@ -149,6 +158,9 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--confirm":
         args.confirm = Number(value);
+        break;
+      case "--fresh-prefix":
+        args.freshPrefix = value;
         break;
     }
   }
@@ -508,9 +520,15 @@ function commandGate(args: Args): void {
   console.log(`     KPIs moved ≥10% vs baseline: ${decisions.movedKpis.join(", ")}`);
   console.log(`     ${decisions.pass ? "PASS" : "FAIL"} — needs ≥2 goal KPIs moved\n`);
 
-  const machinePass = dominance.verdict.pass && failures.pass && decisions.pass;
+  console.log("  ── Winnability: a good player usually wins (D67) ".padEnd(70, "─"));
+  const winnable = ALL_SCENARIOS.map((sc) => checkWinnability(sc, Math.max(args.seeds, 40)));
+  for (const w of winnable) console.log(describeWinnability(w));
+  const winnablePass = winnable.every((w) => w.pass);
+  console.log(`     ${winnablePass ? "PASS" : "FAIL"}\n`);
+
+  const machinePass = dominance.verdict.pass && failures.pass && decisions.pass && winnablePass;
   console.log(
-    `  Machine-measurable criteria: ${machinePass ? "3/3 PASS" : "NOT ALL PASSING"}.\n` +
+    `  Machine-measurable criteria: ${machinePass ? "all PASS (2, 3, 4 and winnability)" : "NOT ALL PASSING"}.\n` +
       `  Criteria 1 and 5 remain open pending ${PLAYTEST_TESTERS} external testers.`,
   );
 }
@@ -559,11 +577,12 @@ function commandBench(args: Args): void {
   const scenario = findScenario(args.scenario);
   const tuningSeeds = args.seeds === 20 ? 16 : args.seeds;
   console.log(`\n  GOOD-PLAYER BENCHMARK — ${scenario.name}`);
-  console.log(`  tuning on ${tuningSeeds} days (t1…), scoring on ${args.confirm} fresh days (v1…)\n`);
+  console.log(`  tuning on ${tuningSeeds} days (t1…), scoring on ${args.confirm} fresh days (${args.freshPrefix ?? "v"}1…)\n`);
   const started = Date.now();
   const result = runBenchmark(scenario, {
     tuningSeeds,
     validationSeeds: args.confirm,
+    validationPrefix: args.freshPrefix,
     onProgress: (line) => console.log(`  ${line}`),
   });
   const goals = scenario.goals;
@@ -589,6 +608,14 @@ ${row(`baseline (fresh)`, result.baseline)}
   }
 }
 
+/** D67: the good player usually wins, the baseline usually loses, at every site. */
+function commandWinnable(args: Args): void {
+  console.log(`\n  WINNABILITY (D67) — ${args.seeds} days per site (g1…)\n`);
+  const results = ALL_SCENARIOS.map((sc) => checkWinnability(sc, args.seeds));
+  for (const r of results) console.log(describeWinnability(r));
+  console.log(`\n  ${results.every((r) => r.pass) ? "PASS" : "FAIL"}`);
+}
+
 switch (args.command) {
   case "batch":
     commandBatch(args);
@@ -610,6 +637,9 @@ switch (args.command) {
     break;
   case "bench":
     commandBench(args);
+    break;
+  case "winnable":
+    commandWinnable(args);
     break;
   default:
     commandRun(args);

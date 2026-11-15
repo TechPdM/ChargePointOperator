@@ -1,6 +1,6 @@
 # ChargePointOperator — How the Game Works
 
-**Date:** 2026-11-15 · **Read from:** the code after the D46–D66 revision (v0.2.0). *D67, the goal re-fit, is in progress: §7 and §8 still show the D57/D59 goals.*
+**Date:** 2026-11-15 · **Read from:** the code after the D46–D67 revision (v0.2.0)
 **Status:** a description of the game **as built**, like `model-map.html`. It specifies nothing. Where it disagrees with the code, the code is right; where it disagrees with a canonical document, §10 lists the difference so it can be settled there.
 
 This is the plain-language account: what the player does, what pushes back, and where the decisions are meant to be. The formulas are here only where they explain a decision. For every variable and path, open `model-map.html`.
@@ -147,7 +147,7 @@ The 80%+ stretch is where the time goes: the last 5% of the commuter's charge ta
 
 ## 7. What you are scored on, and what pushes back
 
-**Three goals, checked at midnight** (D44): cumulative operating margin, all-day average wait, and end-of-day trust. Each site's goals are set so that changing nothing fails at least one goal on ≥80% of seeds (D13); the current values are from D57.
+**Three goals, checked at midnight** (D44): cumulative operating margin, all-day average wait, and end-of-day trust. Each site's goals are set from both sides (D67): changing nothing fails at least one goal on ≥80% of days (D13), and a good player, scripted to use only what the dashboard shows, wins about 85% of days at Trevithick and 60–70% at Eastgate and Junction 42. `npm run sim -- winnable` checks both.
 
 **Margin** = kWh × price − energy at £0.28/kWh − maintenance − site running costs (running costs and the standing maintenance charge scale with the bays you keep open, D54).
 
@@ -197,15 +197,16 @@ The same rules on three different sites. Gate criterion 2 needs the right answer
 | Starting price / reference | £0.79 / £0.79 | £0.72 / £0.72 | £0.55 / £0.62 |
 | Detour to next charger | 8–30 min (captive) | 2–7 min (competitive) | 5–18 min |
 | Drivers | Mixed, panic overnight, high volume | Commuter-heavy, less patient (×0.8) | Patient (×1.5), less urgent |
-| Goals: margin / wait / trust (D57, D59; **being re-fitted, D67**) | £4,000 / 3.5 min / 55 | £1,450 / 2 min / 70 | £450 / 3.3 min / 63 |
+| Goals: margin / wait / trust (**D67**) | £4,550 / 3.5 min / 55 | £1,200 / 2 min / 73 | £475 / 3.3 min / 63 |
+| A good player wins / doing nothing wins (D67) | 63% / 1% | 66% / 9% | 85% / 5% |
 | What it teaches | You have pricing power, so use it; every goal bites | You have no pricing power; margin and trust are the hard goals | Ships underpriced; maintenance alone doesn't pay here |
-| Best strategy measured (40–80 seeds) | premium + preventive (wave-pricing level) | preventive (wave-pricing level) | premium (wave-pricing level) |
+| Best fixed strategy (40 seeds, D67 goals) | premium + preventive (no other close) | preventive (as-shipped close) | premium (premium + preventive close) |
 
 The day's shape on the corridor: a sparse, panic-heavy night, then the morning commute, a lull, a midday en-route surge with **the scripted fault on the 350 kW bay 5 at 12:30**, a recovery window, then the evening peak, the hardest stretch of the day.
 
 ## 9. Where the core mechanic is strong, and where it is thin
 
-Observations from the code and the measured findings, offered as the agenda for the playtest, not as verdicts. Updated for D46–D66.
+Observations from the code and the measured findings, offered as the agenda for the playtest, not as verdicts. Updated for D46–D67.
 
 **Strong:**
 
@@ -213,7 +214,7 @@ Observations from the code and the measured findings, offered as the agenda for 
 - **Playing the day is rewarded (D55).** A strategy that only moves price with the demand waves is the best measured at Eastgate and close to the best elsewhere, without touching maintenance. The game is not only a configuration puzzle.
 - **Each failure state is a recognisable mistake**, and none is reached by competent play.
 - **The price decision depends on the site** (D42/D43): the same rise earns money on the corridor and loses it at Eastgate.
-- **Good play wins, when the goals are reachable.** The good-player benchmark (strategy analysis §5b) uses only what the dashboard shows. Before D65/D66 it won 88% of days at Junction 42 and 83% at Trevithick, against 10–13% for doing nothing. Its best settings charge **more than the starting price at every site**: price is the lever, and finding the right level is left for the player to discover. At Eastgate it won only 25%, because the margin goal was out of reach; that, and the goals generally, is what D67 re-fits.
+- **Good play wins, when the goals are reachable.** The good-player benchmark (strategy analysis §5b) uses only what the dashboard shows. Before D65/D66 it won 88% of days at Junction 42 and 83% at Trevithick, against 10–13% for doing nothing. Its best settings charge **more than the starting price at every site**: price is the lever, and finding the right level is left for the player to discover. At Eastgate it won only 25%, because the margin goal was out of reach. D67 re-fitted every site's goals against it.
 - **A seed is a fixed day (D65)**, so a replay is a fair second attempt and a near miss can be tried again.
 
 **Thin, or not yet tested:**

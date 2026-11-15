@@ -173,7 +173,9 @@ export const destinationSite: ScenarioConfig = {
     // 57.3–71.8 (p50 63.2). Met 50% / 60% / 50%; D13 floor 80%.
     // D59 (2026-11-13): £400 → £450, for the same reason as Eastgate; floor
     // back to 80% (margin met 30%, wait 65%, trust 50%).
-    minOperatingMargin: 450,
+    // D67 (2026-11-15): +£25 after D65/D66. Kept the easy site on Mark's
+    // call: good player 85%, baseline 5% on 40 fresh days.
+    minOperatingMargin: 475,
     maxAvgWaitSeconds: 200,
     minTrust: 63,
   },

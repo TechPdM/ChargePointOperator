@@ -210,8 +210,13 @@ export const commuterHub: ScenarioConfig = {
     // D59 (2026-11-13): £1,400 → £1,450. The baseline now leaves contract
     // repairs to the contractor, which moved the floor to 75%; one £50 step
     // restores 80% (margin met 30%, wait 95%, trust 35%).
-    minOperatingMargin: 1_450,
+    // D67 (2026-11-15, Mark's targets): re-fitted after D65/D66 against the
+    // good-player benchmark as well as the baseline. At £1,450 even the good
+    // player won ~20%. Over 80 fresh days: good player 66%, baseline 9%. Wait
+    // stays at 120 s on purpose: a tighter wait goal is what let wave pricing
+    // work everywhere (D57, and again in the first D67 attempt at 75 s).
+    minOperatingMargin: 1_200,
     maxAvgWaitSeconds: 120,
-    minTrust: 70,
+    minTrust: 73,
   },
 };

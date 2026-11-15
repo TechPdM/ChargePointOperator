@@ -236,7 +236,11 @@ export const roadsideHub: ScenarioConfig = {
     // Baseline spread: margin £2,983–£4,493 (p50 £4,006) · wait 182–240 s
     // (p50 211) · trust 47.9–65.3 (p50 55.8). Met 50% / 45% / 55%; D13 floor 80%.
     // Earlier fits, for the record: £3,200 / 420 s / 55 (D42/D43), £2,800 (D36).
-    minOperatingMargin: 4_000,
+    // D67 (2026-11-15, Mark's targets): re-fitted after D65/D66 against the
+    // good-player benchmark as well as the baseline. Over 80 fresh days the
+    // good player wins 63% and the baseline 1% (£4,600: 56% / 0%; £4,500:
+    // 69% / 4%). Wait and trust unchanged.
+    minOperatingMargin: 4_550,
     maxAvgWaitSeconds: 210,
     // Still 55, unchanged through five re-fits.
     minTrust: 55,

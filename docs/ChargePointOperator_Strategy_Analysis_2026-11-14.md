@@ -1,6 +1,6 @@
 # ChargePointOperator — Strategy Analysis: Why Days End Just Short
 
-**Version:** 1.2 · **Date:** 2026-11-14 *(v1.2: §5b, the good-player benchmark results · v1.1: §5a, how "Turned away" is calculated)*
+**Version:** 1.3 · **Date:** 2026-11-14, updated 2026-11-15 *(v1.3: §5c, what was decided and done (D65–D67) · v1.2: §5b, the good-player benchmark results · v1.1: §5a, how "Turned away" is calculated)*
 **Companions:** `ChargePointOperator_Calibration.md` §7 (measured baseline) · `ChargePointOperator_Decision_Log.md` (D13, D22, D57, D59, D63) · `ChargePointOperator_Gate_Scorecard.md` (criterion 2)
 **Status:** analysis and options only. No decision taken and no code changed. The order of work is Mark's call (§5).
 
@@ -167,8 +167,47 @@ Mean results on the fresh days: Junction 42 £4,421, 142 s, trust 64.6. Trevithi
 
 **Against the proposed targets (§5, item 4: baseline 10–20%, good player 60–70%):** the baseline passes at Junction 42 and Trevithick, and is below the range at Eastgate (3%). The good player is *above* the range at Junction 42 and Trevithick, and well below it at Eastgate. So the re-fit (item 5) would make Junction 42 and Trevithick slightly harder for a good player, and make Eastgate's margin and trust goals reachable.
 
+## 5c. What was decided and done (2026-11-15)
+
+Mark chose from the options in §5 and the trust findings below. All of it is in the code.
+
+| Option | Decision | Result |
+| :-- | :-- | :-- |
+| 1. Make a seed a fixed day | **Done (D65).** Keyed random draws, and faults from a per-bay wear budget | Re-running §4's experiment: arrivals differ only by the cars a higher price turns away, and all six days keep their fault count under every price. Average fault rate unchanged (3.70 a day). |
+| 2. Even out fault luck | Not chosen | Faults still drive the day; D65 makes it the same day on every replay |
+| 3. Good-player benchmark | Done (§5b) | — |
+| 4. "Can it be won?" check | **Done (D67).** `npm run sim -- winnable`, also in `gate` | Passes at all three sites |
+| 5. Re-fit the goals | **Done (D67).** Repeated until stable, checked on 80 unseen days | See below |
+| 6. No-contract start | Settled by the fit | The good player chooses its contract in the first minute, so the goals assume a player who does. Starting with none is a choice to make, not a handicap. |
+| Starting price | Left as a discovery | Every site's best price is above its starting price; the game doesn't say so |
+
+**Trust (D66).** Measured on 20 baseline days per site: drive-ons were the largest drain by far (removing their penalty lifted trust 20 points at Junction 42), and trust never recovered (a 10-point knock at 10:00 was still 7–11 points down at midnight). The feedback loop from trust to drive-ons was small (0–3 extra drive-ons) and left alone. Changes:
+
+- the drive-on penalty halved (−0.15 → −0.075); the extra for pricing someone away is unchanged;
+- trust recovers a quarter of the gap to 60 each hour, but only while no broken bay is open (unconditional recovery left a site nobody repaired on trust ~57 and made `trust_crash` unreachable);
+- **a site left broken crashes trust** (Mark): each broken bay left open costs 2 an hour until it is repaired or closed. With nobody repairing, trust now crashes on 20/20 days at Junction 42 and Trevithick and 13/20 at Eastgate; a well-run site barely notices.
+
+A 10-point knock now recovers to within about 1 point by midnight.
+
+**Goals (D67).** Targets set by Mark: Trevithick about 85% for a good player, Eastgate and Junction 42 60–70%, baseline at most 20%.
+
+| Site | Before | **Now** | Good player | Baseline |
+| :-- | :-- | :-- | --: | --: |
+| Junction 42 | £4,000 / 210 s / 55 | **£4,550** / 210 s / 55 | 63% | 1% |
+| Eastgate | £1,450 / 120 s / 70 | **£1,200** / 120 s / **73** | 66% | 9% |
+| Trevithick | £450 / 200 s / 63 | **£475** / 200 s / 63 | 85% | 5% |
+
+A tighter Eastgate wait goal (75 s) was tried first. It made wave pricing a contender everywhere and failed gate criterion 2, so the wait goals were held. With the final goals, criterion 2 passes at 40 seeds, and the D13 floor still holds (83–100%).
+
+**Also found along the way:**
+
+- *Finish soonest first* and *Share equally* now tie on power: the old test claiming one was better had been passing on lucky days. *Big bays first* is still clearly the worst.
+- Junction 42's trust goal no longer bites for the baseline (met 40/40). The site is still hard through margin.
+
 ## 6. Open
 
-1. Agree the win-rate targets for the new check (§5, item 4), now that §5b gives the good player's actual rates.
-2. Choose the order of work, or the quick option.
-3. Decide on item 6: should the no-contract start be a handicap or a starting point the goals allow for?
+1. ~~Agree the win-rate targets~~ — set by Mark, §5c.
+2. ~~Choose the order of work~~ — done, §5c.
+3. ~~The no-contract start~~ — settled by the fit, §5c.
+4. **Junction 42's trust goal** (55) no longer bites for the baseline. Raise it to ~60, or leave the site hard through margin alone?
+5. **Playtest** the new goals and trust rules: do near misses now feel like near misses, and does trust read as recoverable?
