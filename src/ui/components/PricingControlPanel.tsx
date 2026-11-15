@@ -139,7 +139,11 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
   };
 
   return (
-    <Panel title="Price" hint={`Energy costs you £${state.scenario.energyCostPerKwh.toFixed(2)}/kWh`}>
+    <Panel
+      title="Price"
+      hint={`Energy costs you £${state.scenario.energyCostPerKwh.toFixed(2)}/kWh`}
+      help={<>The slider sends itself when you let go. The new price applies to sessions that start from here on — anyone already plugged in keeps the price they arrived on.</>}
+    >
       <div className="price-readout">
         <span className="big-number">
           {draft.toFixed(2)}
@@ -175,11 +179,6 @@ export function PricingControlPanel({ sim }: { sim: Simulation }): ReactElement 
         <span>£{PRICE_MIN.toFixed(2)}</span>
         <span>£{PRICE_MAX.toFixed(2)}</span>
       </div>
-
-      <p className="note">
-        The slider sends itself when you let go. The new price applies to sessions that start from
-        here on — anyone already plugged in keeps the price they arrived on.
-      </p>
     </Panel>
   );
 }

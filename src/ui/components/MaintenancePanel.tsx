@@ -47,6 +47,7 @@ export function MaintenancePanel({ sim }: { sim: Simulation }): ReactElement {
   return (
     <Panel
       title="Maintenance"
+      help={<>Time you closed a bay yourself doesn't count against uptime — that's a capacity decision, not a breakdown.</>}
       hint={
         profile.contractResponseSeconds === undefined
           ? `£${profile.standingCostPerSimDay}/day · £${profile.costPerRepair} a repair`
@@ -95,10 +96,6 @@ export function MaintenancePanel({ sim }: { sim: Simulation }): ReactElement {
               ))}
           </ul>
         )}
-        <p className="note">
-          Time you closed a bay yourself doesn't count against uptime — that's a capacity decision,
-          not a breakdown.
-        </p>
       </div>
     </Panel>
   );

@@ -34,18 +34,16 @@ export function BayAvailabilityPanel({ sim }: { sim: Simulation }): ReactElement
   const bays = bayList(state);
 
   return (
-    <Panel title="Bays" hint={`${bays.filter((b) => b.isOpen).length} of ${bays.length} open`}>
+    <Panel
+      title="Bays"
+      hint={`${bays.filter((b) => b.isOpen).length} of ${bays.length} open`}
+      help={<>A closed bay costs nothing to run and can't break down. Closing one that's in use waits for the car to finish — nobody gets unplugged. With no contract, a broken bay closes straight away but stays broken until it's repaired. An upgrade is charged straight away and fitted when the bay next frees.</>}
+    >
       <ul className="bay-rank">
         {bays.map((bay) => (
           <BayRow key={bay.id} bay={bay} sim={sim} />
         ))}
       </ul>
-      <p className="note">
-        A closed bay costs nothing to run and can't break down. Closing one that's in use waits for
-        the car to finish — nobody gets unplugged. With no contract, a broken bay closes straight
-        away but stays broken until it's repaired. An upgrade is charged straight away and fitted
-        when the bay next frees.
-      </p>
     </Panel>
   );
 }

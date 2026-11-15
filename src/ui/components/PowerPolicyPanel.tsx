@@ -39,6 +39,15 @@ export function PowerPolicyPanel({ sim }: { sim: Simulation }): ReactElement {
   return (
     <Panel
       title="Power sharing"
+      help={
+        <ul className="help-list">
+          {POLICIES.map((p) => (
+            <li key={p.id}>
+              <b>{p.name}.</b> {p.blurb}
+            </li>
+          ))}
+        </ul>
+      }
       hint={
         <span className={saturated ? "hint-bad" : undefined}>
           {Math.round(allocated)} of {cap} kW
@@ -94,7 +103,6 @@ export function PowerPolicyPanel({ sim }: { sim: Simulation }): ReactElement {
             }
           >
             <span className="policy-name">{p.name}</span>
-            <span className="policy-blurb">{p.blurb}</span>
           </button>
         ))}
       </div>

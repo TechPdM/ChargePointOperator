@@ -49,7 +49,7 @@ function EconomicsTrendChartImpl({
   const bottom = Math.min(0, ...margin.map(([, v]) => (v ?? 0) * 1.15));
 
   return (
-    <Panel title="Takings and margin" hint="cumulative, today">
+    <Panel title="Takings and margin" hint="cumulative, today" help={<>The gap between the two lines is the day's costs. The dashed rule is the {money(goal)} margin you need by midnight. Capital spending isn't counted here — it comes out of cash.</>}>
       <Plot
         label="Cumulative revenue and operating margin across the day"
         series={[
@@ -63,11 +63,6 @@ function EconomicsTrendChartImpl({
         threshold={{ value: goal, label: "goal" }}
         formatValue={(v) => money(v)}
       />
-      <p className="note">
-        The gap between the two lines is the day's costs. The dashed rule is the{" "}
-        {money(goal)} margin you need by midnight. Capital spending isn't counted here — it comes
-        out of cash.
-      </p>
     </Panel>
   );
 }

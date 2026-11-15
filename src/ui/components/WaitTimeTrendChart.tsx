@@ -47,7 +47,7 @@ function WaitTimeTrendChartImpl({
   const abandonMax = Math.max(20, ...abandonment.map(([, v]) => (v ?? 0) * 1.2));
 
   return (
-    <Panel title="Waiting and walking away" hint="across the day">
+    <Panel title="Waiting and walking away" hint="across the day" help={<>Read these together. A wait that drops while the lower plot climbs means the queue emptied itself — that isn't the site getting faster.</>}>
       <Plot
         label="Average wait in minutes across the day"
         series={[{ name: "Average wait", colour: SERIES.primary, points: wait }]}
@@ -63,10 +63,6 @@ function WaitTimeTrendChartImpl({
         yMax={abandonMax}
         formatValue={(v) => `${v.toFixed(0)}%`}
       />
-      <p className="note">
-        Read these together. A wait that drops while the lower plot climbs means the queue emptied
-        itself — that isn't the site getting faster.
-      </p>
     </Panel>
   );
 }

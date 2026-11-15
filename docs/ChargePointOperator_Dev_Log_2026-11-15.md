@@ -18,6 +18,7 @@
 | Tooling | `npm run sim -- winnable`, and a winnability section in `gate`; `bench --fresh-prefix` | D67 |
 | Docs | Decision log D65–D67; Calibration v4.2 (§7 re-measured); strategy analysis v1.3 (§5c); How It Plays (dated 2026-11-15) | — |
 | Docs sync | Architecture, `docs/ARCHITECTURE.md`, KPI dictionary v1.7, scenario spec, model map, README, Plan, Session Pack; gate scorecard v2.3 from a 40-seed `gate` run (criteria 2–4 and winnability all pass; criterion 2 no longer narrow, `trust_crash` 4 → 11 runs) | `9c1561c` |
+| Interface | Each panel's fixed explanation moved from below the panel into a **?** after its title (hover, keyboard focus or tap). Price, Charging limit, Maintenance, Bays, Takings and margin, Waiting and walking away; Power sharing's per-option descriptions became one list there. Copy that changes in play (Diagnosis "Seen today", the manual kW note, the end-of-day panel) stays inline | Mark's request; `Panel.tsx` `help` prop |
 
 ## 2. How the session went
 

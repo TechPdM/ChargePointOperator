@@ -18,7 +18,11 @@ export function ChargingPolicyPanel({ sim }: { sim: Simulation }): ReactElement 
   const current = state.site.policy.partialChargeTargetSoc;
 
   return (
-    <Panel title="Charging limit" hint="Caps how full drivers can fill up">
+    <Panel
+      title="Charging limit"
+      hint="Caps how full drivers can fill up"
+      help={<>A change applies to sessions that start from here on — nobody already plugged in is cut short. Charging slows sharply above 80%, so capping the limit frees bays much faster than it loses you energy — at a busy site. Off-peak it does almost nothing, and drivers mind.</>}
+    >
       <div className="limit-list" role="radiogroup" aria-label="Charging limit">
         {PARTIAL_CHARGE_OPTIONS.map((option) => {
           const active = (option ?? undefined) === current;
@@ -54,11 +58,6 @@ export function ChargingPolicyPanel({ sim }: { sim: Simulation }): ReactElement 
           );
         })}
       </div>
-      <p className="note">
-        A change applies to sessions that start from here on — nobody already plugged in is cut
-        short. Charging slows sharply above 80%, so capping the limit frees bays much faster than
-        it loses you energy — at a busy site. Off-peak it does almost nothing, and drivers mind.
-      </p>
     </Panel>
   );
 }
