@@ -510,8 +510,28 @@ describe("trust (Calibration §5, rebalanced by D30)", () => {
 
   it("treats driving past as a reputation event, not a rounding error", () => {
     // ~18% of the day's demand leaves at the gate; at −0.05 that was −2 trust
-    // a day against +60 of completion bonuses.
-    expect(Math.abs(TRUST.siteRejection)).toBeGreaterThanOrEqual(0.15);
+    // a day against +60 of completion bonuses. D66 halved it from 0.15, the
+    // largest single drain on trust (~22 a day at Junction 42); at 0.075 it is
+    // still ~11 a day there.
+    expect(Math.abs(TRUST.siteRejection)).toBeGreaterThanOrEqual(0.075);
+  });
+
+  it("lets trust recover while the site runs well, and not while a bay stands broken (D66)", () => {
+    const knocked = (broken: boolean): number => {
+      let s = createInitialState(roadsideHub, "s1");
+      s.site.metrics.trust = 40;
+      if (broken) s.chargers["bay-1"]!.state = "faulted";
+      for (let i = 0; i < 60; i++) {
+        // Hold the broken bay broken: nobody on reactive repairs it unasked.
+        if (broken) s.chargers["bay-1"]!.state = "faulted";
+        s = tick(s).state;
+      }
+      return s.site.metrics.trust;
+    };
+    // Quiet small hours: no drivers, so recovery is the only thing moving trust.
+    // A quarter of a 20-point gap in an hour, inside the ±5 clamp.
+    expect(knocked(false)).toBeCloseTo(45, 0);
+    expect(knocked(true)).toBeLessThanOrEqual(40);
   });
 
   it("charges extra reputation for being too dear, not for being busy (D45)", () => {

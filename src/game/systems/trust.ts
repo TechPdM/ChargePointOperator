@@ -8,7 +8,7 @@
  */
 
 import { TRUST, TRUST_WINDOW_SECONDS } from "../core/calibration.ts";
-import type { TickContext } from "../core/context.ts";
+import { bayList, type TickContext } from "../core/context.ts";
 import { rollUptimeFraction, rollWindow, trustWindowSum } from "../core/selectors.ts";
 
 export function updateTrust(ctx: TickContext): void {
@@ -24,6 +24,17 @@ export function updateTrust(ctx: TickContext): void {
   const uptime = rollUptimeFraction(roll);
   if (roll.samples > 0 && uptime !== null && uptime * 100 > TRUST.uptimeBonusThresholdPct) {
     ctx.trustDeltaRaw += TRUST.uptimeBonusPerSimHour * (ctx.delta / 3_600);
+  }
+
+  // D66: below the starting level, close a share of the gap each hour — but
+  // only while the site is running well. With a broken bay standing open,
+  // nothing heals: unconditional recovery left a site nobody repaired on
+  // trust ~57 at midnight and made trust_crash unreachable.
+  const gap = state.scenario.initialTrust - state.site.metrics.trust;
+  const brokenOpenBay = bayList(state).some((b) => b.isOpen && b.state === "faulted");
+  if (gap > 0 && !brokenOpenBay) {
+    const share = 1 - (1 - TRUST.recoveryShareOfGapPerHour) ** (ctx.delta / 3_600);
+    ctx.trustDeltaRaw += gap * share;
   }
 
   const windowSum = trustWindowSum(state, TRUST_WINDOW_SECONDS);

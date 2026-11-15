@@ -378,7 +378,9 @@ describe("nothing ends a day but the clock (D41)", () => {
     // down. This is the shape that used to trip trust_collapse.
     // D53: on `standard` the contractor would repair them, so the site is put
     // on `reactive`, where nobody comes unless called.
-    const ruined = ["s2", "s3", "s6", "s8"].map((seed) =>
+    // D65/D66: re-picked for fixed days and recoverable trust — the days that
+    // still hit trust_crash with nobody repairing.
+    const ruined = ["s7", "s8", "s17", "s19"].map((seed) =>
       runScenario({
         scenario: { ...roadsideHub, initialMaintenanceLevel: "reactive" },
         seed,
@@ -392,7 +394,7 @@ describe("nothing ends a day but the clock (D41)", () => {
     }
     // And the seeds were chosen because they do get that bad — otherwise this
     // would pass without exercising anything.
-    expect(ruined.some((r) => r.finalState.site.metrics.trust < 30)).toBe(true);
+    expect(ruined.some((r) => r.finalState.site.metrics.trust < 40)).toBe(true);
   });
 
   it("still closes the funnel when the day it closes was a disaster", () => {

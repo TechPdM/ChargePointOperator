@@ -352,8 +352,13 @@ export const TRUST = {
    * Renamed from `priceRejection` (D45): it always fired on every rejection,
    * not just price ones, and the old name hid that. The price-specific part is
    * now a separate, additional penalty below.
+   *
+   * **D66: halved, −0.15 → −0.075.** It was the largest drain on trust by far
+   * (about 22 points a day at Junction 42, where ~150 drivers drive on), and
+   * much of that cohort is not the operator's doing: unhurried drivers who
+   * glance at any queue. A busy, well-run site lost trust for being busy.
    */
-  siteRejection: -0.15,
+  siteRejection: -0.075,
   /**
    * **On top of `siteRejection`, and only when the price exceeded what that
    * driver would pay (D45).** Being too dear is a different reputational injury
@@ -386,6 +391,16 @@ export const TRUST = {
    */
   priceRejectionExtra: -0.2,
   partialChargeCapped: -0.1,
+  /**
+   * **D66: trust recovers.** While trust is below the site's starting level,
+   * and no open bay is faulted, it closes this share of the gap each sim-hour,
+   * inside the ±5 rolling clamp. A neglected site does not heal.
+   * Before D66 trust was a running total with nothing pulling it back, so a
+   * loss at 10:00 was still all there at midnight (measured: 7–11 of 10 points).
+   * One-way on purpose: above the start, trust is built and kept, not pulled
+   * back down.
+   */
+  recoveryShareOfGapPerHour: 0.25,
 } as const;
 
 /**
