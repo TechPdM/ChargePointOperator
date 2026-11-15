@@ -481,7 +481,7 @@ footer.foot p { margin: 0 0 6px; max-width: 72ch; }
 
     { id: "refprice", band: "a", g: A[1], label: "Reference price", sub: "referencePricePerKwh", kind: "price",
       blurb: "What charging costs round here — a property of the market, not of the driver. Since D43 this is the site's figure and it feeds both price channels.",
-      formula: "Junction 42   £0.79 / kWh\nEastgate      £0.72 / kWh\nTrevithick      £0.62 / kWh   (ships at £0.55)",
+      formula: "Junction 42   £0.79 / kWh\nEastgate      £0.72 / kWh\nTrevithick      £0.62 / kWh   (ships at £0.62, D68)",
       consts: [["roadsideHub", "0.79"], ["commuterHub", "0.72"], ["destinationSite", "0.62"]],
       src: "src/game/core/types.ts:470",
       notes: ["ArchetypeProfile still carries its own referencePricePerKwh — 0.75 / 0.85 / 1.00. Nothing in src/ reads it; only an assertion in tests/mechanics.test.ts:634."] },

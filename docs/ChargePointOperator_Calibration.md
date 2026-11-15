@@ -186,7 +186,7 @@ Measured over 40 seeds (`s1`–`s40`) on **2026-11-15**, after D65–D67. **Ever
 | Cumulative operating margin | **£3,893** [£3,528 · £4,323] | £4,074 | sessions × price |
 | End trust | **62.0** [58.8 · 64.5] | 54.1 | **D66**: drive-on penalty halved, recovery |
 
-Eastgate p50: margin £1,176 · wait 1.6 min · trust 69.3 · drive-ons 62 a day. Trevithick p50: margin £392 · wait 3.2 min · trust 65.6 · drive-ons 61 a day.
+Eastgate p50: margin £1,176 · wait 1.6 min · trust 69.3 · drive-ons 62 a day. Trevithick p50 **at £0.62 (D68)**: margin £545 · wait 2.1 min · trust 67.7 · drive-ons 56 a day (at £0.55: £392 · 3.2 min · 65.6 · 61).
 
 **Goals (D67) and how often each is met by the baseline:**
 
@@ -194,9 +194,9 @@ Eastgate p50: margin £1,176 · wait 1.6 min · trust 69.3 · drive-ons 62 a day
 | :-- | :-- | --: | --: | --: | --: |
 | Junction 42 | £4,550 / 210 s / 55 | 3% | 33% | **100%** | 100% |
 | Eastgate | £1,200 / 120 s / 73 | 45% | 98% | 20% | 83% |
-| Trevithick | £475 / 200 s / 63 | 10% | 57% | 85% | 93% |
+| Trevithick *(D68: opens at £0.62)* | £475 / 200 s / 63 | 63% | 100% | 88% | 38% — **exempt (D68)** |
 
-**Winnability (D67), the other side of D13:** the good-player benchmark wins **63%** at Junction 42 and **66%** at Eastgate (80 fresh days each), and **85%** at Trevithick (40 days). The baseline wins 1%, 9% and 5%.
+**Winnability (D67), the other side of D13:** the good-player benchmark wins **63%** at Junction 42 and **66%** at Eastgate (80 fresh days each), and **85–88%** at Trevithick (40 days). The baseline wins 1% and 9%; at Trevithick it wins ~55–63% since D68, which is allowed at the starting site.
 
 *Note:* Junction 42's trust goal no longer bites for the baseline (met 40/40) since D66 lifted its trust. The site is hard through margin. Kept at 55 by Mark's call (D67).
 

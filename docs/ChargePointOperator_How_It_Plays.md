@@ -147,7 +147,7 @@ The 80%+ stretch is where the time goes: the last 5% of the commuter's charge ta
 
 ## 7. What you are scored on, and what pushes back
 
-**Three goals, checked at midnight** (D44): cumulative operating margin, all-day average wait, and end-of-day trust. Each site's goals are set from both sides (D67): changing nothing fails at least one goal on ≥80% of days (D13), and a good player, scripted to use only what the dashboard shows, wins about 85% of days at Trevithick and 60–70% at Eastgate and Junction 42. `npm run sim -- winnable` checks both.
+**Three goals, checked at midnight** (D44): cumulative operating margin, all-day average wait, and end-of-day trust. Each site's goals are set from both sides (D67): changing nothing fails at least one goal on ≥80% of days (D13; Trevithick, the starting site, is exempt since D68), and a good player, scripted to use only what the dashboard shows, wins about 85% of days at Trevithick and 60–70% at Eastgate and Junction 42. `npm run sim -- winnable` checks both.
 
 **Margin** = kWh × price − energy at £0.28/kWh − maintenance − site running costs (running costs and the standing maintenance charge scale with the bays you keep open, D54).
 
@@ -194,13 +194,13 @@ The same rules on three different sites. Gate criterion 2 needs the right answer
 | :-- | :-- | :-- | :-- |
 | Hardware | 4 × 150 kW + 2 × 350 kW | 6 × 150 kW | 7 × 22 kW AC + 1 × 150 kW |
 | Grid cap | 650 kW (50% of nameplate) | 450 kW | 350 kW |
-| Starting price / reference | £0.79 / £0.79 | £0.72 / £0.72 | £0.55 / £0.62 |
+| Starting price / reference | £0.79 / £0.79 | £0.72 / £0.72 | £0.62 / £0.62 *(D68; was £0.55)* |
 | Detour to next charger | 8–30 min (captive) | 2–7 min (competitive) | 5–18 min |
 | Drivers | Mixed, panic overnight, high volume | Commuter-heavy, less patient (×0.8) | Patient (×1.5), less urgent |
 | Goals: margin / wait / trust (**D67**) | £4,550 / 3.5 min / 55 | £1,200 / 2 min / 73 | £475 / 3.3 min / 63 |
-| A good player wins / doing nothing wins (D67) | 63% / 1% | 66% / 9% | 85% / 5% |
-| What it teaches | You have pricing power, so use it; every goal bites | You have no pricing power; margin and trust are the hard goals | Ships underpriced; maintenance alone doesn't pay here |
-| Best fixed strategy (40 seeds, D67 goals) | premium + preventive (no other close) | preventive (as-shipped close) | premium (premium + preventive close) |
+| A good player wins / doing nothing wins (D67, D68) | 63% / 1% | 66% / 9% | 85–88% / **~60%** (allowed here, D68) |
+| What it teaches | You have pricing power, so use it; every goal bites | You have no pricing power; margin and trust are the hard goals | The starting site: opens at its going rate, so changing nothing usually wins (D68); good play wins nearly every day |
+| Best fixed strategy (40 seeds, D67 goals) | premium + preventive (no other close) | preventive (as-shipped close) | premium + preventive (premium, wave-pricing close) |
 
 The day's shape on the corridor: a sparse, panic-heavy night, then the morning commute, a lull, a midday en-route surge with **the scripted fault on the 350 kW bay 5 at 12:30**, a recovery window, then the evening peak, the hardest stretch of the day.
 

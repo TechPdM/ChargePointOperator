@@ -26,7 +26,7 @@ Filling those rows from self-play or from a model's judgement would produce a nu
 | 3 | **Failure modes reachable** | ≥4 of 5 failure states observed arising naturally | 36 runs, `RunManifest.failure_states_observed` | **PASS — 5 of 5** |
 | 4 | **Decisions matter** | Median played run differs meaningfully from baseline on ≥2 goal KPIs; the three operator questions answerable from logs | `compareRuns` on playtest seeds; Phase 3 findings §3 | **PASS** |
 | 5 | **One-more-run** | ≥2 of 3 external testers voluntarily take run 3 | Run-3 uptake | **PENDING — needs testers** |
-| D67 | **Winnable** *(not a Plan §6.2 criterion; the other side of D13)* | A scripted good player wins ≥55% of days (≥75% at Trevithick); the baseline ≤20% | `winnable`, 40 days a site, stored good-player settings | **PASS** — 68% / 73% / 85%; baseline 0% / 8% / 5% |
+| D67 | **Winnable** *(not a Plan §6.2 criterion; the other side of D13)* | A scripted good player wins ≥55% of days (≥75% at Trevithick); the baseline ≤20% (Trevithick exempt, D68) | `winnable`, 40 days a site, stored good-player settings | **PASS** — 68% / 73% / 88%; baseline 0% / 8% / 55% (exempt) |
 
 ---
 
@@ -49,7 +49,9 @@ Eight policies × three archetypes × **40 seeds**, against the D65–D67 model 
 | :-- | :-- | :-- |
 | Junction 42 | `premium+preventive` | nothing — clear of the field |
 | Eastgate | `preventive` | `as-shipped` (*t*=1.48) |
-| Trevithick | `premium` | `premium+preventive` (*t*=0.44) |
+| Trevithick | `premium+preventive` *(D68 re-run)* | `premium` (*t*=0.70), `wave-pricing` (*t*=1.53) |
+
+*D68 (same day): Trevithick now opens at £0.62, and its column was re-run: as-shipped 2.50 (63%), premium 2.75 (78%), premium+preventive **2.80 (80%)**, wave-pricing 2.67 (70%), preventive 2.40, throughput 2.23, throughput+preventive 2.15, undercut 0.88. Still PASS: `premium+preventive` is best at Junction 42 and Trevithick but not credible at Eastgate.*
 
 **Verdict: PASS, and no longer narrow.** Three distinct winners, and no strategy is credible at more than one site. `wave-pricing`, which D61/D62 turned on, is now ruled out everywhere: D66's trust change and D67's goals no longer reward its thin margin over the field. D62's all-rounder reading is not needed for this result.
 
@@ -103,7 +105,7 @@ The other side of D13. D13 checks that doing nothing usually loses; this checks 
 | :-- | --: | --: | --: | --: | :-- |
 | Junction 42 | **68%** | ≥55% (fitted 60–70%) | 0% | ≤20% | preventive, price ×1.10, +20% while the forecast wait is over 5 min, 90% limit then, finish soonest first |
 | Eastgate | **73%** | ≥55% (fitted 60–70%) | 8% | ≤20% | preventive, price ×1.10, finish soonest first |
-| Trevithick | **85%** | ≥75% (fitted 80–90%) | 5% | ≤20% | no contract, price ×1.25 |
+| Trevithick | **88%** | ≥75% (fitted 80–90%) | 55% | exempt (D68) | standard, price ×1.20 (£0.74 from the £0.62 start) |
 
 Over 80 days that no fit used, the good player won 63% at Junction 42 and 66% at Eastgate. Each 40-day figure carries about ±8 points of sampling noise. The search changes one setting at a time, so these are a floor on good play, not a ceiling.
 

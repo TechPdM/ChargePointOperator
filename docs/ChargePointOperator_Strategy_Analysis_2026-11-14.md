@@ -179,7 +179,7 @@ Mark chose from the options in §5 and the trust findings below. All of it is in
 | 4. "Can it be won?" check | **Done (D67).** `npm run sim -- winnable`, also in `gate` | Passes at all three sites |
 | 5. Re-fit the goals | **Done (D67).** Repeated until stable, checked on 80 unseen days | See below |
 | 6. No-contract start | Settled by the fit | The good player chooses its contract in the first minute, so the goals assume a player who does. Starting with none is a choice to make, not a handicap. |
-| Starting price | Left as a discovery | Every site's best price is above its starting price; the game doesn't say so |
+| Starting price | Left as a discovery; **later the same day, Trevithick moved to its going rate (D68)** | Every site's best price is above its starting price; the game doesn't say so. At Trevithick (now £0.62) doing nothing wins ~60%, accepted for the starting site |
 
 **Trust (D66).** Measured on 20 baseline days per site: drive-ons were the largest drain by far (removing their penalty lifted trust 20 points at Junction 42), and trust never recovered (a 10-point knock at 10:00 was still 7–11 points down at midnight). The feedback loop from trust to drive-ons was small (0–3 extra drive-ons) and left alone. Changes:
 

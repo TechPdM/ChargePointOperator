@@ -124,9 +124,10 @@ export const destinationSite: ScenarioConfig = {
   // affords one ultra step or two DC posts, which is the trade this site is
   // actually about: a little speed for a few, or a bit more speed for more.
   initialCash: 100_000,
-  // Cheap: the charging is an amenity that keeps people on site, not the
-  // business. The margin per session is thin and the volume is the point.
-  initialPricePerKwh: 0.55,
+  // D68 (2026-11-15, Mark): starts at the reference price, the "arrivals
+  // unchanged" point, rather than £0.55 below it. The charging is still an
+  // amenity with a thin margin; the site no longer opens underpriced.
+  initialPricePerKwh: 0.62,
   initialConnectionFee: 0,
   initialTrust: 60,
   initialPowerPolicy: "equal_share",
@@ -167,6 +168,9 @@ export const destinationSite: ScenarioConfig = {
    * 20-seed baseline spread: margin −£28–£589 · trust 56.9–68.0 ·
    * wait 571–1,139 s · sessions 84–107.
    */
+  // D68 (Mark): the starting site, opening at its going rate, is meant to be
+  // winnable by doing nothing on most days (baseline wins ~60% at £0.62).
+  baselineMayWin: "starting site, opens at its going rate (D68)",
   goals: {
     // D57 (2026-11-13, ratified by Mark): re-fitted after D46–D55. Baseline
     // spread: margin £35–£513 (p50 £429) · wait 90–264 s (p50 180) · trust

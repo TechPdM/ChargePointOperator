@@ -193,7 +193,8 @@ export function pct(v: number): string {
  *
  * Targets (Mark, 2026-11-15): Trevithick is the starting site and stays easy,
  * about 85%; Eastgate and Junction 42 sit at 60–70%. The baseline stays at or
- * under 20% everywhere. The minimums below leave room for day-to-day noise.
+ * under 20% everywhere except Trevithick, which since D68 opens at its going
+ * rate and may be won by doing nothing. The minimums leave room for noise.
  */
 export interface WinnabilityTarget {
   settings: GoodPlayerSettings;
@@ -232,14 +233,12 @@ export const WINNABILITY: Record<string, WinnabilityTarget> = {
     baselineMax: 0.2,
   },
   "destination-site-01": {
-    settings: {
-      ...DEFAULT_GOOD_PLAYER,
-      maintenance: "reactive",
-      priceMultiplier: 1.25,
-    },
+    // D68: the site now opens at £0.62, so ×1.20 is £0.74 (search, 2026-11-15).
+    settings: { ...DEFAULT_GOOD_PLAYER, maintenance: "standard", priceMultiplier: 1.2 },
     goodMin: 0.75,
     goodBand: [0.8, 0.9],
-    baselineMax: 0.2,
+    // D68: the starting site; doing nothing may win here (`baselineMayWin`).
+    baselineMax: 1,
   },
 };
 
@@ -274,7 +273,8 @@ export function describeWinnability(r: WinnabilityResult): string {
   return (
     `     ${r.scenarioName.padEnd(26)} good player ${pct(r.good.winRate).padStart(4)}` +
     ` (needs ≥${pct(r.target.goodMin)}, fitted ${pct(lo)}–${pct(hi)})` +
-    ` · baseline ${pct(r.baseline.winRate).padStart(4)} (needs ≤${pct(r.target.baselineMax)})` +
+    ` · baseline ${pct(r.baseline.winRate).padStart(4)}` +
+    (r.target.baselineMax >= 1 ? " (exempt, D68)" : ` (needs ≤${pct(r.target.baselineMax)})`) +
     `  ${r.pass ? "PASS" : "FAIL"}`
   );
 }

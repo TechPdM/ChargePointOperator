@@ -530,6 +530,12 @@ export interface ScenarioConfig {
 
   scriptedFaults: ScriptedFault[];
   goals: ScenarioGoals;
+  /**
+   * D68: the starting site is exempt from D13's difficulty floor and from the
+   * winnability check's baseline cap. Doing nothing is allowed to win here
+   * most days; the reason is reported instead of PASS/FAIL. Absent elsewhere.
+   */
+  baselineMayWin?: string;
 }
 
 /**

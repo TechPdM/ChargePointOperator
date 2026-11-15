@@ -292,7 +292,8 @@ function commandBatch(args: Args): void {
 
   console.log(
     `\n  D13 difficulty floor: baseline fails ≥1 goal on ${failsAGoal}/${summaries.length}` +
-      ` seeds (${floorPct.toFixed(0)}%) — needs ≥80%. ${floorPct >= 80 ? "PASS" : "FAIL"}`,
+      ` seeds (${floorPct.toFixed(0)}%) — needs ≥80%. ` +
+      (scenario.baselineMayWin ? `EXEMPT: ${scenario.baselineMayWin}` : floorPct >= 80 ? "PASS" : "FAIL"),
   );
 
   const observed = new Map<string, number>();
@@ -414,7 +415,7 @@ function commandArchetypes(args: Args): void {
     );
     console.log(
       `    D13 floor ${((fails / summaries.length) * 100).toFixed(0)}%` +
-        `${fails / summaries.length >= 0.8 ? " PASS" : " FAIL"}` +
+        `${scenario.baselineMayWin ? " EXEMPT (D68)" : fails / summaries.length >= 0.8 ? " PASS" : " FAIL"}` +
         ` · failure states seen: ${[...observed].join(", ") || "none"}\n`,
     );
   }
