@@ -401,6 +401,16 @@ export const TRUST = {
    * back down.
    */
   recoveryShareOfGapPerHour: 0.25,
+  /**
+   * **D66 (Mark): a site left broken crashes trust.** Each faulted bay left
+   * open costs this much trust per sim-hour, on top of the one-off fault
+   * penalty, until it is repaired or closed. Repair and close are the fixes.
+   * Measured over 20 days with nobody repairing: −2/h crashes trust on 20/20
+   * days at Junction 42 and Trevithick and 13/20 at Eastgate (whose quiet days
+   * have little to leave broken); −1/h only 5/20 at Trevithick. A well-run
+   * site barely notices: baseline trust moves by under a point at any rate.
+   */
+  brokenBayPerHour: -2,
 } as const;
 
 /**

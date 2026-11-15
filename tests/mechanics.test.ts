@@ -534,6 +534,23 @@ describe("trust (Calibration §5, rebalanced by D30)", () => {
     expect(knocked(true)).toBeLessThanOrEqual(40);
   });
 
+  it("drains trust while a broken bay stands open, and closing it stops the drain (D66)", () => {
+    const hourWith = (closed: boolean): number => {
+      let s = createInitialState(roadsideHub, "s1");
+      s.site.policy.maintenanceLevel = "reactive";
+      const bay = s.chargers["bay-1"]!;
+      bay.state = "faulted";
+      bay.isOpen = !closed;
+      for (let i = 0; i < 60; i++) s = tick(s).state;
+      return s.site.metrics.trust;
+    };
+    // Small hours, no drivers: the drain is the only thing moving trust.
+    expect(hourWith(false)).toBeCloseTo(60 + TRUST.brokenBayPerHour, 1);
+    // Closed, it no longer drains — and with it out of the uptime count, the
+    // site earns the high-uptime bonus instead.
+    expect(hourWith(true)).toBeGreaterThanOrEqual(60);
+  });
+
   it("charges extra reputation for being too dear, not for being busy (D45)", () => {
     // The split is the point: a queue is bad luck, a price is a decision. A
     // blanket penalty taxed both and made trust unreachable at the site whose

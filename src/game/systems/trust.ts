@@ -31,8 +31,10 @@ export function updateTrust(ctx: TickContext): void {
   // nothing heals: unconditional recovery left a site nobody repaired on
   // trust ~57 at midnight and made trust_crash unreachable.
   const gap = state.scenario.initialTrust - state.site.metrics.trust;
-  const brokenOpenBay = bayList(state).some((b) => b.isOpen && b.state === "faulted");
-  if (gap > 0 && !brokenOpenBay) {
+  const brokenOpenBays = bayList(state).filter((b) => b.isOpen && b.state === "faulted").length;
+  // A broken bay left open drains trust until it is repaired or closed (Mark).
+  ctx.trustDeltaRaw += brokenOpenBays * TRUST.brokenBayPerHour * (ctx.delta / 3_600);
+  if (gap > 0 && brokenOpenBays === 0) {
     const share = 1 - (1 - TRUST.recoveryShareOfGapPerHour) ** (ctx.delta / 3_600);
     ctx.trustDeltaRaw += gap * share;
   }

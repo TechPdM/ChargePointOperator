@@ -451,11 +451,13 @@ Changes: the text ramp is raised to clear AA on all three surfaces (13.9 / 9.5 /
 
 *Why the condition.* Unconditional recovery was tried first and measured: a site where nobody repairs anything ended the day on trust 54–60, `trust_crash` became unreachable, and neglect went unpunished. With the condition, the same neglected site ends on 31–58 and 6 of 20 days hit `trust_crash`. A bad patch heals once it is dealt with; a broken site keeps sliding.
 
+*A site left broken crashes trust (Mark, same day).* Each faulted bay left open now also costs **−2 trust per sim-hour** (`brokenBayPerHour`) until it is repaired or closed; repair and close are the fixes. Before this, a fault cost trust once, when it happened, and a neglected site crashed on only 6 of 20 days at Junction 42. Measured with nobody repairing, 20 days each: Junction 42 and Trevithick crash on 20/20, Eastgate on 13/20 (its quiet days have little left broken). −1/h was tried and crashed Trevithick on only 5/20. A well-run site barely notices: baseline trust moves by under a point. Closing a broken bay on no contract (D64) stops the drain and lets recovery resume.
+
 *Why one-way.* Recovery pulls trust up towards the start, never down. Pulling it down too would turn trust into something only maintained, and goals that ask for trust built above the start would become very hard to meet.
 
 *Considered:* removing the link from trust to drive-ons (`SITE_SCORE.d`). Measured: a 10-point loss adds only 0–3 drive-ons, so the feedback loop is small and was left alone.
 
-*Consequences.* Baseline trust ends higher everywhere (20 days: Junction 42 ≈ 63, was ≈ 52; Eastgate ≈ 70; Trevithick ≈ 66), so the trust goals are re-fitted in D67. Tests: one new in `mechanics.test.ts` (recovers while running, not with a broken bay); the drive-on test now pins 0.075; the failure-states close-out test re-picked its disaster days; the power-policy test allows half a driver a day of slack, since the two policies now tie.
+*Consequences.* Baseline trust ends higher everywhere (20 days: Junction 42 ≈ 63, was ≈ 52; Eastgate ≈ 70; Trevithick ≈ 66), so the trust goals are re-fitted in D67. Tests: two new in `mechanics.test.ts` (recovers while running, not with a broken bay; a broken open bay drains and closing it stops the drain); the drive-on test now pins 0.075; the failure-states close-out test re-picked its disaster days; the power-policy test allows half a driver a day of slack, since the two policies now tie.
 
 ## Open
 
