@@ -19,6 +19,7 @@
 | Docs | Decision log D65–D67; Calibration v4.2 (§7 re-measured); strategy analysis v1.3 (§5c); How It Plays (dated 2026-11-15) | — |
 | Docs sync | Architecture, `docs/ARCHITECTURE.md`, KPI dictionary v1.7, scenario spec, model map, README, Plan, Session Pack; gate scorecard v2.3 from a 40-seed `gate` run (criteria 2–4 and winnability all pass; criterion 2 no longer narrow, `trust_crash` 4 → 11 runs) | `9c1561c` |
 | Interface | Each panel's fixed explanation moved from below the panel into a **?** after its title (hover, keyboard focus or tap). Price, Charging limit, Maintenance, Bays, Takings and margin, Waiting and walking away; Power sharing's per-option descriptions became one list there. Copy that changes in play (Diagnosis "Seen today", the manual kW note, the end-of-day panel) stays inline | Mark's request; `Panel.tsx` `help` prop |
+| Interface | The ? pop-over is placed against the panel header and capped at the panel's width; anchored at the ?, it ran off the screen on narrow panels (Mark's screenshot) | `25d4070` |
 
 ## 2. How the session went
 
@@ -63,3 +64,4 @@ Good-player rates are over 80 unseen days (Trevithick 40). Each 40-day figure ca
 1. ~~Junction 42's trust goal~~ — **stays at 55** (Mark, 2026-11-15). It catches neglect; the site stays hard through margin.
 2. **Playtest** the new goals and trust rules (Mark is playing the deployed version and will report back): do near misses feel like near misses, does trust read as recoverable, and do players find the price lever?
 3. From 2026-11-14 §6: trust card colours, queue card thresholds, closing bays to shield uptime.
+4. **Layout, parked.** Nine KPIs on one row and the four controls (Price, Power sharing, Charging limit, Maintenance) on the row below, on desktop. Built, then taken off `main` on Mark's call (more work to review than expected). It is on the local branch `feature/kpi-row-layout`, not pushed.
